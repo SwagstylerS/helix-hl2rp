@@ -1,7 +1,7 @@
 ITEM.name = "Recreational Chemical"
 ITEM.model = Model("models/props_lab/jar01a.mdl")
 ITEM.description = "A chemical compound with recreational properties. Not sanctioned by the Union."
-ITEM.base = "base_chemical"
+ITEM.base = "base_crafted"
 ITEM.category = "Chemicals"
 ITEM.isDualUse = true
 

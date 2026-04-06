@@ -1,7 +1,7 @@
 ITEM.name = "Combat Stimulant"
 ITEM.model = Model("models/props_lab/jar01a.mdl")
 ITEM.description = "A powerful chemical compound. Grants a temporary boost, but carries a crash."
-ITEM.base = "base_chemical"
+ITEM.base = "base_crafted"
 ITEM.category = "Chemicals"
 ITEM.isDualUse = true
 

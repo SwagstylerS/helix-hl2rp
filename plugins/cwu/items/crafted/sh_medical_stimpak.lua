@@ -1,7 +1,7 @@
 ITEM.name = "Medical Stimpak"
 ITEM.model = Model("models/props_lab/jar01a.mdl")
 ITEM.description = "A potent medical compound. Can be used for direct treatment or at a medical workstation for surgery."
-ITEM.base = "base_crafted_good"
+ITEM.base = "base_crafted"
 ITEM.category = "CWU Goods"
 
 ITEM.functions.Inject = {

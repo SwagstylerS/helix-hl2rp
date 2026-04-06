@@ -1,7 +1,7 @@
 ITEM.name = "CWU Bandage"
 ITEM.model = Model("models/props_junk/garbage_newspaper001a.mdl")
 ITEM.description = "A clean bandage crafted by the CWU Production Division."
-ITEM.base = "base_crafted_good"
+ITEM.base = "base_crafted"
 ITEM.category = "CWU Goods"
 
 ITEM.functions.Apply = {
