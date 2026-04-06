@@ -141,6 +141,7 @@ function Schema:LoadCheckpoints()
 	end
 end
 
+
 function Schema:CreateScanner(client, class)
 	class = class or "npc_cscanner"
 
