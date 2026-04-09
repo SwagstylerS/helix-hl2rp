@@ -82,11 +82,27 @@ if (SERVER) then
 		end
 	end
 
-	-- Treatment: Basic bandaging (any CWU Medical)
-	netstream.Hook("CWUMedicalTreatBasic", function(client, entIndex, targetSteamID)
+	-- Helper: find target patient near workstation
+	local function FindPatient(entity, targetSteamID)
+		for _, v in ipairs(player.GetAll()) do
+			if (v:SteamID64() == targetSteamID and v:GetPos():Distance(entity:GetPos()) < 200) then
+				return v
+			end
+		end
+
+		return nil
+	end
+
+	-- Minigame request handler: validates and creates a session
+	netstream.Hook("CWUMinigameRequest", function(client, entIndex, sessionType, targetSteamID)
 		local entity = Entity(entIndex)
 
 		if (!IsValid(entity) or entity:GetClass() != "ix_medicalworkstation") then
+			return
+		end
+
+		if (entity:GetInUse()) then
+			client:Notify("The workstation is currently in use.")
 			return
 		end
 
@@ -96,214 +112,207 @@ if (SERVER) then
 			return
 		end
 
-		-- Find target patient nearby
-		local target = nil
+		local character = client:GetCharacter()
+		local inventory = character:GetInventory()
+		local extraData = {entPos = entity:GetPos()}
 
-		for _, v in ipairs(player.GetAll()) do
-			if (v:SteamID64() == targetSteamID and v:GetPos():Distance(entity:GetPos()) < 200) then
-				target = v
-				break
+		-- Validate per procedure type
+		if (sessionType == "bandaging") then
+			if (!targetSteamID) then return end
+
+			local target = FindPatient(entity, targetSteamID)
+
+			if (!IsValid(target)) then
+				client:Notify("Patient must be near the workstation.")
+				return
 			end
-		end
 
-		if (!IsValid(target)) then
-			client:Notify("Patient must be near the workstation.")
+			extraData.targetSteamID = targetSteamID
+
+		elseif (sessionType == "surgery") then
+			if (!targetSteamID) then return end
+
+			if (!character:GetData("medicalTraining", false)) then
+				client:NotifyLocalized("cwuNeedMedicalTraining")
+				return
+			end
+
+			if (!inventory:HasItem("medical_stimpak")) then
+				client:NotifyLocalized("cwuNeedStimpak")
+				return
+			end
+
+			local target = FindPatient(entity, targetSteamID)
+
+			if (!IsValid(target)) then
+				client:Notify("Patient must be near the workstation.")
+				return
+			end
+
+			extraData.targetSteamID = targetSteamID
+
+		elseif (sessionType == "injection_medicine") then
+			local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
+			local herbs = inventory:GetItemsByUniqueID("medical_herbs", true)
+
+			if (#chemBases < 2 or #herbs < 1) then
+				client:NotifyLocalized("cwuMissingMaterials")
+				return
+			end
+
+			extraData.drugType = "medicine"
+
+		elseif (sessionType == "injection_combat" or sessionType == "injection_recreational") then
+			local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
+
+			if (#chemBases < 2) then
+				client:NotifyLocalized("cwuMissingMaterials")
+				return
+			end
+
+			extraData.drugType = sessionType == "injection_combat" and "combat" or "recreational"
+		else
 			return
 		end
 
-		entity:SetInUse(true)
-		entity:SetState(1)
-		client:SetAction("@cwuTreating", 5)
+		-- Play ambient sound for synthesis
+		if (string.StartWith(sessionType, "injection")) then
+			entity:EmitSound("ambient/machines/combine_terminal_idle2.wav")
+		end
 
-		client:DoStaredAction(entity, function()
+		local token, maxTime = PLUGIN:CreateMinigameSession(client, entity, sessionType, extraData)
+		netstream.Start(client, "CWUMinigameStart", token, sessionType, maxTime, extraData)
+	end)
+
+	-- Minigame completion handler: validates score and applies outcome
+	netstream.Hook("CWUMinigameComplete", function(client, token, score)
+		local session = PLUGIN:ValidateMinigameCompletion(client, token, score)
+
+		if (!session) then
+			return
+		end
+
+		local entity = session.entity
+
+		if (session.type == "bandaging") then
+			local target = FindPatient(entity, session.targetSteamID)
+
 			if (IsValid(target)) then
-				target:SetHealth(math.min(target:Health() + 25, target:GetMaxHealth()))
+				local healAmount
+
+				if (score >= 0.8) then
+					healAmount = 25
+				elseif (score >= 0.5) then
+					healAmount = 20
+				elseif (score >= 0.3) then
+					healAmount = 15
+				else
+					healAmount = 10
+				end
+
+				target:SetHealth(math.min(target:Health() + healAmount, target:GetMaxHealth()))
 				target:EmitSound("items/medshot4.wav")
-				target:Notify("You have been treated by a CWU medic.")
+				target:Notify("You have been treated by a CWU medic. (+" .. healAmount .. " HP)")
 			end
 
 			client:Notify("Treatment complete.")
-			entity:SetState(0)
-			entity:SetInUse(false)
-		end, 5, function()
-			if (IsValid(entity)) then
-				entity:SetState(0)
-				entity:SetInUse(false)
-			end
 
-			if (IsValid(client)) then
-				client:SetAction()
-			end
-		end)
-	end)
-
-	-- Treatment: Advanced surgery (requires medicalTraining + stimpak)
-	netstream.Hook("CWUMedicalSurgery", function(client, entIndex, targetSteamID)
-		local entity = Entity(entIndex)
-
-		if (!IsValid(entity) or entity:GetClass() != "ix_medicalworkstation") then
-			return
-		end
-
-		local character = client:GetCharacter()
-
-		if (!character:GetData("medicalTraining", false)) then
-			client:NotifyLocalized("cwuNeedMedicalTraining")
-			return
-		end
-
-		local stimpak = character:GetInventory():HasItem("medical_stimpak")
-
-		if (!stimpak) then
-			client:NotifyLocalized("cwuNeedStimpak")
-			return
-		end
-
-		local target = nil
-
-		for _, v in ipairs(player.GetAll()) do
-			if (v:SteamID64() == targetSteamID and v:GetPos():Distance(entity:GetPos()) < 200) then
-				target = v
-				break
-			end
-		end
-
-		if (!IsValid(target)) then
-			client:Notify("Patient must be near the workstation.")
-			return
-		end
-
-		entity:SetInUse(true)
-		entity:SetState(1)
-		client:SetAction("@cwuTreating", 10)
-
-		client:DoStaredAction(entity, function()
+		elseif (session.type == "surgery") then
 			-- Consume stimpak
-			local kit = client:GetCharacter():GetInventory():HasItem("medical_stimpak")
+			local stimpak = client:GetCharacter():GetInventory():HasItem("medical_stimpak")
 
-			if (kit) then
-				kit:Remove()
+			if (stimpak) then
+				stimpak:Remove()
 			end
+
+			local target = FindPatient(entity, session.targetSteamID)
 
 			if (IsValid(target)) then
-				target:SetHealth(target:GetMaxHealth())
+				local maxHP = target:GetMaxHealth()
+				local newHP
+
+				if (score >= 0.8) then
+					newHP = maxHP
+				elseif (score >= 0.5) then
+					newHP = math.floor(maxHP * 0.75)
+				elseif (score >= 0.3) then
+					newHP = math.floor(maxHP * 0.50)
+				else
+					newHP = math.floor(maxHP * 0.35)
+				end
+
+				target:SetHealth(math.max(target:Health(), newHP))
 				target:EmitSound("items/medcharge4.wav")
-				target:Notify("You have undergone surgery. Full health restored.")
+
+				if (score >= 0.5) then
+					target:Notify("You have undergone surgery. Health restored to " .. newHP .. ".")
+				else
+					target:Notify("The surgery was botched. Partial healing applied.")
+				end
 			end
 
 			client:Notify("Surgery complete.")
-			entity:SetState(0)
-			entity:SetInUse(false)
-		end, 10, function()
-			if (IsValid(entity)) then
-				entity:SetState(0)
-				entity:SetInUse(false)
+
+		elseif (string.StartWith(session.type, "injection")) then
+			local character = client:GetCharacter()
+			local inventory = character:GetInventory()
+
+			-- Determine output and materials
+			local outputItem, needsHerbs
+
+			if (session.drugType == "medicine") then
+				outputItem = "medical_stimpak"
+				needsHerbs = true
+			elseif (session.drugType == "combat") then
+				outputItem = "combat_stim"
+				needsHerbs = false
+			else
+				outputItem = "recreational_chem"
+				needsHerbs = false
 			end
 
-			if (IsValid(client)) then
-				client:SetAction()
-			end
-		end)
-	end)
-
-	-- Synthesis: Legitimate medicine (stimpak)
-	netstream.Hook("CWUMedicalSynthMedicine", function(client, entIndex)
-		local entity = Entity(entIndex)
-
-		if (!IsValid(entity) or entity:GetClass() != "ix_medicalworkstation") then
-			return
-		end
-
-		local character = client:GetCharacter()
-		local inventory = character:GetInventory()
-		local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
-		local herbs = inventory:GetItemsByUniqueID("medical_herbs", true)
-
-		if (#chemBases < 2 or #herbs < 1) then
-			client:NotifyLocalized("cwuMissingMaterials")
-			return
-		end
-
-		entity:SetInUse(true)
-		entity:SetState(2)
-		entity:EmitSound("ambient/machines/combine_terminal_idle2.wav")
-		client:SetAction("@cwuSynthesizing", 15)
-
-		client:DoStaredAction(entity, function()
 			-- Consume materials
+			local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
+
 			for i = 1, 2 do
 				if (chemBases[i]) then chemBases[i]:Remove() end
 			end
 
-			if (herbs[1]) then herbs[1]:Remove() end
+			if (needsHerbs) then
+				local herbs = inventory:GetItemsByUniqueID("medical_herbs", true)
 
-			-- Produce stimpak
-			ix.item.Spawn("medical_stimpak", entity:GetPos() + entity:GetUp() * 20, function(item, ent)
-				entity:EmitSound("buttons/combine_button1.wav")
-			end)
-
-			client:Notify("Synthesis complete: Medical Stimpak produced.")
-			entity:SetState(0)
-			entity:SetInUse(false)
-		end, 15, function()
-			if (IsValid(entity)) then
-				entity:SetState(0)
-				entity:SetInUse(false)
+				if (herbs[1]) then herbs[1]:Remove() end
 			end
 
-			if (IsValid(client)) then
-				client:SetAction()
+			-- Score determines success
+			if (score >= 0.5) then
+				if (IsValid(entity)) then
+					ix.item.Spawn(outputItem, entity:GetPos() + entity:GetUp() * 20, function(item, ent)
+						if (IsValid(entity)) then
+							entity:EmitSound("buttons/combine_button1.wav")
+						end
+					end)
+				end
+
+				-- Intentionally vague notification (dual-use concealment)
+				client:Notify("Synthesis complete: Medical compound produced.")
+			else
+				-- Synthesis failed - materials consumed, no item produced
+				client:NotifyLocalized("cwuSynthesisFailed")
 			end
-		end)
+		end
 	end)
 
-	-- Synthesis: Illicit drugs (combat stim or recreational) - dual use tension
-	netstream.Hook("CWUMedicalSynthDrug", function(client, entIndex, drugType)
-		local entity = Entity(entIndex)
+	-- Minigame cancel handler
+	netstream.Hook("CWUMinigameCancel", function(client, token)
+		local session = PLUGIN.MinigameSessions[token]
 
-		if (!IsValid(entity) or entity:GetClass() != "ix_medicalworkstation") then
+		if (!session or session.client != client) then
 			return
 		end
 
-		local character = client:GetCharacter()
-		local inventory = character:GetInventory()
-		local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
-
-		if (#chemBases < 2) then
-			client:NotifyLocalized("cwuMissingMaterials")
-			return
-		end
-
-		local outputItem = drugType == "combat" and "combat_stim" or "recreational_chem"
-
-		entity:SetInUse(true)
-		entity:SetState(2)
-		entity:EmitSound("ambient/machines/combine_terminal_idle2.wav")
-		client:SetAction("@cwuSynthesizing", 20)
-
-		client:DoStaredAction(entity, function()
-			for i = 1, 2 do
-				if (chemBases[i]) then chemBases[i]:Remove() end
-			end
-
-			ix.item.Spawn(outputItem, entity:GetPos() + entity:GetUp() * 20, function(item, ent)
-				entity:EmitSound("buttons/combine_button1.wav")
-			end)
-
-			-- Intentionally vague notification (dual-use concealment)
-			client:Notify("Synthesis complete: Medical compound produced.")
-			entity:SetState(0)
-			entity:SetInUse(false)
-		end, 20, function()
-			if (IsValid(entity)) then
-				entity:SetState(0)
-				entity:SetInUse(false)
-			end
-
-			if (IsValid(client)) then
-				client:SetAction()
-			end
-		end)
+		PLUGIN:CleanupMinigameSession(token)
+		client:NotifyLocalized("cwuMinigameCancel")
 	end)
 else
 	surface.CreateFont("ixMedicalWorkstation", {

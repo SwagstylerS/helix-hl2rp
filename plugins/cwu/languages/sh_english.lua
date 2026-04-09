@@ -33,6 +33,11 @@ LANGUAGE = {
 	cwuNeedMedicalTraining = "You require medical training for this procedure.",
 	cwuNeedStimpak = "This procedure requires a medical stimpak.",
 
+	-- Medical Minigames
+	cwuMinigameTimeout = "The procedure timed out.",
+	cwuMinigameCancel = "Procedure cancelled.",
+	cwuSynthesisFailed = "Synthesis failed. Materials have been consumed.",
+
 	-- Commerce
 	cwuVendorTerminal = "VENDOR TERMINAL",
 	cwuVendorClosed = "CLOSED",

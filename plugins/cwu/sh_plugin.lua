@@ -7,6 +7,7 @@ ix.util.Include("libs/sh_blueprints.lua")
 ix.util.Include("libs/sv_transactions.lua")
 ix.util.Include("libs/sv_infrastructure.lua")
 ix.util.Include("libs/sv_workorders.lua")
+ix.util.Include("libs/sv_minigame_sessions.lua")
 
 ix.util.Include("sv_hooks.lua")
 ix.util.Include("cl_hooks.lua")

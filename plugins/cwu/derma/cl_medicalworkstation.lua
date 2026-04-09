@@ -59,7 +59,7 @@ function PANEL:SetData(entIndex, data)
 			return
 		end
 
-		netstream.Start("CWUMedicalTreatBasic", self.entIndex, steamID)
+		netstream.Start("CWUMinigameRequest", self.entIndex, "bandaging", steamID)
 		self:Remove()
 	end
 
@@ -78,7 +78,7 @@ function PANEL:SetData(entIndex, data)
 			return
 		end
 
-		netstream.Start("CWUMedicalSurgery", self.entIndex, steamID)
+		netstream.Start("CWUMinigameRequest", self.entIndex, "surgery", steamID)
 		self:Remove()
 	end
 
@@ -109,7 +109,7 @@ function PANEL:SetData(entIndex, data)
 	medSynthBtn:SetText("Synthesize Medical Stimpak (2x Chemical Base + 1x Herbs)")
 	medSynthBtn:SetEnabled(data.hasChemBase and data.hasHerbs)
 	medSynthBtn.DoClick = function()
-		netstream.Start("CWUMedicalSynthMedicine", self.entIndex)
+		netstream.Start("CWUMinigameRequest", self.entIndex, "injection_medicine")
 		self:Remove()
 	end
 
@@ -121,7 +121,7 @@ function PANEL:SetData(entIndex, data)
 	combatBtn:SetText("Synthesize Compound A (2x Chemical Base)")
 	combatBtn:SetEnabled(data.hasChemBase)
 	combatBtn.DoClick = function()
-		netstream.Start("CWUMedicalSynthDrug", self.entIndex, "combat")
+		netstream.Start("CWUMinigameRequest", self.entIndex, "injection_combat")
 		self:Remove()
 	end
 
@@ -132,7 +132,7 @@ function PANEL:SetData(entIndex, data)
 	recBtn:SetText("Synthesize Compound B (2x Chemical Base)")
 	recBtn:SetEnabled(data.hasChemBase)
 	recBtn.DoClick = function()
-		netstream.Start("CWUMedicalSynthDrug", self.entIndex, "recreational")
+		netstream.Start("CWUMinigameRequest", self.entIndex, "injection_recreational")
 		self:Remove()
 	end
 
@@ -154,6 +154,28 @@ netstream.Hook("CWUMedicalOpen", function(entIndex, data)
 
 	ix.gui.cwuMedical = vgui.Create("ixCWUMedicalWorkstation")
 	ix.gui.cwuMedical:SetData(entIndex, data)
+end)
+
+-- Minigame start handler: opens the appropriate minigame panel
+netstream.Hook("CWUMinigameStart", function(token, sessionType, maxTime, extraData)
+	if (IsValid(ix.gui.cwuMinigame)) then
+		ix.gui.cwuMinigame:Remove()
+	end
+
+	local panelClass
+
+	if (sessionType == "bandaging") then
+		panelClass = "ixCWUMinigameBandaging"
+	elseif (sessionType == "surgery") then
+		panelClass = "ixCWUMinigameSurgery"
+	elseif (string.StartWith(sessionType, "injection")) then
+		panelClass = "ixCWUMinigameInjection"
+	end
+
+	if (panelClass) then
+		ix.gui.cwuMinigame = vgui.Create(panelClass)
+		ix.gui.cwuMinigame:SetSessionData(token, sessionType, maxTime, extraData or {})
+	end
 end)
 
 -- Recreational chemical screen effect
