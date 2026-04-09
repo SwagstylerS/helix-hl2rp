@@ -3,7 +3,6 @@ function Schema:LoadData()
 	self:LoadRationDispensers()
 	self:LoadVendingMachines()
 	self:LoadCombineLocks()
-	self:LoadForceFields()
 	self:LoadCheckpoints()
 
 	Schema.CombineObjectives = ix.data.Get("combineObjectives", {}, false, true)
@@ -13,7 +12,6 @@ function Schema:SaveData()
 	self:SaveRationDispensers()
 	self:SaveVendingMachines()
 	self:SaveCombineLocks()
-	self:SaveForceFields()
 	self:SaveCheckpoints()
 end
 
