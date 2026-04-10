@@ -3,7 +3,7 @@ AddCSLuaFile()
 
 ENT.Type = "anim"
 ENT.PrintName = "Combine Terminal"
-ENT.Category = "HL2RP"
+ENT.Category = "HL2 RP"
 ENT.Spawnable = true
 ENT.AdminOnly = true
 ENT.bNoPersist = true
