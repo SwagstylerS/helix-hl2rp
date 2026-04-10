@@ -249,11 +249,6 @@ net.Receive("CS_ScanDeny", function()
     denyAt  = CurTime()
 end)
 
-net.Receive("CS_QuotaWarning", function()
-    denyMsg = net.ReadString()
-    denyAt  = CurTime()
-end)
-
 net.Receive("CS_BatterySync", function()
     batteryLevel = net.ReadUInt(8)
 end)
@@ -268,17 +263,6 @@ net.Receive("CS_BiometricAlert", function()
     CS_NotifQueue[#CS_NotifQueue + 1] = {
         lines  = {"BIOMETRIC ALERT", msg},
         color  = Color(255, 220, 50),
-        showAt = CurTime(),
-    }
-end)
-
-net.Receive("CS_BlacksiteNotify", function()
-    local name = net.ReadString()
-    net.ReadString()
-    local cid = net.ReadUInt(16)
-    CS_NotifQueue[#CS_NotifQueue + 1] = {
-        lines  = {"BLACKSITE THRESHOLD", string.format("%s (CID:%d)", name, cid)},
-        color  = Color(255, 50, 50),
         showAt = CurTime(),
     }
 end)

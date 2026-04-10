@@ -180,20 +180,6 @@ function PANEL:Rebuild()
         MakeInfoRow(leftPanel, "  ISSUED BY:", d.wIssuedBy or "N/A", C.textDim)
     end
 
-    -- Blacksite
-    local bsStr, bsCol
-    if d.bsApproved then
-        bsStr = "APPROVED"
-        bsCol = C.red
-    elseif d.bsPending then
-        bsStr = string.format("PENDING (%d scans)", d.bsCount or 0)
-        bsCol = C.yellow
-    else
-        bsStr = "CLEAR"
-        bsCol = C.text
-    end
-    MakeInfoRow(leftPanel, "BLACKSITE:", bsStr, bsCol)
-
     -- Restricted items
     local items = d.restrictedItems or {}
     local itemStr = #items > 0 and table.concat(items, ", ") or "NONE"
@@ -267,21 +253,6 @@ function PANEL:Rebuild()
             end, C.red)
             issueBtn:Dock(TOP)
             issueBtn:DockMargin(0, 0, 0, 2)
-        end
-
-        -- Blacksite actions
-        if d.bsPending then
-            local approveBS = MakeActionButton(rightPanel, "APPROVE BLACKSITE", function()
-                self:SendAction("approveBlacksite", {cid = d.cid})
-            end, C.red)
-            approveBS:Dock(TOP)
-            approveBS:DockMargin(0, 4, 0, 2)
-
-            local denyBS = MakeActionButton(rightPanel, "DENY BLACKSITE", function()
-                self:SendAction("denyBlacksite", {cid = d.cid})
-            end, C.yellow)
-            denyBS:Dock(TOP)
-            denyBS:DockMargin(0, 0, 0, 2)
         end
 
         -- CWU actions

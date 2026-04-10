@@ -5,11 +5,6 @@ local PLUGIN = PLUGIN
 --  CONFIG
 -- ============================================================
 local CFG = {
-    TerminalDist       = 150,
-    IntelDist          = 150,
-    IntelMaxEntries    = 20,
-    TerminalModel      = "models/combine_interface001.mdl",
-    IntelModel         = "models/props_junk/wood_crate001a.mdl",
     WarrantExpiry      = 86400,
     HeatDecayRate      = 60,
     HeatDecayAmount    = 1,
@@ -22,7 +17,7 @@ local CFG = {
     HeatMeetMinScore   = 10,
     HeatMeetMinCount   = 2,
     HeatAmounts        = {MEETING=5, SMUGGLE=10, RESTRICT=15},
-    BlacksiteThreshold = 3,
+
     ClearanceExpiry    = 1800,
     ClearanceDenyHeat  = 5,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
@@ -35,7 +30,6 @@ local CFG = {
 CS             = CS             or {}
 CS.HeatScores  = CS.HeatScores  or {}
 CS.CWURequests = CS.CWURequests or {}
-CS.IntelLog    = CS.IntelLog    or {}
 CS.CurfewActive = CS.CurfewActive or false
 
 -- ============================================================
@@ -101,16 +95,6 @@ local function GetRestrictedItems(client)
         end
     end
     return found
-end
-
-local function SpawnFrozenProp(model, pos, ang)
-    local ent = ents.Create("prop_dynamic")
-    ent:SetModel(model)
-    ent:SetPos(pos)
-    ent:SetAngles(ang)
-    ent:Spawn()
-    ent:SetMoveType(MOVETYPE_NONE)
-    return ent
 end
 
 local function GetCombinePlayers()
@@ -203,42 +187,6 @@ local function DoClearWarrantBySID(ply, sid)
     end
 end
 
-local function DoApproveBlacksite(ply, cid)
-    if !IsSenior(ply) then ply:Notify("Unauthorized."); return false end
-    local blacksite   = ix.data.Get("cs_blacksite", {})
-    local scanHistory = CS.ScanHistory or {}
-    for sid, bs in pairs(blacksite) do
-        local history = scanHistory[sid]
-        local last    = history and history[#history]
-        if last and last.cid == cid then
-            bs.approved = true; blacksite[sid] = bs
-            ix.data.Set("cs_blacksite", blacksite)
-            ply:Notify(string.format("CID %d blacksite case approved.", cid))
-            return true
-        end
-    end
-    ply:Notify("CID not found in blacksite records.")
-    return false
-end
-
-local function DoDenyBlacksite(ply, cid)
-    if !IsSenior(ply) then ply:Notify("Unauthorized."); return false end
-    local blacksite   = ix.data.Get("cs_blacksite", {})
-    local scanHistory = CS.ScanHistory or {}
-    for sid, bs in pairs(blacksite) do
-        local history = scanHistory[sid]
-        local last    = history and history[#history]
-        if last and last.cid == cid then
-            blacksite[sid] = {count=0, approved=false}
-            ix.data.Set("cs_blacksite", blacksite)
-            ply:Notify(string.format("CID %d blacksite case denied and count reset.", cid))
-            return true
-        end
-    end
-    ply:Notify("CID not found.")
-    return false
-end
-
 local function DoApproveClearance(ply, targetPly)
     if !IsCombine(ply) then ply:Notify("Unauthorized."); return false end
     if !IsValid(targetPly) then ply:Notify("Target player is not online."); return false end
@@ -275,14 +223,12 @@ local BuildTerminalRecords
 
 BuildTerminalRecords = function()
     local warrants    = ix.data.Get("cs_warrants",  {})
-    local blacksite   = ix.data.Get("cs_blacksite", {})
     local notes       = ix.data.Get("cs_notes",     {})
     local records     = {}
     local scanHistory = CS.ScanHistory or {}
     for sid, history in pairs(scanHistory) do
         local last    = history[#history]
         local warrant = warrants[sid]
-        local bs      = blacksite[sid]
         local note    = notes[sid]
         local online  = FindPlayerBySteamID(sid)
         local items   = {}
@@ -299,9 +245,6 @@ BuildTerminalRecords = function()
             wIssuedAt      = warrant and warrant.issuedAt or 0,
             heatTier       = GetHeatTier(sid),
             heatScore      = CS.HeatScores[sid] or 0,
-            bsPending      = bs != nil and !bs.approved,
-            bsApproved     = bs != nil and bs.approved,
-            bsCount        = bs and bs.count or 0,
             cwuPending     = CS.CWURequests[sid] != nil,
             restrictedItems = items,
             notes          = note and note.text or "",
@@ -360,7 +303,6 @@ end
 
 local function BuildWarrantList()
     local warrants    = ix.data.Get("cs_warrants",  {})
-    local blacksite   = ix.data.Get("cs_blacksite", {})
     local scanHistory = CS.ScanHistory or {}
     local wList = {}
     for sid, w in pairs(warrants) do
@@ -376,20 +318,7 @@ local function BuildWarrantList()
             expiresIn = math.max(0, CFG.WarrantExpiry - (os.time() - (w.issuedAt or 0))),
         }
     end
-    local bsList = {}
-    for sid, bs in pairs(blacksite) do
-        if (bs.count or 0) >= CFG.BlacksiteThreshold and !bs.approved then
-            local history = scanHistory[sid]
-            local last    = history and history[#history]
-            bsList[#bsList + 1] = {
-                sid   = sid,
-                name  = last and last.name or "Unknown",
-                cid   = last and last.cid or 0,
-                count = bs.count or 0,
-            }
-        end
-    end
-    return {warrants = wList, blacksite = bsList}
+    return {warrants = wList}
 end
 
 local function BuildZoneCheckpointData()
@@ -425,13 +354,11 @@ end
 
 local function BuildCitizenDetail(sid)
     local warrants    = ix.data.Get("cs_warrants",  {})
-    local blacksite   = ix.data.Get("cs_blacksite", {})
     local notes       = ix.data.Get("cs_notes",     {})
     local scanHistory = CS.ScanHistory or {}
     local history     = scanHistory[sid] or {}
     local last        = history[#history]
     local warrant     = warrants[sid]
-    local bs          = blacksite[sid]
     local note        = notes[sid]
     local online      = FindPlayerBySteamID(sid)
     local items       = {}
@@ -460,9 +387,6 @@ local function BuildCitizenDetail(sid)
         wIssuedAt       = warrant and warrant.issuedAt or 0,
         heatTier        = GetHeatTier(sid),
         heatScore       = CS.HeatScores[sid] or 0,
-        bsPending       = bs != nil and !bs.approved,
-        bsApproved      = bs != nil and bs.approved,
-        bsCount         = bs and bs.count or 0,
         cwuPending      = CS.CWURequests[sid] != nil,
         restrictedItems = items,
         notes           = note and note.text or "",
@@ -474,106 +398,11 @@ local function BuildCitizenDetail(sid)
 end
 
 -- ============================================================
---  TERMINAL / INTEL ENTITIES
+--  EXPOSED FUNCTIONS (used by ix_combine_terminal entity)
 -- ============================================================
-local function AttachTerminalUse(ent)
-    ent:SetUseType(SIMPLE_USE)
-    CS._TerminalEnt = ent
-end
-
-local function AttachIntelUse(ent)
-    ent:SetUseType(SIMPLE_USE)
-    CS._IntelEnt = ent
-end
-
-local function GetTermMapKey()
-    return "cs_term_" .. game.GetMap()
-end
-
-local function SaveTermProps()
-    local data = {}
-    if IsValid(CS._TerminalEnt) then
-        data.terminal = {model=CS._TerminalEnt:GetModel(), pos=CS._TerminalEnt:GetPos(), ang=CS._TerminalEnt:GetAngles()}
-    end
-    if IsValid(CS._IntelEnt) then
-        data.intel = {model=CS._IntelEnt:GetModel(), pos=CS._IntelEnt:GetPos(), ang=CS._IntelEnt:GetAngles()}
-    end
-    ix.data.Set(GetTermMapKey(), data)
-end
-
-local function SyncTerminals(target)
-    net.Start("CS_TerminalSync")
-        net.WriteEntity(IsValid(CS._TerminalEnt) and CS._TerminalEnt or NULL)
-        net.WriteEntity(IsValid(CS._IntelEnt)    and CS._IntelEnt    or NULL)
-    net.Send(target)
-end
-
-local function SyncTerminalsToAll()
-    SyncTerminals(player.GetAll())
-end
-
-hook.Add("PlayerUse", "CS_Terminal_EntityUse", function(ply, ent)
-    if ent == CS._TerminalEnt then
-        if !IsCombine(ply) then return false end
-        if (ply:GetPos() - ent:GetPos()):Length() > CFG.TerminalDist then
-            ply:Notify("You are too far from the terminal.")
-            return false
-        end
-        local payload  = BuildFullPayload()
-        local isSenior = IsSenior(ply)
-        local json     = util.TableToJSON(payload)
-        net.Start("CS_TerminalOpen")
-            net.WriteString(json)
-            net.WriteBool(isSenior)
-        net.Send(ply)
-        return false
-    end
-
-    if ent == CS._IntelEnt then
-        if (ply:GetPos() - ent:GetPos()):Length() > CFG.IntelDist then
-            ply:Notify("You are too far from the intel board.")
-            return false
-        end
-        local entries = {}
-        for i = #CS.IntelLog, math.max(1, #CS.IntelLog - CFG.IntelMaxEntries + 1), -1 do
-            entries[#entries + 1] = CS.IntelLog[i]
-        end
-        net.Start("CS_IntelOpen")
-            net.WriteString(util.TableToJSON(entries))
-        net.Send(ply)
-        return false
-    end
-end)
-
-hook.Add("InitPostEntity", "CS_Terminal_PropRespawn", function()
-    timer.Simple(3, function()
-        local data = ix.data.Get(GetTermMapKey(), {})
-        if data.terminal then
-            local ok, ent = pcall(SpawnFrozenProp, data.terminal.model, data.terminal.pos, data.terminal.ang)
-            if ok and IsValid(ent) then AttachTerminalUse(ent) else CS._TerminalRespawnFailed = true end
-        end
-        if data.intel then
-            local ok, ent = pcall(SpawnFrozenProp, data.intel.model, data.intel.pos, data.intel.ang)
-            if ok and IsValid(ent) then AttachIntelUse(ent) else CS._IntelRespawnFailed = true end
-        end
-    end)
-end)
-
-hook.Add("PlayerInitialSpawn", "CS_Terminal_RespawnFailNotify", function(client)
-    timer.Simple(3, function()
-        if !IsValid(client) or !client:IsAdmin() then return end
-        if CS._TerminalRespawnFailed then
-            client:Notify("[CS] WARNING: Terminal failed to respawn. Use /maketerminal to reset.")
-        end
-        if CS._IntelRespawnFailed then
-            client:Notify("[CS] WARNING: Intel board failed to respawn. Use /makeintelboard to reset.")
-        end
-    end)
-end)
-
-hook.Add("PlayerLoadedCharacter", "CS_Terminal_CharacterLoad", function(client, char)
-    SyncTerminals(client)
-end)
+CS.BuildFullPayload = BuildFullPayload
+CS.IsCombine        = IsCombine
+CS.IsSenior         = IsSenior
 
 -- ============================================================
 --  NET RECEIVERS — TERMINAL ACTIONS
@@ -597,10 +426,6 @@ net.Receive("CS_TerminalAction", function(len, ply)
         DoIssueWarrant(ply, target, data.reason or "No reason specified")
     elseif action == "clearWarrant" then
         DoClearWarrantBySID(ply, data.sid)
-    elseif action == "approveBlacksite" then
-        DoApproveBlacksite(ply, tonumber(data.cid) or 0)
-    elseif action == "denyBlacksite" then
-        DoDenyBlacksite(ply, tonumber(data.cid) or 0)
     elseif action == "setNotes" then
         local notes = ix.data.Get("cs_notes", {})
         local text  = string.sub(tostring(data.text or ""), 1, 1000)
@@ -620,61 +445,6 @@ net.Receive("CS_TerminalAction", function(len, ply)
         net.WriteString(util.TableToJSON(refresh))
     net.Send(ply)
 end)
-
--- ============================================================
---  COMMANDS — PROP MANAGEMENT
--- ============================================================
-ix.command.Add("maketerminal", {
-    description = "Set the aimed prop as the scan records terminal.",
-    adminOnly   = true,
-    OnRun = function(self, client)
-        local ent = client:GetEyeTrace().Entity
-        if !IsValid(ent) then return client:Notify("No entity in eyetrace.") end
-        if IsValid(CS._TerminalEnt) then CS._TerminalEnt:Remove() end
-        AttachTerminalUse(ent)
-        SaveTermProps()
-        client:Notify("Terminal set.")
-        SyncTerminalsToAll()
-    end,
-})
-
-ix.command.Add("removeterminal", {
-    description = "Remove the scan records terminal.",
-    adminOnly   = true,
-    OnRun = function(self, client)
-        if IsValid(CS._TerminalEnt) then CS._TerminalEnt:Remove(); CS._TerminalEnt = nil end
-        local data = ix.data.Get(GetTermMapKey(), {})
-        data.terminal = nil
-        ix.data.Set(GetTermMapKey(), data)
-        client:Notify("Terminal removed.")
-    end,
-})
-
-ix.command.Add("makeintelboard", {
-    description = "Set the aimed prop as the intel board.",
-    adminOnly   = true,
-    OnRun = function(self, client)
-        local ent = client:GetEyeTrace().Entity
-        if !IsValid(ent) then return client:Notify("No entity in eyetrace.") end
-        if IsValid(CS._IntelEnt) then CS._IntelEnt:Remove() end
-        AttachIntelUse(ent)
-        SaveTermProps()
-        client:Notify("Intel board set.")
-        SyncTerminalsToAll()
-    end,
-})
-
-ix.command.Add("removeintelboard", {
-    description = "Remove the intel board.",
-    adminOnly   = true,
-    OnRun = function(self, client)
-        if IsValid(CS._IntelEnt) then CS._IntelEnt:Remove(); CS._IntelEnt = nil end
-        local data = ix.data.Get(GetTermMapKey(), {})
-        data.intel = nil
-        ix.data.Set(GetTermMapKey(), data)
-        client:Notify("Intel board removed.")
-    end,
-})
 
 -- ============================================================
 --  COMMANDS — WARRANTS
@@ -781,7 +551,7 @@ ix.command.Add("removecheckpoint", {
 ix.command.Add("requestclearance", {
     description = "Request clearance from Combine as a citizen.",
     OnRun = function(self, client)
-        if client:Team() != FACTION_CITIZEN then
+        if client:Team() != FACTION_CITIZEN and client:Team() != FACTION_CWU then
             return client:Notify("Only citizens may request clearance.")
         end
         local sid = client:SteamID()
@@ -815,45 +585,6 @@ ix.command.Add("denyclearance", {
     OnRun = function(self, client, target)
         local targetPly = target:GetPlayer()
         DoDenyClearance(client, targetPly)
-    end,
-})
-
--- ============================================================
---  COMMANDS — BLACKSITE
--- ============================================================
-ix.command.Add("reviewblacklist", {
-    description = "List all pending blacksite cases for review.",
-    OnRun = function(self, client)
-        if !IsSenior(client) then return client:Notify("Unauthorized.") end
-        local blacksite = ix.data.Get("cs_blacksite", {})
-        local found = false
-        local scanHistory = CS.ScanHistory or {}
-        for sid, bs in pairs(blacksite) do
-            if (bs.count or 0) >= CFG.BlacksiteThreshold and !bs.approved then
-                local history = scanHistory[sid]
-                local last    = history and history[#history]
-                client:ChatPrint(string.format("[BS] %s (CID:%d) — %d elevated scans",
-                    last and last.name or sid, last and last.cid or 0, bs.count))
-                found = true
-            end
-        end
-        if !found then client:Notify("No pending blacksite cases.") end
-    end,
-})
-
-ix.command.Add("approveblacklist", {
-    description = "Approve a blacksite case by CID number.",
-    arguments   = {ix.type.number},
-    OnRun = function(self, client, cid)
-        DoApproveBlacksite(client, cid)
-    end,
-})
-
-ix.command.Add("denyblacklist", {
-    description = "Deny a blacksite case and reset its scan count.",
-    arguments   = {ix.type.number},
-    OnRun = function(self, client, cid)
-        DoDenyBlacksite(client, cid)
     end,
 })
 
@@ -916,27 +647,3 @@ timer.Create("CS_CurfewHeat", 30, 0, function()
     end
 end)
 
-timer.Create("CS_CheckpointLog", 15, 0, function()
-    local checkpoints = ix.data.Get("cs_checkpoints", {})
-    if #checkpoints == 0 then return end
-    for _, ply in ipairs(player.GetAll()) do
-        if !IsValid(ply) or !ply:Alive() or !IsResistance(ply) then continue end
-        local pos  = ply:GetPos()
-        local char = ply:GetCharacter()
-        local cid  = char and char:GetID() or 0
-        for _, cp in ipairs(checkpoints) do
-            local cpos = cp.pos
-            if type(cpos) == "table" then cpos = Vector(cpos.x or 0, cpos.y or 0, cpos.z or 0) end
-            if (pos - cpos):Length() <= cp.radius then
-                CS.IntelLog[#CS.IntelLog + 1] = {
-                    time    = os.date("%H:%M"),
-                    grid    = string.format("[CP:%s]", cp.name),
-                    officer = ply:Name(),
-                    cid     = tostring(cid),
-                }
-                if #CS.IntelLog > CFG.IntelMaxEntries then table.remove(CS.IntelLog, 1) end
-                break
-            end
-        end
-    end
-end)

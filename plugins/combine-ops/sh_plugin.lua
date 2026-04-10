@@ -7,7 +7,6 @@ if SERVER then
     util.AddNetworkString("CS_PanicAlert")
     util.AddNetworkString("CS_PanicClear")
     util.AddNetworkString("CS_Alert")
-    util.AddNetworkString("CS_RadioCall")
     util.AddNetworkString("CS_CurfewToggle")
 end
 
@@ -22,11 +21,6 @@ if CLIENT then
     })
     ix.command.Add("alert", {
         description = "Broadcast an alert message to all Combine units.",
-        arguments   = {ix.type.text},
-        OnRun       = function(self, client, message) end,
-    })
-    ix.command.Add("radiocall", {
-        description = "Send an IC radio message to all online Combine units.",
         arguments   = {ix.type.text},
         OnRun       = function(self, client, message) end,
     })

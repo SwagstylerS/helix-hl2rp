@@ -12,14 +12,11 @@ local CFG = {
     ChargerMoveLimit   = 50,
     ChargerDist        = 100,
     ChargerName        = "ix_scanner_charger",
-    QuotaDaily         = 10,
-    QuotaResetHour     = 0,
     BiometricAlertTier = 3,
     HeatTier1          = 15,
     HeatTier2          = 30,
     HeatTier3          = 55,
     HeatTier4          = 80,
-    BlacksiteThreshold = 3,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
     FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio"},
     FakeContraband     = {
@@ -39,9 +36,7 @@ local CFG = {
 CS             = CS             or {}
 CS.Cooldowns   = CS.Cooldowns   or {}
 CS.ScanHistory = CS.ScanHistory or {}
-CS.Quotas      = CS.Quotas      or {}
 CS.Recharging  = CS.Recharging  or {}
-CS.IntelLog    = CS.IntelLog    or {}
 
 -- ============================================================
 --  HELPERS
@@ -331,10 +326,6 @@ ix.command.Add("scansubject", {
         end
 
         SetBattery(client, battery - 1)
-        local day    = GetDay()
-        local offSid = client:SteamID()
-        CS.Quotas[offSid]      = CS.Quotas[offSid] or {}
-        CS.Quotas[offSid][day] = (CS.Quotas[offSid][day] or 0) + 1
 
         if isNPC then
             math.randomseed(target:EntIndex() + os.time() % 10000)
@@ -367,9 +358,7 @@ ix.command.Add("scansubject", {
         local char       = target:GetCharacter()
         local cid        = char and char:GetID() or 0
         local warrants   = ix.data.Get("cs_warrants",  {})
-        local blacksite  = ix.data.Get("cs_blacksite", {})
         local warrant    = warrants[sid]
-        local bs         = blacksite[sid]
         local heatTier   = GetHeatTier(sid)
         local restricted = GetRestrictedItems(target)
         local hasContra  = #restricted > 0
@@ -383,21 +372,6 @@ ix.command.Add("scansubject", {
         end
 
         local cwuPending = (CS.CWURequests or {})[sid] != nil
-
-        -- Blacksite tracking
-        if heatTier >= 2 then
-            bs = bs or {count = 0, approved = false}
-            bs.count = (bs.count or 0) + 1
-            blacksite[sid] = bs
-            ix.data.Set("cs_blacksite", blacksite)
-            if bs.count >= CFG.BlacksiteThreshold and !bs.approved then
-                net.Start("CS_BlacksiteNotify")
-                    net.WriteString(target:Name())
-                    net.WriteString(sid)
-                    net.WriteUInt(cid, 16)
-                net.Send(GetSeniors())
-            end
-        end
 
         -- Biometric alert to seniors at high tier
         if heatTier >= CFG.BiometricAlertTier then
@@ -417,17 +391,6 @@ ix.command.Add("scansubject", {
         }
         if #history > 50 then table.remove(history, 1) end
 
-        -- Intel log (shared with combine-terminal)
-        local gridX = math.floor(target:GetPos().x / 512)
-        local gridY = math.floor(target:GetPos().y / 512)
-        CS.IntelLog[#CS.IntelLog + 1] = {
-            time    = os.date("%H:%M"),
-            grid    = string.format("%d,%d", gridX, gridY),
-            officer = client:Name(),
-            cid     = tostring(cid),
-        }
-        if #CS.IntelLog > 20 then table.remove(CS.IntelLog, 1) end
-
         net.Start("CS_ScanStart")
             net.WriteEntity(target)
             net.WriteString(target:Name())
@@ -436,8 +399,8 @@ ix.command.Add("scansubject", {
             net.WriteBool(warrant != nil)
             net.WriteString(warrant and warrant.reason   or "")
             net.WriteString(warrant and warrant.issuedBy or "")
-            net.WriteBool(bs != nil and bs.approved)
-            net.WriteBool(bs != nil and !bs.approved and (bs.count or 0) >= CFG.BlacksiteThreshold)
+            net.WriteBool(false)
+            net.WriteBool(false)
             net.WriteBool(cwuPending)
             net.WriteBool(hasContra)
             net.WriteString(contraStr)
@@ -446,30 +409,13 @@ ix.command.Add("scansubject", {
     end,
 })
 
--- ============================================================
---  COMMANDS — QUOTA
--- ============================================================
-ix.command.Add("checkquota", {
-    description = "Check your daily scan quota progress.",
-    OnRun = function(self, client)
-        if !IsCombine(client) then return client:Notify("Unauthorized.") end
-        local day   = GetDay()
-        local sid   = client:SteamID()
-        local count = (CS.Quotas[sid] and CS.Quotas[sid][day]) or 0
-        client:Notify(string.format("Daily quota: %d / %d", count, CFG.QuotaDaily))
-    end,
-})
-
 ix.command.Add("scanstatus", {
-    description = "Show your current battery and quota in chat.",
+    description = "Show your current battery level in chat.",
     OnRun = function(self, client)
         if !IsCombine(client) then return client:Notify("Unauthorized.") end
         local battery = GetBattery(client)
-        local day     = GetDay()
-        local sid     = client:SteamID()
-        local quota   = (CS.Quotas[sid] and CS.Quotas[sid][day]) or 0
-        client:ChatPrint(string.format("[CS STATUS] Battery: %d/%d  |  Daily Quota: %d/%d",
-            battery, CFG.BatteryMax, quota, CFG.QuotaDaily))
+        client:ChatPrint(string.format("[CS STATUS] Battery: %d/%d",
+            battery, CFG.BatteryMax))
     end,
 })
 
@@ -492,20 +438,3 @@ ix.command.Add("identify", {
     end,
 })
 
--- Quota midnight check (every 60s)
-timer.Create("CS_QuotaCheck", 60, 0, function()
-    local t = os.date("*t")
-    if t.hour != CFG.QuotaResetHour or t.min != 0 then return end
-    local yesterday = os.date("%Y%m%d", os.time() - 86400)
-    for _, ply in ipairs(player.GetAll()) do
-        if !IsValid(ply) or !IsCombine(ply) then continue end
-        local sid   = ply:SteamID()
-        local count = (CS.Quotas[sid] and CS.Quotas[sid][yesterday]) or 0
-        if count < CFG.QuotaDaily then
-            net.Start("CS_QuotaWarning")
-                net.WriteString(string.format("QUOTA MISSED: %d/%d SCANS COMPLETED YESTERDAY",
-                    count, CFG.QuotaDaily))
-            net.Send(ply)
-        end
-    end
-end)

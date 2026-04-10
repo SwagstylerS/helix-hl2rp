@@ -61,7 +61,6 @@ function PANEL:Populate(data)
 
     local wData  = data and data.warrants or {}
     local wList  = wData.warrants or {}
-    local bsList = wData.blacksite or {}
 
     -- ==================== ACTIVE WARRANTS ====================
     local wHeader = vgui.Create("DPanel", self)
@@ -140,71 +139,6 @@ function PANEL:Populate(data)
         noWarrants.Paint = function(self2, w, h)
             local C = CS_TERM_COLORS
             draw.SimpleText("No active warrants.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-        end
-    end
-
-    -- Spacer
-    local spacer1 = vgui.Create("DPanel", self)
-    spacer1:Dock(TOP)
-    spacer1:SetTall(10)
-    spacer1.Paint = function() end
-
-    -- ==================== PENDING BLACKSITE CASES ====================
-    local bsHeader = vgui.Create("DPanel", self)
-    bsHeader:Dock(TOP)
-    bsHeader:SetTall(22)
-    bsHeader:DockMargin(0, 0, 0, 2)
-    bsHeader.Paint = function(self2, w, h)
-        local C = CS_TERM_COLORS
-        draw.SimpleText(string.format("PENDING BLACKSITE CASES (%d)", #bsList), "CS_BodyBold", 4, h/2, C.yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        surface.SetDrawColor(C.borderDim)
-        surface.DrawRect(0, h - 1, w, 1)
-    end
-
-    if #bsList > 0 then
-        for _, bs in ipairs(bsList) do
-            local bsRow = vgui.Create("DPanel", self)
-            bsRow:Dock(TOP)
-            bsRow:SetTall(self.m_bSenior and 52 or 24)
-            bsRow:DockMargin(0, 0, 0, 2)
-            bsRow.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.bgDark)
-                surface.SetDrawColor(C.borderDim)
-                surface.DrawOutlinedRect(0, 0, w, h, 1)
-                draw.SimpleText(
-                    string.format("%s  (CID: %d)  —  %d elevated scans",
-                        bs.name or "Unknown", bs.cid or 0, bs.count or 0),
-                    "CS_Body", 8, 12, C.yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER
-                )
-            end
-
-            if self.m_bSenior then
-                local btnRow = vgui.Create("DPanel", bsRow)
-                btnRow:SetPos(8, 26)
-                btnRow:SetSize(300, 24)
-                btnRow.Paint = function() end
-
-                local approveBtn = MakeActionButton(btnRow, "APPROVE", function()
-                    SendAction("approveBlacksite", {cid = bs.cid})
-                end, C.red)
-                approveBtn:SetPos(0, 0)
-                approveBtn:SetSize(100, 22)
-
-                local denyBtn = MakeActionButton(btnRow, "DENY", function()
-                    SendAction("denyBlacksite", {cid = bs.cid})
-                end, C.yellow)
-                denyBtn:SetPos(106, 0)
-                denyBtn:SetSize(100, 22)
-            end
-        end
-    else
-        local noBS = vgui.Create("DPanel", self)
-        noBS:Dock(TOP)
-        noBS:SetTall(30)
-        noBS.Paint = function(self2, w, h)
-            local C = CS_TERM_COLORS
-            draw.SimpleText("No pending blacksite cases.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
     end
 

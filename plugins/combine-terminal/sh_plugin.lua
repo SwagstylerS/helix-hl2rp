@@ -5,38 +5,14 @@ PLUGIN.author      = "nebulous.cloud"
 
 if SERVER then
     util.AddNetworkString("CS_TerminalOpen")
-    util.AddNetworkString("CS_IntelOpen")
     util.AddNetworkString("CS_ClearanceNotify")
     util.AddNetworkString("CS_ClearanceResult")
-    util.AddNetworkString("CS_TerminalSync")
     util.AddNetworkString("CS_TerminalDetail")
     util.AddNetworkString("CS_TerminalAction")
     util.AddNetworkString("CS_TerminalRefresh")
 end
 
 if CLIENT then
-    -- Prop management (admin)
-    ix.command.Add("maketerminal", {
-        description = "Set the aimed prop as the scan records terminal.",
-        adminOnly   = true,
-        OnRun       = function(self, client) end,
-    })
-    ix.command.Add("removeterminal", {
-        description = "Remove the scan records terminal.",
-        adminOnly   = true,
-        OnRun       = function(self, client) end,
-    })
-    ix.command.Add("makeintelboard", {
-        description = "Set the aimed prop as the intel board.",
-        adminOnly   = true,
-        OnRun       = function(self, client) end,
-    })
-    ix.command.Add("removeintelboard", {
-        description = "Remove the intel board.",
-        adminOnly   = true,
-        OnRun       = function(self, client) end,
-    })
-
     -- Warrants (senior)
     ix.command.Add("issuewarrant", {
         description = "Issue a warrant for a citizen by name.",
@@ -63,22 +39,6 @@ if CLIENT then
         description = "Deny a citizen's clearance request by name.",
         arguments   = {ix.type.character},
         OnRun       = function(self, client, target) end,
-    })
-
-    -- Blacksite (senior)
-    ix.command.Add("reviewblacklist", {
-        description = "List all pending blacksite cases for review.",
-        OnRun       = function(self, client) end,
-    })
-    ix.command.Add("approveblacklist", {
-        description = "Approve a blacksite case by CID number.",
-        arguments   = {ix.type.number},
-        OnRun       = function(self, client, cid) end,
-    })
-    ix.command.Add("denyblacklist", {
-        description = "Deny a blacksite case and reset its scan count.",
-        arguments   = {ix.type.number},
-        OnRun       = function(self, client, cid) end,
     })
 
     -- Zones & checkpoints (admin)

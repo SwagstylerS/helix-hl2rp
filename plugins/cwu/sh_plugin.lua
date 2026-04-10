@@ -186,7 +186,7 @@ do
 	function COMMAND:OnRun(client, target)
 		local targetClient = target:GetPlayer()
 
-		if (target:GetFaction() != FACTION_CITIZEN) then
+		if (target:GetFaction() != FACTION_CITIZEN and target:GetFaction() != FACTION_CWU) then
 			return "@cwuMustBeCitizen"
 		end
 

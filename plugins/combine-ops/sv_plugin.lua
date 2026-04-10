@@ -7,7 +7,6 @@ local PLUGIN = PLUGIN
 local CFG = {
     PanicCooldown   = 600,
     PanicAutoExpire = 600,
-    IntelMaxEntries = 20,
     SeniorKeywords  = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
 }
 
@@ -18,7 +17,6 @@ CS              = CS              or {}
 CS.PanicTimers  = CS.PanicTimers  or {}
 CS.ActivePanics = CS.ActivePanics or {}
 CS.CurfewActive = CS.CurfewActive or false
-CS.IntelLog     = CS.IntelLog     or {}
 
 -- ============================================================
 --  HELPERS
@@ -120,20 +118,6 @@ ix.command.Add("alert", {
     end,
 })
 
-ix.command.Add("radiocall", {
-    description = "Send an IC radio message to all online Combine units.",
-    arguments   = {ix.type.text},
-    OnRun = function(self, client, message)
-        if !IsCombine(client) then return client:Notify("Unauthorized.") end
-        local combineAll = GetAllCombine()
-        if #combineAll == 0 then return client:Notify("No units online.") end
-        net.Start("CS_RadioCall")
-            net.WriteString(client:Name())
-            net.WriteString(message)
-        net.Send(combineAll)
-    end,
-})
-
 ix.command.Add("curfew", {
     description = "Toggle curfew — passively increases heat for all civilians while active.",
     OnRun = function(self, client)
@@ -150,6 +134,15 @@ ix.command.Add("curfew", {
     end,
 })
 
+-- Sync curfew state to newly loaded Combine characters
+hook.Add("PlayerLoadedCharacter", "CS_Ops_CurfewSync", function(client, char)
+    if !IsCombine(client) then return end
+    net.Start("CS_CurfewToggle")
+        net.WriteBool(CS.CurfewActive)
+        net.WriteString("SYSTEM")
+    net.Send(client)
+end)
+
 ix.command.Add("transferdetainee", {
     description = "Flag a citizen as detained and log the transfer to the intel board.",
     arguments   = {ix.type.character},
@@ -158,13 +151,6 @@ ix.command.Add("transferdetainee", {
         local targetPly = target:GetPlayer()
         if !IsValid(targetPly) then return client:Notify("Target is not online.") end
         local cid = target:GetID()
-        CS.IntelLog[#CS.IntelLog + 1] = {
-            time    = os.date("%H:%M"),
-            grid    = "IN-CUSTODY",
-            officer = client:Name(),
-            cid     = tostring(cid),
-        }
-        if #CS.IntelLog > CFG.IntelMaxEntries then table.remove(CS.IntelLog, 1) end
         local combineAll = GetAllCombine()
         net.Start("CS_BiometricAlert")
             net.WriteString(string.format("DETAINEE TRANSFER: %s (CID:%d) — %s",

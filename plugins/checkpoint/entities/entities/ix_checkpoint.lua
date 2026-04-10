@@ -7,7 +7,6 @@ ENT.Category = "HL2RP"
 ENT.Spawnable = true
 ENT.AdminOnly = true
 ENT.RenderGroup = RENDERGROUP_BOTH
-ENT.PhysgunDisabled = true
 ENT.bNoPersist = true
 
 function ENT:SetupDataTables()
@@ -42,9 +41,7 @@ local function HasClearance(client, mode)
 	end
 
 	if (mode == MODE_YELLOW) then
-		local character = client:GetCharacter()
-
-		if (character and character:GetClass() == CLASS_CWU) then
+		if (client:Team() == FACTION_CWU) then
 			return true
 		end
 	end
@@ -129,20 +126,8 @@ properties.Add("checkpoint_setname", {
 })
 
 if (SERVER) then
-	-- Push warrant alerts into combine-terminal intel log if available.
-	local function LogToTerminal(message, checkpointName)
-		if (CS and CS.IntelLog) then
-			CS.IntelLog[#CS.IntelLog + 1] = {
-				time = os.date("%H:%M"),
-				grid = string.format("[GATE:%s]", checkpointName or "UNKNOWN"),
-				officer = "AUTOMATED",
-				cid = message
-			}
-
-			if (#CS.IntelLog > 20) then
-				table.remove(CS.IntelLog, 1)
-			end
-		end
+	function ENT:PhysgunPickup()
+		return false
 	end
 
 	function ENT:SpawnFunction(client, trace)
@@ -190,16 +175,22 @@ if (SERVER) then
 			end
 		end
 
+		local dummyLocal = self:WorldToLocal(self.dummy:GetPos())
+		local fwd = self:GetForward() * 4
+		local fwdLocal = self:WorldToLocal(self:GetPos() + fwd) -- offset along forward axis
+
 		local verts = {
-			{pos = Vector(0, 0, -25)},
-			{pos = Vector(0, 0, 150)},
-			{pos = self:WorldToLocal(self.dummy:GetPos()) + Vector(0, 0, 150)},
-			{pos = self:WorldToLocal(self.dummy:GetPos()) + Vector(0, 0, 150)},
-			{pos = self:WorldToLocal(self.dummy:GetPos()) - Vector(0, 0, 25)},
-			{pos = Vector(0, 0, -25)}
+			Vector(0, 0, -25) + fwdLocal,
+			Vector(0, 0, -25) - fwdLocal,
+			Vector(0, 0, 150) + fwdLocal,
+			Vector(0, 0, 150) - fwdLocal,
+			dummyLocal + Vector(0, 0, -25) + fwdLocal,
+			dummyLocal + Vector(0, 0, -25) - fwdLocal,
+			dummyLocal + Vector(0, 0, 150) + fwdLocal,
+			dummyLocal + Vector(0, 0, 150) - fwdLocal,
 		}
 
-		self:PhysicsFromMesh(verts)
+		self:PhysicsInitConvex(verts)
 
 		local physObj = self:GetPhysicsObject()
 
@@ -262,7 +253,7 @@ if (SERVER) then
 			end
 		end
 
-		LogToTerminal("GATE DESTROYED — offline for reboot", name)
+
 
 		local logLine = os.date("[%Y-%m-%d %H:%M:%S] ") .. "[CHECKPOINT] " .. name .. " destroyed.\n"
 		file.Append("ixhl2rp_checkpoint_log.txt", logLine)
@@ -291,7 +282,6 @@ if (SERVER) then
 			end
 		end
 
-		LogToTerminal("GATE REBOOTED — now online", name)
 	end
 
 	-- Returns the midpoint of the checkpoint wall.
@@ -412,7 +402,6 @@ if (SERVER) then
 
 			self:SetMode(newMode)
 			self:EmitSound("buttons/combine_button5.wav", 140, 100 + (newMode - 1) * 15)
-			activator:ChatPrint("Checkpoint mode: " .. (MODE_NAMES[newMode] or "Unknown"))
 
 			Schema:SaveCheckpoints()
 		else
@@ -440,8 +429,6 @@ if (SERVER) then
 			end
 		end
 
-		-- Log to combine-terminal intel board.
-		LogToTerminal("WARRANT — " .. name, cpName)
 
 		-- Log to file.
 		local logLine = os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n"
@@ -518,6 +505,8 @@ else
 	}
 
 	function ENT:Initialize()
+		self:SetRenderBounds(Vector(-500, -500, -50), Vector(500, 500, 200))
+
 		local data = {}
 			data.start = self:GetPos() + self:GetRight() * -16
 			data.endpos = self:GetPos() + self:GetRight() * -480

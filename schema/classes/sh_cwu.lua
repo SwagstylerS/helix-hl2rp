@@ -1,5 +1,5 @@
 CLASS.name = "Civil Worker's Union"
-CLASS.faction = FACTION_CITIZEN
+CLASS.faction = FACTION_CWU
 CLASS.description = "An unassigned CWU member awaiting division placement."
 
 function CLASS:CanSwitchTo(client)

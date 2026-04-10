@@ -75,7 +75,7 @@ if (SERVER) then
 					medicalTraining = character:GetData("medicalTraining", false),
 					steamID = v:SteamID64()
 				}
-			elseif (character:GetFaction() == FACTION_CITIZEN) then
+			elseif (character:GetFaction() == FACTION_CITIZEN or character:GetFaction() == FACTION_CWU) then
 				citizens[#citizens + 1] = {
 					name = character:GetName(),
 					charID = character:GetID(),
@@ -150,7 +150,7 @@ if (SERVER) then
 		for _, v in ipairs(player.GetAll()) do
 			local character = v:GetCharacter()
 
-			if (character and character:GetID() == charID and character:GetFaction() == FACTION_CITIZEN) then
+			if (character and character:GetID() == charID and (character:GetFaction() == FACTION_CITIZEN or character:GetFaction() == FACTION_CWU)) then
 				character:JoinClass(classID, true)
 				client:NotifyLocalized("cwuAssigned", character:GetName(), division)
 

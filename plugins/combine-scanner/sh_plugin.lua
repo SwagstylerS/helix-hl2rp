@@ -7,19 +7,13 @@ if SERVER then
     util.AddNetworkString("CS_ScanStart")
     util.AddNetworkString("CS_ScanDeny")
     util.AddNetworkString("CS_BatterySync")
-    util.AddNetworkString("CS_QuotaWarning")
     util.AddNetworkString("CS_BiometricAlert")
-    util.AddNetworkString("CS_BlacksiteNotify")
     util.AddNetworkString("CS_ChargerSync")
 end
 
 if CLIENT then
     ix.command.Add("scansubject", {
         description = "Scan the civilian you are looking at.",
-        OnRun       = function(self, client) end,
-    })
-    ix.command.Add("checkquota", {
-        description = "Check your daily scan quota progress.",
         OnRun       = function(self, client) end,
     })
     ix.command.Add("scanstatus", {

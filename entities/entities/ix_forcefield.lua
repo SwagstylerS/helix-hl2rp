@@ -12,8 +12,59 @@ ENT.bNoPersist = true
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Int", 0, "Mode")
+	self:NetworkVar("Int", 1, "FieldHealth")
 	self:NetworkVar("Entity", 0, "Dummy")
+	self:NetworkVar("Bool", 0, "Disabled")
+	self:NetworkVar("String", 0, "FieldName")
 end
+
+properties.Add("forcefield_setname", {
+	MenuLabel = "Set Forcefield Name",
+	Order = 401,
+	MenuIcon = "icon16/tag_blue_edit.png",
+
+	Filter = function(self, entity, client)
+		if (!IsValid(entity)) then return false end
+		if (entity:GetClass() != "ix_forcefield") then return false end
+		if (!client:IsAdmin()) then return false end
+
+		return true
+	end,
+
+	Action = function(self, entity)
+		Derma_StringRequest(
+			"Set Forcefield Name",
+			"Enter a name for this forcefield:",
+			entity:GetFieldName() or "",
+			function(text)
+				self:MsgStart()
+					net.WriteEntity(entity)
+					net.WriteString(text)
+				self:MsgEnd()
+			end
+		)
+	end,
+
+	Receive = function(self, length, client)
+		local entity = net.ReadEntity()
+		local name = net.ReadString()
+
+		if (!IsValid(entity)) then return end
+		if (entity:GetClass() != "ix_forcefield") then return end
+		if (!client:IsAdmin()) then return end
+
+		name = string.sub(name, 1, 32)
+
+		if (name == "") then
+			name = "Forcefield"
+		end
+
+		entity:SetFieldName(name)
+		client:ChatPrint("Forcefield renamed to: " .. name)
+
+		Schema:SaveForceFields()
+	end
+})
 
 local MODE_ALLOW_ALL = 1
 local MODE_ALLOW_CID = 2
@@ -26,8 +77,20 @@ if (SERVER) then
 		angles.r = 0
 		angles:RotateAroundAxis(angles:Up(), 270)
 
+		-- Push horizontally away from any wall surface that was clicked.
+		local spawnXY = trace.HitPos + Vector(trace.HitNormal.x, trace.HitNormal.y, 0) * 16
+
+		-- Trace straight down to find the actual floor so posts don't float.
+		local floorTrace = util.TraceLine({
+			start  = spawnXY + Vector(0, 0, 100),
+			endpos = spawnXY - Vector(0, 0, 512),
+			filter = client
+		})
+
+		local spawnPos = floorTrace.Hit and floorTrace.HitPos or spawnXY
+
 		local entity = ents.Create("ix_forcefield")
-		entity:SetPos(trace.HitPos + Vector(0, 0, 40))
+		entity:SetPos(spawnPos)
 		entity:SetAngles(angles:SnapTo("y", 90))
 		entity:Spawn()
 		entity:Activate()
@@ -48,16 +111,26 @@ if (SERVER) then
 			data.filter = self
 		local trace = util.TraceLine(data)
 
-		local angles = self:GetAngles()
-		angles:RotateAroundAxis(angles:Up(), 90)
+		local dummyPos = trace.HitPos
+		if (trace.Fraction < 1) then
+			dummyPos = dummyPos + trace.HitNormal * 8
+		end
+
+		local forcefield = self
 
 		self.dummy = ents.Create("prop_physics")
 		self.dummy:SetModel("models/props_combine/combine_fence01a.mdl")
-		self.dummy:SetPos(trace.HitPos)
+		self.dummy:SetPos(dummyPos)
 		self.dummy:SetAngles(self:GetAngles())
 		self.dummy:Spawn()
 		self.dummy.PhysgunDisabled = true
 		self:DeleteOnRemove(self.dummy)
+
+		self.dummy.OnTakeDamage = function(dummy, dmgInfo)
+			if (IsValid(forcefield)) then
+				forcefield:TakeDamage(dmgInfo:GetDamage(), dmgInfo:GetAttacker(), dmgInfo:GetInflictor())
+			end
+		end
 
 		local verts = {
 			{pos = Vector(0, 0, -25)},
@@ -92,6 +165,68 @@ if (SERVER) then
 		self:SetMoveType(MOVETYPE_PUSH)
 		self:MakePhysicsObjectAShadow()
 		self:SetMode(MODE_ALLOW_ALL)
+		self:SetDisabled(false)
+		self:SetFieldHealth(1000)
+
+		if (self:GetFieldName() == "") then
+			self:SetFieldName("Forcefield")
+		end
+	end
+
+	function ENT:TraceAttack(dmgInfo, dir, trace)
+		self:TakeDamage(dmgInfo:GetDamage(), dmgInfo:GetAttacker(), dmgInfo:GetInflictor())
+	end
+
+	function ENT:OnTakeDamage(dmgInfo)
+		if (self:GetDisabled()) then return end
+
+		local newHP = self:GetFieldHealth() - dmgInfo:GetDamage()
+
+		if (newHP <= 0) then
+			self:DisableField()
+		else
+			self:SetFieldHealth(newHP)
+		end
+	end
+
+	function ENT:DisableField()
+		self:SetDisabled(true)
+		self:SetFieldHealth(0)
+		self:EmitSound("ambient/energy/spark6.wav", 100, 80)
+		self:EmitSound("npc/turret_floor/die.wav", 100, 70)
+
+		local name = self:GetFieldName()
+
+		for _, ply in ipairs(player.GetAll()) do
+			if (ply:IsCombine()) then
+				ply:ChatPrint("[FORCEFIELD] " .. name .. " has been DESTROYED and is offline.")
+			end
+		end
+
+		Schema:SaveForceFields()
+
+		local entIndex = self:EntIndex()
+
+		timer.Create("ix_forcefield_reboot_" .. entIndex, 900, 1, function()
+			if (IsValid(self)) then
+				self:RebootField()
+			end
+		end)
+	end
+
+	function ENT:RebootField()
+		self:SetDisabled(false)
+		self:SetFieldHealth(1000)
+		self:SetMode(MODE_ALLOW_ALL)
+		self:EmitSound("buttons/combine_button7.wav", 100, 100)
+
+		local name = self:GetFieldName()
+
+		for _, ply in ipairs(player.GetAll()) do
+			if (ply:IsCombine()) then
+				ply:ChatPrint("[FORCEFIELD] " .. name .. " is back ONLINE.")
+			end
+		end
 	end
 
 	function ENT:StartTouch(entity)
@@ -196,6 +331,10 @@ if (SERVER) then
 		end
 
 		if (IsValid(entity) and entity:GetClass() == "ix_forcefield") then
+			if (entity:GetDisabled()) then
+				return false
+			end
+
 			if (IsValid(client)) then
 				if (client:IsCombine() or client:Team() == FACTION_ADMIN) then
 					return false
@@ -231,7 +370,7 @@ else
 	function ENT:Draw()
 		self:DrawModel()
 
-		if (self:GetMode() == 1) then
+		if (self:GetDisabled() or self:GetMode() == 1) then
 			return
 		end
 
