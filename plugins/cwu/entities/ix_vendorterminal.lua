@@ -297,6 +297,20 @@ if (SERVER) then
 			terminal = entity:GetNWString("TerminalName", "Vendor Terminal")
 		})
 
+		-- Award loyalty to the terminal owner for making a sale
+		local ownerCharID = entity:GetOwnerCharID()
+
+		if (ownerCharID > 0) then
+			for _, v in ipairs(player.GetAll()) do
+				local ownerChar = v:GetCharacter()
+
+				if (ownerChar and ownerChar:GetID() == ownerCharID) then
+					PLUGIN:AwardLoyalty(ownerChar, 1, "sale")
+					break
+				end
+			end
+		end
+
 		client:NotifyLocalized("cwuPurchaseComplete")
 		entity:EmitSound("buttons/button4.wav", 60)
 

@@ -42,6 +42,10 @@ LANGUAGE = {
 	cwuInsufficientFunds = "Insufficient funds.",
 	cwuOutOfStock = "Item is out of stock.",
 
+	-- Loyalty
+	cwuLoyaltyGained = "Loyalty gained: +%d points.",
+	cwuTierUp = "Loyalty tier increased to %s (Tier %d)!",
+
 	-- Work Orders
 	cwuWorkOrderBoard = "CWU WORK ORDERS",
 	cwuNoWorkOrders = "No pending work orders.",

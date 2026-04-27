@@ -118,7 +118,7 @@ if (SERVER) then
 			self:OnRepair()
 			client:NotifyLocalized("cwuRepairComplete")
 
-			PLUGIN:CompleteWorkOrder(self:EntIndex())
+			PLUGIN:CompleteWorkOrder(self:EntIndex(), client:GetCharacter())
 		end, 5, function()
 			if (IsValid(client)) then
 				client:SetAction()

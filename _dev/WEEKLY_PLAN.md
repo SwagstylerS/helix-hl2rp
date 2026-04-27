@@ -6,7 +6,7 @@
 
 ## Day 1 — Mon Apr 28 · Loyalty Reward Loop
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/libs/sh_loyalty.lua` — add `PLUGIN:AwardLoyalty(character, amount, reason)` that increments a persistent point accumulator (`loyaltyPoints`) and auto-promotes tier when threshold is crossed (e.g. every 10 points = +1 tier, capped at 5); notify the player on tier-up

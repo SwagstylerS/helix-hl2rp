@@ -60,7 +60,7 @@ function PLUGIN:SubmitManualWorkOrder(description, location, priority, submitter
 	self:RefreshWorkOrderBoards()
 end
 
-function PLUGIN:CompleteWorkOrder(entityIndex)
+function PLUGIN:CompleteWorkOrder(entityIndex, character)
 	local orders = self:GetWorkOrders()
 
 	for _, order in ipairs(orders) do
@@ -68,6 +68,10 @@ function PLUGIN:CompleteWorkOrder(entityIndex)
 			order.completed = true
 			order.completedTime = os.time()
 		end
+	end
+
+	if (character) then
+		self:AwardLoyalty(character, 2, "repair")
 	end
 
 	self:SaveWorkOrders(orders)

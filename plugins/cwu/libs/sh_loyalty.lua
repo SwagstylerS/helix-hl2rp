@@ -35,3 +35,28 @@ function PLUGIN:CanUseBlueprintTier(character, blueprintTier)
 
 	return false
 end
+
+if (SERVER) then
+	function PLUGIN:AwardLoyalty(character, amount, reason)
+		local points = character:GetData("loyaltyPoints", 0) + amount
+		character:SetData("loyaltyPoints", points)
+
+		local oldTier = character:GetData("loyaltyTier", 0)
+		local newTier = math.min(math.floor(points / 10), 5)
+
+		local client = character:GetPlayer()
+
+		if (newTier > oldTier) then
+			character:SetData("loyaltyTier", newTier)
+
+			if (IsValid(client)) then
+				local tierInfo = self:GetLoyaltyTierInfo(newTier)
+				client:NotifyLocalized("cwuTierUp", tierInfo.name, newTier)
+			end
+		end
+
+		if (IsValid(client)) then
+			client:NotifyLocalized("cwuLoyaltyGained", amount)
+		end
+	end
+end

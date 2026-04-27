@@ -122,6 +122,7 @@ if (SERVER) then
 				target:Notify("You have been treated by a CWU medic.")
 			end
 
+			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
 			client:Notify("Treatment complete.")
 			entity:SetState(0)
 			entity:SetInUse(false)
@@ -191,6 +192,7 @@ if (SERVER) then
 				target:Notify("You have undergone surgery. Full health restored.")
 			end
 
+			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
 			client:Notify("Surgery complete.")
 			entity:SetState(0)
 			entity:SetInUse(false)
@@ -242,6 +244,7 @@ if (SERVER) then
 				entity:EmitSound("buttons/combine_button1.wav")
 			end)
 
+			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
 			client:Notify("Synthesis complete: Medical Stimpak produced.")
 			entity:SetState(0)
 			entity:SetInUse(false)
