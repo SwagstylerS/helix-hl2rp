@@ -20,7 +20,7 @@ Goals:
 
 ## Day 2 — Tue Apr 29 · Work Order Self-Assignment
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/libs/sv_workorders.lua` — add `PLUGIN:ClaimWorkOrder(orderID, charName)` that sets `order.assignedTo = charName` and saves/refreshes boards; add `PLUGIN:ManualCompleteWorkOrder(orderID, character)` for orders that have no linked entity (manual or already-removed entity), awards loyalty and marks complete

@@ -50,6 +50,9 @@ LANGUAGE = {
 	cwuWorkOrderBoard = "CWU WORK ORDERS",
 	cwuNoWorkOrders = "No pending work orders.",
 	cwuWorkOrderSubmitted = "Work order submitted.",
+	cwuWorkOrderClaimed = "Work order claimed.",
+	cwuWorkOrderAlreadyClaimed = "This work order is already claimed.",
+	cwuWorkOrderCompleted = "Work order marked complete.",
 
 	-- Director PC
 	cwuDirectorTerminal = "CWU DIRECTOR TERMINAL",

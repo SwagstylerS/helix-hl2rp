@@ -66,6 +66,82 @@ if (SERVER) then
 			PLUGIN:SaveWorkOrderBoards()
 		end
 	end
+
+	netstream.Hook("CWUWorkOrderClaim", function(client, orderID)
+		if (!IsValid(client) or !client:IsPlayer()) then return end
+
+		local div = client:GetCWUDivision()
+		if (div != "maintenance" and div != "director") then return end
+		if (!isnumber(orderID)) then return end
+
+		local nearBoard = false
+		for _, board in ipairs(ents.FindByClass("ix_workorderboard")) do
+			if (IsValid(board) and client:GetPos():DistToSqr(board:GetPos()) <= 65536) then
+				nearBoard = true
+				break
+			end
+		end
+		if (!nearBoard) then return end
+
+		local character = client:GetCharacter()
+		if (!character) then return end
+
+		local orders = PLUGIN:GetWorkOrders()
+		for _, order in ipairs(orders) do
+			if (order.id == orderID and !order.completed) then
+				if (order.assignedTo) then
+					client:NotifyLocalized("cwuWorkOrderAlreadyClaimed")
+					return
+				end
+
+				PLUGIN:ClaimWorkOrder(orderID, character:GetName())
+				client:NotifyLocalized("cwuWorkOrderClaimed")
+				netstream.Start(client, "CWUWorkOrderBoardOpen", PLUGIN:GetWorkOrders())
+				return
+			end
+		end
+	end)
+
+	netstream.Hook("CWUWorkOrderComplete", function(client, orderID)
+		if (!IsValid(client) or !client:IsPlayer()) then return end
+
+		local div = client:GetCWUDivision()
+		if (div != "maintenance" and div != "director") then return end
+		if (!isnumber(orderID)) then return end
+
+		local nearBoard = false
+		for _, board in ipairs(ents.FindByClass("ix_workorderboard")) do
+			if (IsValid(board) and client:GetPos():DistToSqr(board:GetPos()) <= 65536) then
+				nearBoard = true
+				break
+			end
+		end
+		if (!nearBoard) then return end
+
+		local character = client:GetCharacter()
+		if (!character) then return end
+
+		local orders = PLUGIN:GetWorkOrders()
+		for _, order in ipairs(orders) do
+			if (order.id == orderID and !order.completed) then
+				if (order.assignedTo != character:GetName()) then return end
+
+				-- Reject if the linked entity is still alive — repair it directly
+				if (order.entityIndex) then
+					local ent = Entity(order.entityIndex)
+					if (IsValid(ent) and ent:GetClass() == order.entityClass) then
+						client:Notify("Repair the entity directly — it is still present.")
+						return
+					end
+				end
+
+				PLUGIN:ManualCompleteWorkOrder(orderID, character)
+				client:NotifyLocalized("cwuWorkOrderCompleted")
+				netstream.Start(client, "CWUWorkOrderBoardOpen", PLUGIN:GetWorkOrders())
+				return
+			end
+		end
+	end)
 else
 	surface.CreateFont("ixWorkOrderBoard", {
 		font = "Default",

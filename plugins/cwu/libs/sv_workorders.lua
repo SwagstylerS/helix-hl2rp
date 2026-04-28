@@ -91,6 +91,36 @@ function PLUGIN:CleanCompletedWorkOrders()
 	self:SaveWorkOrders(cleaned)
 end
 
+function PLUGIN:ClaimWorkOrder(orderID, charName)
+	local orders = self:GetWorkOrders()
+
+	for _, order in ipairs(orders) do
+		if (order.id == orderID and !order.completed) then
+			order.assignedTo = charName
+			break
+		end
+	end
+
+	self:SaveWorkOrders(orders)
+	self:RefreshWorkOrderBoards()
+end
+
+function PLUGIN:ManualCompleteWorkOrder(orderID, character)
+	local orders = self:GetWorkOrders()
+
+	for _, order in ipairs(orders) do
+		if (order.id == orderID and !order.completed) then
+			order.completed = true
+			order.completedTime = os.time()
+			break
+		end
+	end
+
+	self:AwardLoyalty(character, 2, "repair")
+	self:SaveWorkOrders(orders)
+	self:RefreshWorkOrderBoards()
+end
+
 function PLUGIN:RefreshWorkOrderBoards()
 	local orders = self:GetWorkOrders()
 
