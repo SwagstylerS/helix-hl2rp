@@ -205,6 +205,28 @@ do
 	ix.command.Add("CWUDirector", COMMAND)
 end
 
+-- /CWUSubmitOrder - submit a manual work order (Maintenance / Director only)
+do
+	local COMMAND = {}
+	COMMAND.arguments = {ix.type.text, ix.type.text}
+
+	function COMMAND:OnRun(client, description, location)
+		local div = client:GetCWUDivision()
+
+		if (div != "maintenance" and div != "director") then
+			return "@notAllowed"
+		end
+
+		local character = client:GetCharacter()
+		if (!character) then return end
+
+		PLUGIN:SubmitManualWorkOrder(description, location, 2, character:GetName())
+		client:NotifyLocalized("cwuWorkOrderSubmitted")
+	end
+
+	ix.command.Add("CWUSubmitOrder", COMMAND)
+end
+
 -- /CWUSetTier - admin tool for setting loyalty tier
 do
 	local COMMAND = {}

@@ -30,9 +30,9 @@ Goals:
 
 ---
 
-## Day 3 — Wed Apr 30 · Manual Work Order Submission
+## Day 3 — Wed Apr 29 · Manual Work Order Submission
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/sh_plugin.lua` — register `/CWUSubmitOrder` command (arguments: `ix.type.text` for description, `ix.type.text` for location); restrict to Maintenance and Director divisions; call `PLUGIN:SubmitManualWorkOrder` with a priority of 2 and the character's name as submitter; notify success with `cwuWorkOrderSubmitted`

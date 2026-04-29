@@ -142,6 +142,33 @@ if (SERVER) then
 			end
 		end
 	end)
+	netstream.Hook("CWUWorkOrderSubmit", function(client, data)
+		if (!IsValid(client) or !client:IsPlayer()) then return end
+		if (!client:IsCWUDirector() and !client:IsAdmin()) then return end
+		if (!istable(data)) then return end
+
+		local description = tostring(data.description or "")
+		local location    = tostring(data.location or "Unknown")
+		local priority    = math.Clamp(math.floor(tonumber(data.priority) or 2), 1, 3)
+
+		if (description == "") then return end
+
+		local nearBoard = false
+		for _, board in ipairs(ents.FindByClass("ix_workorderboard")) do
+			if (IsValid(board) and client:GetPos():DistToSqr(board:GetPos()) <= 65536) then
+				nearBoard = true
+				break
+			end
+		end
+		if (!nearBoard) then return end
+
+		local character = client:GetCharacter()
+		if (!character) then return end
+
+		PLUGIN:SubmitManualWorkOrder(description, location, priority, character:GetName())
+		client:NotifyLocalized("cwuWorkOrderSubmitted")
+		netstream.Start(client, "CWUWorkOrderBoardOpen", PLUGIN:GetWorkOrders())
+	end)
 else
 	surface.CreateFont("ixWorkOrderBoard", {
 		font = "Default",

@@ -6,6 +6,10 @@ end
 
 function PLUGIN:SaveWorkOrders(orders)
 	ix.data.Set("cwuWorkOrders", orders)
+
+	if (#orders > ix.config.Get("cwuMaxTransactions", 500)) then
+		self:CleanCompletedWorkOrders()
+	end
 end
 
 function PLUGIN:GenerateWorkOrder(entity)
@@ -80,15 +84,35 @@ end
 
 function PLUGIN:CleanCompletedWorkOrders()
 	local orders = self:GetWorkOrders()
-	local cleaned = {}
+	local maxOrders = ix.config.Get("cwuMaxTransactions", 500)
+
+	if (#orders <= maxOrders) then return end
+
+	local completed = {}
+	local pending = {}
 
 	for _, order in ipairs(orders) do
-		if (!order.completed) then
-			cleaned[#cleaned + 1] = order
+		if (order.completed) then
+			completed[#completed + 1] = order
+		else
+			pending[#pending + 1] = order
 		end
 	end
 
-	self:SaveWorkOrders(cleaned)
+	table.sort(completed, function(a, b)
+		return (a.completedTime or 0) < (b.completedTime or 0)
+	end)
+
+	local keep = math.max(0, maxOrders - #pending)
+	local result = {}
+
+	for _, o in ipairs(pending) do result[#result + 1] = o end
+
+	for i = #completed - keep + 1, #completed do
+		if (i >= 1) then result[#result + 1] = completed[i] end
+	end
+
+	ix.data.Set("cwuWorkOrders", result)
 end
 
 function PLUGIN:ClaimWorkOrder(orderID, charName)

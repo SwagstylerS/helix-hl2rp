@@ -9,6 +9,7 @@ end
 
 function PANEL:SetOrders(orders)
 	if (IsValid(self.header)) then self.header:Remove() end
+	if (IsValid(self.submitSection)) then self.submitSection:Remove() end
 	if (IsValid(self.scroll)) then self.scroll:Remove() end
 
 	self.header = vgui.Create("DLabel", self)
@@ -18,6 +19,78 @@ function PANEL:SetOrders(orders)
 	self.header:SetFont("DermaDefaultBold")
 	self.header:SetTextColor(Color(100, 175, 100))
 	self.header:SizeToContents()
+
+	-- Submit Order footer — Directors and server admins only
+	-- Must be docked BOTTOM before the FILL scroll is created
+	if (LocalPlayer():IsCWUDirector() or LocalPlayer():IsAdmin()) then
+		self:SetSize(560, 594)
+		self:Center()
+
+		self.submitSection = vgui.Create("DPanel", self)
+		self.submitSection:Dock(BOTTOM)
+		self.submitSection:SetHeight(132)
+		self.submitSection:DockMargin(8, 4, 8, 8)
+		self.submitSection.Paint = function(_, w, h)
+			surface.SetDrawColor(25, 40, 25, 220)
+			surface.DrawRect(0, 0, w, h)
+		end
+
+		local submitLabel = vgui.Create("DLabel", self.submitSection)
+		submitLabel:Dock(TOP)
+		submitLabel:DockMargin(6, 4, 6, 2)
+		submitLabel:SetText("Submit Work Order")
+		submitLabel:SetFont("DermaDefaultBold")
+		submitLabel:SetTextColor(Color(100, 175, 100))
+		submitLabel:SizeToContents()
+
+		local descEntry = vgui.Create("DTextEntry", self.submitSection)
+		descEntry:Dock(TOP)
+		descEntry:DockMargin(6, 2, 6, 2)
+		descEntry:SetHeight(22)
+		descEntry:SetPlaceholderText("Description")
+
+		local locEntry = vgui.Create("DTextEntry", self.submitSection)
+		locEntry:Dock(TOP)
+		locEntry:DockMargin(6, 2, 6, 2)
+		locEntry:SetHeight(22)
+		locEntry:SetPlaceholderText("Location")
+
+		local bottomRow = vgui.Create("DPanel", self.submitSection)
+		bottomRow:Dock(TOP)
+		bottomRow:DockMargin(6, 2, 6, 2)
+		bottomRow:SetHeight(26)
+		bottomRow:SetPaintBackground(false)
+
+		local prioCombo = vgui.Create("DComboBox", bottomRow)
+		prioCombo:Dock(FILL)
+		prioCombo:DockMargin(0, 0, 4, 0)
+		prioCombo:AddChoice("Low",    1)
+		prioCombo:AddChoice("Medium", 2)
+		prioCombo:AddChoice("High",   3)
+		prioCombo:SetValue("Medium")
+
+		local submitBtn = vgui.Create("DButton", bottomRow)
+		submitBtn:Dock(RIGHT)
+		submitBtn:SetWidth(76)
+		submitBtn:SetText("SUBMIT")
+		submitBtn:SetFont("DermaDefaultBold")
+		submitBtn.DoClick = function()
+			local desc = descEntry:GetValue()
+			local loc  = locEntry:GetValue()
+			if (desc == "" or loc == "") then return end
+
+			local _, priVal = prioCombo:GetSelected()
+			netstream.Start("CWUWorkOrderSubmit", {
+				description = desc,
+				location    = loc,
+				priority    = priVal or 2
+			})
+
+			descEntry:SetValue("")
+			locEntry:SetValue("")
+			prioCombo:SetValue("Medium")
+		end
+	end
 
 	self.scroll = vgui.Create("DScrollPanel", self)
 	self.scroll:Dock(FILL)
