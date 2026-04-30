@@ -27,12 +27,13 @@ function PLUGIN:GenerateWorkOrder(entity)
 		end
 	end
 
+	local ePos = entity:GetPos()
 	orders[#orders + 1] = {
 		id = #orders + 1,
 		entityIndex = entity:EntIndex(),
 		entityClass = entity:GetClass(),
 		type = breakableInfo.type,
-		location = entity:GetArea() or "Unknown",
+		location = string.format("%d, %d", math.floor(ePos.x), math.floor(ePos.y)),
 		priority = breakableInfo.priority,
 		time = os.time(),
 		assignedTo = nil,

@@ -222,6 +222,37 @@ function PANEL:CreateRosterTab()
 	label:SetTextColor(Color(100, 150, 255))
 	label:SizeToContents()
 
+	local actionPanel = vgui.Create("DPanel", self.rosterPanel)
+	actionPanel:Dock(BOTTOM)
+	actionPanel:SetTall(30)
+	actionPanel:DockMargin(5, 0, 5, 5)
+	actionPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(30, 30, 40)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local flagBtn = vgui.Create("DButton", actionPanel)
+	flagBtn:Dock(LEFT)
+	flagBtn:SetWide(110)
+	flagBtn:DockMargin(2, 2, 2, 2)
+	flagBtn:SetText("Flag Member")
+	flagBtn.DoClick = function()
+		local selected = self.rosterList:GetSelected()
+		if (!selected or !selected[1]) then return end
+		netstream.Start("CWUCombineTerminalAction", {action = "flag", charName = selected[1].cwuCharName})
+	end
+
+	local unflagBtn = vgui.Create("DButton", actionPanel)
+	unflagBtn:Dock(LEFT)
+	unflagBtn:SetWide(110)
+	unflagBtn:DockMargin(0, 2, 2, 2)
+	unflagBtn:SetText("Unflag Member")
+	unflagBtn.DoClick = function()
+		local selected = self.rosterList:GetSelected()
+		if (!selected or !selected[1]) then return end
+		netstream.Start("CWUCombineTerminalAction", {action = "unflag", charName = selected[1].cwuCharName})
+	end
+
 	self.rosterList = vgui.Create("DListView", self.rosterPanel)
 	self.rosterList:Dock(FILL)
 	self.rosterList:DockMargin(5, 0, 5, 5)
@@ -229,6 +260,7 @@ function PANEL:CreateRosterTab()
 	self.rosterList:AddColumn("Division")
 	self.rosterList:AddColumn("Loyalty Tier")
 	self.rosterList:AddColumn("Role")
+	self.rosterList:AddColumn("Status"):SetFixedWidth(70)
 	self.rosterList:SetMultiSelect(false)
 
 	self.tabs:AddSheet("Roster", self.rosterPanel, "icon16/vcard.png")
@@ -244,13 +276,21 @@ function PANEL:PopulateRoster()
 	for _, v in ipairs(self.data.roster or {}) do
 		local division = v.division or "Unassigned"
 		local tierInfo = PLUGIN.LoyaltyTiers[v.tier] or PLUGIN.LoyaltyTiers[0]
+		local statusText = v.flagged and "FLAGGED" or "Clear"
 
-		self.rosterList:AddLine(
+		local line = self.rosterList:AddLine(
 			v.name,
 			division:sub(1, 1):upper() .. division:sub(2),
 			v.tier .. " - " .. tierInfo.name,
-			v.isDirector and "DIRECTOR" or "Worker"
+			v.isDirector and "DIRECTOR" or "Worker",
+			statusText
 		)
+
+		line.cwuCharName = v.name
+
+		if (v.flagged) then
+			line:GetChild(4):SetTextColor(Color(255, 100, 100))
+		end
 	end
 end
 

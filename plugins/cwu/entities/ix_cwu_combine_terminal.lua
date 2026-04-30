@@ -62,7 +62,8 @@ if (SERVER) then
 					name = character:GetName(),
 					division = v:GetCWUDivision(),
 					tier = character:GetData("loyaltyTier", 0),
-					isDirector = v:IsCWUDirector()
+					isDirector = v:IsCWUDirector(),
+					flagged = character:GetData("combineFlag", false)
 				}
 			end
 		end
@@ -72,9 +73,10 @@ if (SERVER) then
 
 		for class, info in pairs(PLUGIN.BreakableTypes) do
 			for _, entity in ipairs(ents.FindByClass(class)) do
+				local ePos = entity:GetPos()
 				infrastructure[#infrastructure + 1] = {
 					type = info.type,
-					location = entity:GetArea() or "Unknown",
+					location = string.format("%d, %d", math.floor(ePos.x), math.floor(ePos.y)),
 					broken = entity:GetBroken(),
 					priority = info.priority
 				}
@@ -112,6 +114,58 @@ if (SERVER) then
 
 		PLUGIN:SubmitManualWorkOrder(description, location, priority, client:GetCharacter():GetName())
 		client:NotifyLocalized("cwuWorkOrderSubmitted")
+	end)
+
+	netstream.Hook("CWUCombineTerminalAction", function(client, data)
+		if (!IsValid(client) or !client:IsPlayer() or !client:IsCombine()) then
+			return
+		end
+
+		if (type(data) != "table") then return end
+
+		local action = tostring(data.action or "")
+		local charName = string.sub(tostring(data.charName or ""), 1, 100)
+
+		if (charName == "") then return end
+
+		local targetChar = nil
+
+		for _, v in ipairs(player.GetAll()) do
+			local char = v:GetCharacter()
+
+			if (char and char:GetName() == charName) then
+				targetChar = char
+				break
+			end
+		end
+
+		if (!targetChar) then
+			client:Notify("Character not found online.")
+			return
+		end
+
+		if (action == "flag") then
+			targetChar:SetData("combineFlag", true)
+			client:NotifyLocalized("cwuMemberFlagged", charName)
+
+			local targets = {}
+
+			for _, v in ipairs(player.GetAll()) do
+				if (IsValid(v) and v:IsCombine()) then
+					targets[#targets + 1] = v
+				end
+			end
+
+			if (#targets > 0) then
+				net.Start("CS_BiometricAlert")
+					net.WriteString(string.format("CWU MEMBER FLAGGED: %s", charName))
+					net.WriteUInt(2, 4)
+				net.Send(targets)
+			end
+		elseif (action == "unflag") then
+			targetChar:SetData("combineFlag", false)
+			client:Notify("Combine flag cleared for " .. charName .. ".")
+		end
 	end)
 else
 	surface.CreateFont("ixCWUCombineTerminal", {

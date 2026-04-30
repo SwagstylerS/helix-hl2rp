@@ -44,7 +44,7 @@ Goals:
 
 ## Day 4 — Thu May 1 · CWU Combine Terminal Polish
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_cwu_combine_terminal.lua` — audit current `Use` handler; ensure the payload sent to Combine includes both CWU roster (division, tier, name) and breakable infrastructure status (broken count per type, sourced from `ents.FindByClass` for each `PLUGIN.BreakableTypes` key)

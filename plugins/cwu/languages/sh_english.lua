@@ -71,5 +71,6 @@ LANGUAGE = {
 	-- Combine Terminal
 	cwuCombineTerminal = "CIVIL WORKFORCE OVERSIGHT",
 	cwuRoster = "CWU ROSTER",
-	cwuInfrastructureStatus = "INFRASTRUCTURE STATUS"
+	cwuInfrastructureStatus = "INFRASTRUCTURE STATUS",
+	cwuMemberFlagged = "%s has been flagged for Combine attention."
 }
