@@ -11,6 +11,7 @@ function PANEL:Init()
 
 	self:CreatePersonnelTab()
 	self:CreateBlueprintTab()
+	self:CreateBlueprintRequestsTab()
 	self:CreateLicenseTab()
 	self:CreateMedicalTrainingTab()
 	self:CreateTreasuryTab()
@@ -22,6 +23,7 @@ function PANEL:SetData(data)
 
 	self:PopulatePersonnel()
 	self:PopulateBlueprints()
+	self:PopulateBlueprintRequests()
 	self:PopulateLicenses()
 	self:PopulateMedicalTraining()
 	self:PopulateTreasury()
@@ -223,7 +225,98 @@ function PANEL:PopulateBlueprints()
 	end
 end
 
--- Tab 3: Business Licenses
+-- Tab 3: Pending Blueprint Approval Requests
+function PANEL:CreateBlueprintRequestsTab()
+	self.bpRequestsPanel = vgui.Create("DPanel", self.tabs)
+	self.bpRequestsPanel:Dock(FILL)
+	self.bpRequestsPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(30, 30, 30)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local label = vgui.Create("DLabel", self.bpRequestsPanel)
+	label:Dock(TOP)
+	label:DockMargin(5, 5, 5, 5)
+	label:SetText("Pending Blueprint Approval Requests")
+	label:SetFont("DermaDefaultBold")
+	label:SetTextColor(Color(100, 175, 100))
+	label:SizeToContents()
+
+	self.bpRequestsList = vgui.Create("DListView", self.bpRequestsPanel)
+	self.bpRequestsList:Dock(FILL)
+	self.bpRequestsList:DockMargin(5, 0, 5, 5)
+	self.bpRequestsList:AddColumn("Worker")
+	self.bpRequestsList:AddColumn("Blueprint")
+	self.bpRequestsList:AddColumn("Requested")
+	self.bpRequestsList:SetMultiSelect(false)
+
+	local buttonBar = vgui.Create("DPanel", self.bpRequestsPanel)
+	buttonBar:Dock(BOTTOM)
+	buttonBar:SetTall(35)
+	buttonBar:DockMargin(5, 0, 5, 5)
+	buttonBar.Paint = nil
+
+	local approveBtn = vgui.Create("DButton", buttonBar)
+	approveBtn:Dock(LEFT)
+	approveBtn:SetWide(120)
+	approveBtn:DockMargin(0, 0, 5, 0)
+	approveBtn:SetText("Approve")
+	approveBtn.DoClick = function()
+		local lineID = self.bpRequestsList:GetSelectedLine()
+
+		if (!lineID) then
+			return
+		end
+
+		local line = self.bpRequestsList:GetLine(lineID)
+
+		if (line and line.charID and line.bpID) then
+			netstream.Start("CWUBlueprintApprove", line.charID, line.bpID)
+			self.bpRequestsList:RemoveLine(lineID)
+		end
+	end
+
+	local revokeBtn = vgui.Create("DButton", buttonBar)
+	revokeBtn:Dock(LEFT)
+	revokeBtn:SetWide(130)
+	revokeBtn:SetText("Revoke / Decline")
+	revokeBtn.DoClick = function()
+		local lineID = self.bpRequestsList:GetSelectedLine()
+
+		if (!lineID) then
+			return
+		end
+
+		local line = self.bpRequestsList:GetLine(lineID)
+
+		if (line and line.charID and line.bpID) then
+			netstream.Start("CWUBlueprintRevoke", line.charID, line.bpID)
+			self.bpRequestsList:RemoveLine(lineID)
+		end
+	end
+
+	self.tabs:AddSheet("BP Requests", self.bpRequestsPanel, "icon16/application_form.png")
+end
+
+function PANEL:PopulateBlueprintRequests()
+	if (!self.data) then
+		return
+	end
+
+	self.bpRequestsList:Clear()
+
+	for _, req in ipairs(self.data.blueprintRequests or {}) do
+		local line = self.bpRequestsList:AddLine(
+			req.charName,
+			req.blueprintName or req.blueprintID,
+			os.date("%m/%d %H:%M", req.time)
+		)
+		line.charID = req.charID
+		line.bpID = req.blueprintID
+	end
+end
+
+-- Tab 4: Business Licenses
 function PANEL:CreateLicenseTab()
 	self.licensePanel = vgui.Create("DPanel", self.tabs)
 	self.licensePanel:Dock(FILL)
@@ -306,7 +399,7 @@ function PANEL:PopulateLicenses()
 	end
 end
 
--- Tab 4: Medical Training
+-- Tab 5: Medical Training
 function PANEL:CreateMedicalTrainingTab()
 	self.medicalPanel = vgui.Create("DPanel", self.tabs)
 	self.medicalPanel:Dock(FILL)
@@ -371,7 +464,7 @@ function PANEL:PopulateMedicalTraining()
 	end
 end
 
--- Tab 5: Treasury
+-- Tab 6: Treasury
 function PANEL:CreateTreasuryTab()
 	self.treasuryPanel = vgui.Create("DPanel", self.tabs)
 	self.treasuryPanel:Dock(FILL)
@@ -459,7 +552,7 @@ function PANEL:PopulateTreasury()
 	end
 end
 
--- Tab 6: Transaction Log
+-- Tab 7: Transaction Log
 function PANEL:CreateTransactionLogTab()
 	self.transLogPanel = vgui.Create("DPanel", self.tabs)
 	self.transLogPanel:Dock(FILL)

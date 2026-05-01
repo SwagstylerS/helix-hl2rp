@@ -56,7 +56,7 @@ Goals:
 
 ## Day 5 — Fri May 2 · Blueprint Approval Request Flow
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_productiontable.lua` — in the `Use` handler, after building `availableBlueprints`, for tier-2 blueprints where `canUse == false`, include a `requestable = true` field; add `netstream.Hook("CWURequestBlueprintApproval", ...)` server handler that validates the requesting character is Production/Director, records the request in `ix.data` under `"cwuBlueprintRequests"` as `{charID, charName, blueprintID, time}`, and notifies online Directors/admins

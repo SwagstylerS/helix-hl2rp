@@ -121,6 +121,7 @@ if (SERVER) then
 			cwuMembers = cwuMembers,
 			citizens = citizens,
 			blueprintApprovals = blueprintApprovals,
+			blueprintRequests = ix.data.Get("cwuBlueprintRequests", {}),
 			treasury = treasury,
 			recentTransactions = recentTransactions,
 			allTransactions = transactions
@@ -269,6 +270,95 @@ if (SERVER) then
 		else
 			client:NotifyLocalized("cwuInsufficientTreasury")
 		end
+	end)
+
+	netstream.Hook("CWUBlueprintApprove", function(client, charID, blueprintID)
+		if (!client:IsCWUDirector()) then
+			return
+		end
+
+		local requests = ix.data.Get("cwuBlueprintRequests", {})
+		local charName = tostring(charID)
+
+		for _, req in ipairs(requests) do
+			if (req.charID == charID and req.blueprintID == blueprintID) then
+				charName = req.charName
+				break
+			end
+		end
+
+		-- Apply to online character immediately
+		for _, v in ipairs(player.GetAll()) do
+			local character = v:GetCharacter()
+
+			if (character and character:GetID() == charID) then
+				character:SetData("approved_bp_" .. blueprintID, true)
+				v:Notify("Your blueprint request for " .. blueprintID .. " has been approved.")
+				break
+			end
+		end
+
+		-- Store pre-approval so it's applied when the character next connects
+		local preApprovals = ix.data.Get("cwuPreApprovals", {})
+		local charIDStr = tostring(charID)
+		preApprovals[charIDStr] = preApprovals[charIDStr] or {}
+		preApprovals[charIDStr][blueprintID] = true
+		ix.data.Set("cwuPreApprovals", preApprovals)
+
+		-- Remove from pending request queue
+		for i = #requests, 1, -1 do
+			if (requests[i].charID == charID and requests[i].blueprintID == blueprintID) then
+				table.remove(requests, i)
+			end
+		end
+		ix.data.Set("cwuBlueprintRequests", requests)
+
+		client:NotifyLocalized("cwuBlueprintApproved", charName)
+	end)
+
+	netstream.Hook("CWUBlueprintRevoke", function(client, charID, blueprintID)
+		if (!client:IsCWUDirector()) then
+			return
+		end
+
+		local requests = ix.data.Get("cwuBlueprintRequests", {})
+		local charName = tostring(charID)
+
+		for _, req in ipairs(requests) do
+			if (req.charID == charID and req.blueprintID == blueprintID) then
+				charName = req.charName
+				break
+			end
+		end
+
+		-- Revoke from online character
+		for _, v in ipairs(player.GetAll()) do
+			local character = v:GetCharacter()
+
+			if (character and character:GetID() == charID) then
+				character:SetData("approved_bp_" .. blueprintID, false)
+				break
+			end
+		end
+
+		-- Remove any stored pre-approval
+		local preApprovals = ix.data.Get("cwuPreApprovals", {})
+		local charIDStr = tostring(charID)
+
+		if (preApprovals[charIDStr]) then
+			preApprovals[charIDStr][blueprintID] = nil
+			ix.data.Set("cwuPreApprovals", preApprovals)
+		end
+
+		-- Remove from pending request queue
+		for i = #requests, 1, -1 do
+			if (requests[i].charID == charID and requests[i].blueprintID == blueprintID) then
+				table.remove(requests, i)
+			end
+		end
+		ix.data.Set("cwuBlueprintRequests", requests)
+
+		client:NotifyLocalized("cwuBlueprintRevoked", charName)
 	end)
 else
 	surface.CreateFont("ixCWUDirectorPC", {

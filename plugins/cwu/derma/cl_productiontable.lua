@@ -1,7 +1,7 @@
 local PANEL = {}
 
 function PANEL:Init()
-	self:SetSize(400, 350)
+	self:SetSize(400, 380)
 	self:Center()
 	self:MakePopup()
 	self:SetTitle("CWU Production Table")
@@ -18,6 +18,13 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 	label:SetTextColor(Color(100, 175, 100))
 	label:SizeToContents()
 
+	local actionBtn = vgui.Create("DButton", self)
+	actionBtn:Dock(BOTTOM)
+	actionBtn:DockMargin(5, 0, 5, 5)
+	actionBtn:SetTall(30)
+	actionBtn:SetText("Select Blueprint")
+	actionBtn:SetEnabled(false)
+
 	self.list = vgui.Create("DListView", self)
 	self.list:Dock(FILL)
 	self.list:DockMargin(5, 0, 5, 5)
@@ -30,12 +37,18 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 	local tierNames = {[0] = "Basic", [1] = "Advanced", [2] = "Restricted"}
 
 	for _, bp in ipairs(blueprints) do
+		local isPending = bp.hasPendingRequest or (ix.gui.cwuPendingBPRequests and ix.gui.cwuPendingBPRequests[bp.id])
 		local status = "Ready"
 		local statusColor = Color(100, 255, 100)
 
 		if (!bp.canUse) then
-			status = bp.tier == 2 and "Need Approval" or "Tier Locked"
-			statusColor = Color(255, 100, 100)
+			if (bp.requestable) then
+				status = isPending and "Approval Pending" or "Request Approval"
+				statusColor = isPending and Color(255, 200, 100) or Color(100, 150, 255)
+			else
+				status = "Tier Locked"
+				statusColor = Color(255, 100, 100)
+			end
 		elseif (!bp.hasMaterials) then
 			status = "Need Materials"
 			statusColor = Color(255, 200, 100)
@@ -44,16 +57,31 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 		local line = self.list:AddLine(bp.name, tierNames[bp.tier] or "?", bp.craftTime .. "s", status)
 		line.bpID = bp.id
 		line.canCraft = bp.canUse and bp.hasMaterials
+		line.requestable = bp.requestable or false
+		line.hasPendingRequest = isPending or false
 
 		line:GetChild(3):SetTextColor(statusColor)
 	end
 
-	local craftBtn = vgui.Create("DButton", self)
-	craftBtn:Dock(BOTTOM)
-	craftBtn:DockMargin(5, 0, 5, 5)
-	craftBtn:SetTall(30)
-	craftBtn:SetText("Begin Crafting")
-	craftBtn.DoClick = function()
+	self.list.OnRowSelected = function(_, _, line)
+		if (line.canCraft) then
+			actionBtn:SetText("Begin Crafting")
+			actionBtn:SetEnabled(true)
+		elseif (line.requestable) then
+			if (line.hasPendingRequest) then
+				actionBtn:SetText("Approval Pending")
+				actionBtn:SetEnabled(false)
+			else
+				actionBtn:SetText("Request Approval")
+				actionBtn:SetEnabled(true)
+			end
+		else
+			actionBtn:SetText("Cannot Craft")
+			actionBtn:SetEnabled(false)
+		end
+	end
+
+	actionBtn.DoClick = function()
 		local lineID = self.list:GetSelectedLine()
 
 		if (!lineID) then
@@ -62,11 +90,27 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 
 		local line = self.list:GetLine(lineID)
 
-		if (line and line.canCraft) then
+		if (!line) then
+			return
+		end
+
+		if (line.canCraft) then
 			netstream.Start("CWUProductionStart", self.entIndex, line.bpID)
 			self:Remove()
-		else
-			Derma_Message("Cannot craft this blueprint. Check requirements.", "Production Error", "OK")
+		elseif (line.requestable and !line.hasPendingRequest) then
+			netstream.Start("CWURequestBlueprintApproval", line.bpID)
+
+			if (!ix.gui.cwuPendingBPRequests) then
+				ix.gui.cwuPendingBPRequests = {}
+			end
+			ix.gui.cwuPendingBPRequests[line.bpID] = true
+
+			line.hasPendingRequest = true
+			line:SetColumnText(4, "Approval Pending")
+			line:GetChild(3):SetTextColor(Color(255, 200, 100))
+
+			actionBtn:SetText("Approval Pending")
+			actionBtn:SetEnabled(false)
 		end
 	end
 end

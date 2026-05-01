@@ -1,3 +1,17 @@
+function PLUGIN:PlayerSpawnedCharacter(client, character)
+	local charIDStr = tostring(character:GetID())
+	local preApprovals = ix.data.Get("cwuPreApprovals", {})
+
+	if (preApprovals[charIDStr]) then
+		for blueprintID, _ in pairs(preApprovals[charIDStr]) do
+			character:SetData("approved_bp_" .. blueprintID, true)
+		end
+
+		preApprovals[charIDStr] = nil
+		ix.data.Set("cwuPreApprovals", preApprovals)
+	end
+end
+
 function PLUGIN:LoadData()
 	self:LoadProductionTables()
 	self:LoadWorkOrderBoards()

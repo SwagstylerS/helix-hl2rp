@@ -72,5 +72,10 @@ LANGUAGE = {
 	cwuCombineTerminal = "CIVIL WORKFORCE OVERSIGHT",
 	cwuRoster = "CWU ROSTER",
 	cwuInfrastructureStatus = "INFRASTRUCTURE STATUS",
-	cwuMemberFlagged = "%s has been flagged for Combine attention."
+	cwuMemberFlagged = "%s has been flagged for Combine attention.",
+
+	-- Blueprint Request Flow
+	cwuBlueprintRequested = "Blueprint approval request submitted. A Director will review your request.",
+	cwuBlueprintApprovalPending = "You already have a pending request for this blueprint.",
+	cwuNoPendingRequests = "No pending blueprint approval requests."
 }

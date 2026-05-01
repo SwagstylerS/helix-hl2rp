@@ -91,12 +91,25 @@ if (SERVER) then
 		local character = client:GetCharacter()
 		local inventory = character:GetInventory()
 		local availableBlueprints = {}
+		local charID = character:GetID()
+		local pendingRequests = ix.data.Get("cwuBlueprintRequests", {})
 
 		for _, item in pairs(inventory:GetItems()) do
 			if (item.blueprintID and item.blueprintID != "none") then
 				local canUse = PLUGIN:CanUseBlueprint(character, item.blueprintID)
 				local hasMats = PLUGIN:HasBlueprintMaterials(inventory, item.blueprintID)
 				local bp = PLUGIN:GetBlueprint(item.blueprintID)
+				local isRequestable = bp != nil and bp.tier == 2 and not canUse
+				local hasPending = false
+
+				if (isRequestable) then
+					for _, req in ipairs(pendingRequests) do
+						if (req.charID == charID and req.blueprintID == item.blueprintID) then
+							hasPending = true
+							break
+						end
+					end
+				end
 
 				availableBlueprints[#availableBlueprints + 1] = {
 					id = item.blueprintID,
@@ -104,7 +117,9 @@ if (SERVER) then
 					canUse = canUse,
 					hasMaterials = hasMats,
 					tier = bp and bp.tier or 0,
-					craftTime = bp and bp.craftTime or 10
+					craftTime = bp and bp.craftTime or 10,
+					requestable = isRequestable,
+					hasPendingRequest = hasPending
 				}
 			end
 		end
@@ -175,6 +190,60 @@ if (SERVER) then
 				entity:EmitSound("buttons/combine_button1.wav")
 			end
 		end)
+	end)
+
+	netstream.Hook("CWURequestBlueprintApproval", function(client, blueprintID)
+		if (!IsValid(client)) then return end
+
+		local division = client:GetCWUDivision()
+
+		if (division != "production" and division != "director") then
+			return
+		end
+
+		local bp = PLUGIN:GetBlueprint(blueprintID)
+
+		if (!bp or bp.tier != 2) then
+			return
+		end
+
+		local character = client:GetCharacter()
+
+		if (!character) then
+			return
+		end
+
+		if (character:GetData("approved_bp_" .. blueprintID, false)) then
+			client:Notify("This blueprint is already approved.")
+			return
+		end
+
+		local requests = ix.data.Get("cwuBlueprintRequests", {})
+		local charID = character:GetID()
+
+		for _, req in ipairs(requests) do
+			if (req.charID == charID and req.blueprintID == blueprintID) then
+				client:NotifyLocalized("cwuBlueprintApprovalPending")
+				return
+			end
+		end
+
+		requests[#requests + 1] = {
+			charID = charID,
+			charName = character:GetName(),
+			blueprintID = blueprintID,
+			blueprintName = bp.name,
+			time = os.time()
+		}
+		ix.data.Set("cwuBlueprintRequests", requests)
+
+		client:NotifyLocalized("cwuBlueprintRequested")
+
+		for _, v in ipairs(player.GetAll()) do
+			if (IsValid(v) and v != client and (v:IsCWUDirector() or v:IsAdmin())) then
+				v:Notify(character:GetName() .. " has requested approval for " .. bp.name .. ".")
+			end
+		end
 	end)
 else
 	surface.CreateFont("ixProductionTable", {
