@@ -64,3 +64,9 @@ Goals:
 - `plugins/cwu/derma/cl_productiontable.lua` — for tier-2 rows with `requestable = true`, change the button label to "Request Approval" and send `CWURequestBlueprintApproval` instead of `CWUProductionStart`; show a pending indicator if a request is already in flight (store flag in `ix.gui`)
 - `plugins/cwu/derma/cl_cwu_director_pc.lua` — add a "Blueprint Requests" section (or tab) listing `cwuBlueprintRequests`; each row shows character name + blueprint name + time, with APPROVE and REVOKE buttons wired to the new netstream hooks
 - `plugins/cwu/languages/sh_english.lua` — add strings: `cwuBlueprintRequested`, `cwuBlueprintApprovalPending`, `cwuNoPendingRequests`
+
+---
+
+## Weekend — Sat May 2
+
+All tasks for the week of Apr 28 – May 2 are complete. No pending work. Full CWU reward loop (loyalty progression, work orders, blueprint approval) is implemented across all five planned days.
