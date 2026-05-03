@@ -70,3 +70,9 @@ Goals:
 ## Weekend — Sat May 2
 
 All tasks for the week of Apr 28 – May 2 are complete. No pending work. Full CWU reward loop (loyalty progression, work orders, blueprint approval) is implemented across all five planned days.
+
+---
+
+## Sun May 3
+
+No pending tasks. Week of Apr 28 – May 2 fully closed. Resting — new weekly plan due Mon May 4.
