@@ -1,78 +1,71 @@
 # Weekly Development Plan
-**Week of Apr 28 – May 2, 2026**
-**Goal:** Close the CWU reward loop — loyalty progression, work-order interactivity, and blueprint approval so all four divisions have a complete play cycle.
+**Week of May 4 – May 8, 2026**
+**Goal:** Close the remaining Combine Intelligence gaps and complete the dual-use tension loop — scanner quotas, clearance persistence, checkpoint save/load, and illicit item detection.
 
 ---
 
-## Day 1 — Mon Apr 28 · Loyalty Reward Loop
+## Day 1 — Mon May 4 · Scanner Scan Quotas
 
-**Status:** ✅ Complete
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/libs/sh_loyalty.lua` — add `PLUGIN:AwardLoyalty(character, amount, reason)` that increments a persistent point accumulator (`loyaltyPoints`) and auto-promotes tier when threshold is crossed (e.g. every 10 points = +1 tier, capped at 5); notify the player on tier-up
-- `plugins/cwu/libs/sv_workorders.lua` — extend `CompleteWorkOrder(entityIndex, character)` with an optional `character` param; call `PLUGIN:AwardLoyalty(character, 2, "repair")` when a character is supplied
-- `plugins/cwu/entities/ix_breakable_light.lua`, `ix_breakable_door.lua`, `ix_breakable_pipe.lua`, `ix_breakable_terminal.lua` — pass `client:GetCharacter()` as second arg in each `PLUGIN:CompleteWorkOrder` call inside the `Use` DoStaredAction callback
-- `plugins/cwu/entities/ix_vendorterminal.lua` — in the `CWUVendorPurchase` netstream handler, after the sale is logged, call `PLUGIN:AwardLoyalty` on the terminal owner's character (look up by `GetOwnerCharID`) with 1 point per sale
-- `plugins/cwu/entities/ix_medicalworkstation.lua` — add `PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")` in the `DoStaredAction` success callbacks for `CWUMedicalTreatBasic` and `CWUMedicalSurgery`, and 1 point in `CWUMedicalSynthMedicine`
-- `plugins/cwu/languages/sh_english.lua` — add strings: `cwuLoyaltyGained`, `cwuTierUp`
+- `plugins/combine-scanner/sv_plugin.lua` — add `CS.ScanQuotas = CS.ScanQuotas or {}`; load persisted quotas from `ix.data.Get("cs_scanQuotas", {})` in `InitPostEntity`; in the `scansubject` handler, before the battery check, read the officer's daily quota entry `{count, day}`, block with `"DAILY QUOTA REACHED"` if `count >= 20` (config value), otherwise increment and save; add `timer.Create("CS_QuotaReset", 60, 0, ...)` that checks `os.date("%Y%m%d")` against each entry's `day` and zeroes stale entries
+- `plugins/combine-scanner/sv_plugin.lua` — add `/scanquota` command (Combine only) that prints `"QUOTA: %d / %d SCANS TODAY"` using the officer's current entry
+- `plugins/combine-scanner/sh_plugin.lua` — add `util.AddNetworkString("CS_QuotaSync")`
+- `plugins/combine-scanner/sv_plugin.lua` — after each scan (and on `PlayerLoadedCharacter` for Combine), send `net.Start("CS_QuotaSync") net.WriteUInt(count, 8) net.WriteUInt(max, 8) net.Send(client)` so the HUD stays accurate
+- `plugins/combine-scanner/cl_plugin.lua` — add `net.Receive("CS_QuotaSync", ...)` storing `CS.LocalQuotaCount` and `CS.LocalQuotaMax`; in the existing `HUDPaint` scanner display, add a second line `"QUOTA: %d / %d"` drawn below the battery bar
+- `plugins/combine-terminal/sv_plugin.lua` — extend `BuildActiveUnits()` to include `scanCount = (CS.ScanQuotas[ply:SteamID()] or {}).count or 0` on each unit entry
+- `plugins/combine-terminal/derma/cl_tab_units.lua` — add a `"Scans"` column to the `DListView` and populate it from the `scanCount` field
 
 ---
 
-## Day 2 — Tue Apr 29 · Work Order Self-Assignment
+## Day 2 — Tue May 5 · Recreational Chemical Client Visual Effect
 
-**Status:** ✅ Complete
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/libs/sv_workorders.lua` — add `PLUGIN:ClaimWorkOrder(orderID, charName)` that sets `order.assignedTo = charName` and saves/refreshes boards; add `PLUGIN:ManualCompleteWorkOrder(orderID, character)` for orders that have no linked entity (manual or already-removed entity), awards loyalty and marks complete
-- `plugins/cwu/entities/ix_workorderboard.lua` — add `netstream.Hook("CWUWorkOrderClaim", ...)` (validates CWU Maintenance/Director, calls `ClaimWorkOrder`); add `netstream.Hook("CWUWorkOrderComplete", ...)` (validates claimant matches character, calls `ManualCompleteWorkOrder`)
-- `plugins/cwu/derma/cl_workorderboard.lua` — rebuild `SetOrders` to use a scrollable `DScrollPanel` with per-row panels; each row gets a "CLAIM" button (disabled if already assigned) and a "DONE" button (only enabled when `order.assignedTo` matches the local character name); send `CWUWorkOrderClaim` / `CWUWorkOrderComplete` via netstream on click
-- `plugins/cwu/languages/sh_english.lua` — add strings: `cwuWorkOrderClaimed`, `cwuWorkOrderAlreadyClaimed`, `cwuWorkOrderCompleted`
+- `plugins/cwu/cl_hooks.lua` — add `netstream.Hook("CWURecreationalEffect", function(duration) PLUGIN.ChemEffectEnd = CurTime() + duration end)` to receive the server-dispatched event
+- `plugins/cwu/cl_hooks.lua` — add `PLUGIN:PostRenderVGUI()` (or `HUDPaint`) hook: if `PLUGIN.ChemEffectEnd` is set and `CurTime() < PLUGIN.ChemEffectEnd`, call `DrawMotionBlur(0.06, 0.6, 1/60)` and draw a 12%-alpha green-tinted rect over the full screen (`surface.SetDrawColor(40, 200, 80, 30); surface.DrawRect(0, 0, ScrW(), ScrH())`); clear `PLUGIN.ChemEffectEnd` when expired
+- `plugins/cwu/items/crafted/sh_recreational_chem.lua` — verify the `OnRun` passes `return false` to consume the item (already present); confirm `netstream.Start(client, "CWURecreationalEffect", 60)` uses the correct duration (60 seconds)
+- `plugins/cwu/items/crafted/sh_cwu_supplement.lua` — check if this item has an `OnRun` function; if missing, add one mirroring bandage: `client:SetHealth(math.min(client:Health() + 15, client:GetMaxHealth())); client:EmitSound("items/medshot4.wav"); return false`
+- `plugins/cwu/languages/sh_english.lua` — verify the `cwuChemEffect` string exists; add if missing: `"The haze washes over your senses."`
 
 ---
 
-## Day 3 — Wed Apr 29 · Manual Work Order Submission
+## Day 3 — Wed May 6 · Checkpoint Individual Clearance Integration
 
-**Status:** ✅ Complete
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/sh_plugin.lua` — register `/CWUSubmitOrder` command (arguments: `ix.type.text` for description, `ix.type.text` for location); restrict to Maintenance and Director divisions; call `PLUGIN:SubmitManualWorkOrder` with a priority of 2 and the character's name as submitter; notify success with `cwuWorkOrderSubmitted`
-- `plugins/cwu/entities/ix_workorderboard.lua` — add `netstream.Hook("CWUWorkOrderSubmit", ...)` server handler that validates Director/admin access, accepts `{description, location, priority}`, calls `PLUGIN:SubmitManualWorkOrder`, and refreshes boards
-- `plugins/cwu/derma/cl_workorderboard.lua` — add a "Submit Order" footer section visible only to `client:IsCWUDirector()` or admin; two `DTextEntry` fields (Description, Location) plus a `DComboBox` for priority (Low/Medium/High); "SUBMIT" button sends `CWUWorkOrderSubmit` via netstream
-- `plugins/cwu/libs/sv_workorders.lua` — add `PLUGIN:CleanCompletedWorkOrders()` auto-trim: call it at the end of `SaveWorkOrders` whenever the list exceeds `cwuMaxTransactions` config, removing oldest completed entries first
+- `plugins/combine-terminal/sv_plugin.lua` — in `DoApproveClearance`: after sending `CS_ClearanceResult` and clearing `CS.CWURequests[sid]`, find the target's online character and call `character:SetData("cs_clearance", {level = 1, expires = os.time() + CFG.ClearanceExpiry})`; guard with `if IsValid(targetPly) then local char = targetPly:GetCharacter(); if char then ... end end`
+- `plugins/combine-terminal/sv_plugin.lua` — in `DoDenyClearance`: after sending the deny message, clear the flag: `local char = targetPly:GetCharacter(); if char then char:SetData("cs_clearance", nil) end`
+- `plugins/combine-terminal/sv_plugin.lua` — add `timer.Create("CS_ClearanceDecay", 120, 0, function() ... end)` that iterates `player.GetAll()`, reads each character's `cs_clearance` data, and calls `char:SetData("cs_clearance", nil)` for entries where `data.expires < os.time()`
+- `plugins/checkpoint/entities/entities/ix_checkpoint.lua` — extend `HasClearance(client, mode)`: after the `MODE_YELLOW` CWU faction check, add a second branch that returns `true` if `character:GetData("cs_clearance") ~= nil` and `character:GetData("cs_clearance").expires > os.time()` — this allows individually-approved citizens through yellow checkpoints without being in the CWU faction
+- `plugins/checkpoint/entities/entities/ix_checkpoint.lua` — in `CheckWarrant`, the warrant check already runs before `HasClearance` in `ShouldCollide`, so warranted citizens with a clearance flag are still correctly blocked (no change needed there)
 
 ---
 
-## Day 4 — Thu May 1 · CWU Combine Terminal Polish
+## Day 4 — Thu May 7 · Checkpoint Entity Persistence
 
-**Status:** ✅ Complete
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/entities/ix_cwu_combine_terminal.lua` — audit current `Use` handler; ensure the payload sent to Combine includes both CWU roster (division, tier, name) and breakable infrastructure status (broken count per type, sourced from `ents.FindByClass` for each `PLUGIN.BreakableTypes` key)
-- `plugins/cwu/derma/cl_cwu_combine_terminal.lua` — verify both the Roster tab and the Infrastructure tab render correctly; if the infrastructure tab is missing, add it: a scrollable list of breakable type + broken count + repair status, colour-coded red (broken) / green (operational)
-- `plugins/cwu/entities/ix_cwu_combine_terminal.lua` — add `netstream.Hook("CWUCombineTerminalAction", ...)` to allow Combine to flag a CWU member (sets `character:SetData("combineFlag", true)`) and send a biometric alert via `CS_BiometricAlert` — this mirrors the Director PC's audit powers from the Combine side
-- `plugins/cwu/languages/sh_english.lua` — add strings: `cwuMemberFlagged`, `cwuInfrastructureStatus` (if missing)
+- `plugins/checkpoint/sh_plugin.lua` — define `Schema.SaveCheckpoints` in the shared plugin scope: iterate `ents.FindByClass("ix_checkpoint")`, build a table of `{pos, angles, name, mode}` for each valid entity, and write via `ix.data.Set("ix_checkpoints_" .. game.GetMap(), data)`; this makes the function available globally since Helix evaluates shared plugin files on both realms
+- `plugins/checkpoint/sh_plugin.lua` — define `Schema.LoadCheckpoints`: read `ix.data.Get("ix_checkpoints_" .. game.GetMap(), {})` and, for each saved entry, `ents.Create("ix_checkpoint")`, set pos/angles, `Spawn()`, `Activate()`, then `entity:SetCheckpointName(entry.name)` and `entity:SetMode(entry.mode)`; mark each restored entity with `entity.ixIsSafe = true` so `OnRemove` doesn't overwrite the save
+- `plugins/checkpoint/sh_plugin.lua` — add `hook.Add("InitPostEntity", "ix_checkpoint_load", function() timer.Simple(1, Schema.LoadCheckpoints) end)` (server only, guarded with `if SERVER then`) so checkpoints respawn after map load with their last saved mode and name
+- `plugins/checkpoint/entities/entities/ix_checkpoint.lua` — in `ENT:SpawnFunction`, after `Schema:SaveCheckpoints()`, confirm the returned entity is not nil before saving (already the case); verify `ENT.bNoPersist = true` remains so Helix's own persistence layer doesn't double-spawn
 
 ---
 
-## Day 5 — Fri May 2 · Blueprint Approval Request Flow
+## Day 5 — Fri May 8 · Dual-Use Item Scanner Detection
 
-**Status:** ✅ Complete
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/entities/ix_productiontable.lua` — in the `Use` handler, after building `availableBlueprints`, for tier-2 blueprints where `canUse == false`, include a `requestable = true` field; add `netstream.Hook("CWURequestBlueprintApproval", ...)` server handler that validates the requesting character is Production/Director, records the request in `ix.data` under `"cwuBlueprintRequests"` as `{charID, charName, blueprintID, time}`, and notifies online Directors/admins
-- `plugins/cwu/entities/ix_cwu_director_pc.lua` — include pending blueprint requests in the `Use` payload by reading `ix.data.Get("cwuBlueprintRequests", {})`; add `netstream.Hook("CWUBlueprintApprove", ...)` that sets `character:SetData("approved_bp_" .. blueprintID, true)` and removes the request; add `netstream.Hook("CWUBlueprintRevoke", ...)` that clears the flag
-- `plugins/cwu/derma/cl_productiontable.lua` — for tier-2 rows with `requestable = true`, change the button label to "Request Approval" and send `CWURequestBlueprintApproval` instead of `CWUProductionStart`; show a pending indicator if a request is already in flight (store flag in `ix.gui`)
-- `plugins/cwu/derma/cl_cwu_director_pc.lua` — add a "Blueprint Requests" section (or tab) listing `cwuBlueprintRequests`; each row shows character name + blueprint name + time, with APPROVE and REVOKE buttons wired to the new netstream hooks
-- `plugins/cwu/languages/sh_english.lua` — add strings: `cwuBlueprintRequested`, `cwuBlueprintApprovalPending`, `cwuNoPendingRequests`
-
----
-
-## Weekend — Sat May 2
-
-All tasks for the week of Apr 28 – May 2 are complete. No pending work. Full CWU reward loop (loyalty progression, work orders, blueprint approval) is implemented across all five planned days.
-
----
-
-## Sun May 3
-
-No pending tasks. Week of Apr 28 – May 2 fully closed. Resting — new weekly plan due Mon May 4.
+- `plugins/combine-scanner/sv_plugin.lua` — extend `CFG.FlaggedItems` to include `"combat_stim"` and `"recreational_chem"` so `GetRestrictedItems` picks up dual-use compounds; add `CFG.DualUseHeat = 8` (less than `SMUGGLE = 10` since these carry plausible deniability)
+- `plugins/combine-scanner/sv_plugin.lua` — in the `scansubject` handler, after building `restricted` and `contraStr`, check each detected item's `isDualUse` flag via `ix.item.list[uid] and ix.item.list[uid].isDualUse`; if any dual-use items found, call `AddHeat(sid, CFG.DualUseHeat)` and prefix `contraStr` with `"MEDICAL COMPOUND: "` to preserve the plausible-deniability framing from DIRECTION.md
+- `plugins/combine-scanner/sv_plugin.lua` — ensure dual-use items found in the inventory do NOT appear verbatim as their item name in the scan result; instead always label them `"Medical Compound"` in `contraStr` (replace the raw `item.name` lookup for `isDualUse` items with the string literal `"Medical Compound"`)
+- `plugins/combine-terminal/sv_plugin.lua` — in `CFG.FlaggedItems` (the identical list used by the terminal for live inventory checks), add `"combat_stim"` and `"recreational_chem"` to match the scanner's flagging behaviour
+- `plugins/cwu/items/crafted/sh_combat_stim.lua` — confirm `ITEM.isDualUse = true` is set (already present); no change needed
+- `plugins/cwu/items/crafted/sh_recreational_chem.lua` — confirm `ITEM.isDualUse = true` is set (already present); no change needed
+- `plugins/cwu/languages/sh_english.lua` — add string `cwuDualUseCarried = "MEDICAL COMPOUND DETECTED"` for potential future HUD use
