@@ -59,7 +59,8 @@ function PANEL:Init()
     self.list:AddColumn("RANK"):SetWidth(160)
     self.list:AddColumn("FACTION"):SetWidth(70)
     self.list:AddColumn("STATUS"):SetWidth(80)
-    self.list:AddColumn("ZONE"):SetWidth(200)
+    self.list:AddColumn("ZONE"):SetWidth(160)
+    self.list:AddColumn("SCANS"):SetWidth(55)
     StyleListHeaders(self.list, C.border)
 end
 
@@ -79,7 +80,8 @@ function PANEL:Populate(data)
             unit.rank or "Unknown",
             unit.faction or "?",
             statusStr,
-            unit.zone or "N/A"
+            unit.zone or "N/A",
+            tostring(unit.scanCount or 0)
         )
 
         local rowCol = unit.alive and C.border or C.red

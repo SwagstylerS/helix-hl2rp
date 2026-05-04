@@ -6,7 +6,7 @@
 
 ## Day 1 — Mon May 4 · Scanner Scan Quotas
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-scanner/sv_plugin.lua` — add `CS.ScanQuotas = CS.ScanQuotas or {}`; load persisted quotas from `ix.data.Get("cs_scanQuotas", {})` in `InitPostEntity`; in the `scansubject` handler, before the battery check, read the officer's daily quota entry `{count, day}`, block with `"DAILY QUOTA REACHED"` if `count >= 20` (config value), otherwise increment and save; add `timer.Create("CS_QuotaReset", 60, 0, ...)` that checks `os.date("%Y%m%d")` against each entry's `day` and zeroes stale entries

@@ -9,6 +9,7 @@ if SERVER then
     util.AddNetworkString("CS_BatterySync")
     util.AddNetworkString("CS_BiometricAlert")
     util.AddNetworkString("CS_ChargerSync")
+    util.AddNetworkString("CS_QuotaSync")
 end
 
 if CLIENT then
@@ -33,6 +34,10 @@ if CLIENT then
     ix.command.Add("removecharger", {
         description = "Remove the scanner charger.",
         adminOnly   = true,
+        OnRun       = function(self, client) end,
+    })
+    ix.command.Add("scanquota", {
+        description = "Check your daily scan quota.",
         OnRun       = function(self, client) end,
     })
 end

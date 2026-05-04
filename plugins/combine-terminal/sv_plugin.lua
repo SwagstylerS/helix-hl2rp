@@ -264,13 +264,15 @@ local function BuildActiveUnits()
         if !char then continue end
         local class = ix.class.list[char:GetClass()]
         local factionName = ply:Team() == FACTION_OTA and "OTA" or "MPF"
+        local qe = CS.ScanQuotas and CS.ScanQuotas[ply:SteamID()]
         units[#units + 1] = {
-            name     = ply:Name(),
-            rank     = class and class.name or "Unknown",
-            faction  = factionName,
-            alive    = ply:Alive(),
-            zone     = GetPlayerZone(ply),
-            isSenior = IsSenior(ply),
+            name      = ply:Name(),
+            rank      = class and class.name or "Unknown",
+            faction   = factionName,
+            alive     = ply:Alive(),
+            zone      = GetPlayerZone(ply),
+            isSenior  = IsSenior(ply),
+            scanCount = qe and qe.count or 0,
         }
     end
     return units

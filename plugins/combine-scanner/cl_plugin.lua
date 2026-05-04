@@ -132,6 +132,7 @@ end
 -- ============================================================
 --  CLIENT GLOBALS  (shared across plugins)
 -- ============================================================
+CS            = CS            or {}
 CS_NotifQueue = CS_NotifQueue or {}
 CS_HoverEnts  = CS_HoverEnts  or {terminal = NULL, intel = NULL, charger = NULL}
 
@@ -251,6 +252,11 @@ end)
 
 net.Receive("CS_BatterySync", function()
     batteryLevel = net.ReadUInt(8)
+end)
+
+net.Receive("CS_QuotaSync", function()
+    CS.LocalQuotaCount = net.ReadUInt(8)
+    CS.LocalQuotaMax   = net.ReadUInt(8)
 end)
 
 net.Receive("CS_ChargerSync", function()
@@ -459,6 +465,13 @@ local function DrawBatteryHUD()
     surface.DrawOutlinedRect(bx, by, BAT_W, BAT_H, 1)
     draw.SimpleText("BAT",                         "CS_Notif", bx+BAT_W/2, by-12,       c.label, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
     draw.SimpleText(batteryLevel .. "/" .. BAT_MAX, "CS_Notif", bx+BAT_W/2, by+BAT_H+2, c.label, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+
+    if CS.LocalQuotaCount ~= nil then
+        draw.SimpleText(
+            string.format("QUOTA: %d/%d", CS.LocalQuotaCount, CS.LocalQuotaMax or 20),
+            "CS_Notif", bx + BAT_W/2, by + BAT_H + 14, c.label, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
+        )
+    end
 end
 
 -- ============================================================
@@ -501,10 +514,12 @@ hook.Add("EntityRemoved", "CS_Scanner_ScanCleanup", function(ent)
 end)
 
 hook.Add("InitPostEntity", "CS_Scanner_ClientReset", function()
-    activeScan    = nil
-    denyMsg       = nil
-    denyAt        = nil
-    batteryLevel  = nil
-    CS_NotifQueue = {}
-    CS_HoverEnts  = {terminal = NULL, intel = NULL, charger = NULL}
+    activeScan         = nil
+    denyMsg            = nil
+    denyAt             = nil
+    batteryLevel       = nil
+    CS.LocalQuotaCount = nil
+    CS.LocalQuotaMax   = nil
+    CS_NotifQueue      = {}
+    CS_HoverEnts       = {terminal = NULL, intel = NULL, charger = NULL}
 end)

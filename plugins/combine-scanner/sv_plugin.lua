@@ -17,6 +17,7 @@ local CFG = {
     HeatTier2          = 30,
     HeatTier3          = 55,
     HeatTier4          = 80,
+    QuotaMax           = 20,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
     FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio"},
     FakeContraband     = {
@@ -37,6 +38,7 @@ CS             = CS             or {}
 CS.Cooldowns   = CS.Cooldowns   or {}
 CS.ScanHistory = CS.ScanHistory or {}
 CS.Recharging  = CS.Recharging  or {}
+CS.ScanQuotas  = CS.ScanQuotas  or {}
 
 -- ============================================================
 --  HELPERS
@@ -132,6 +134,16 @@ local function GetDay()
     return string.format("%04d%02d%02d", t.year, t.month, t.day)
 end
 
+local function SendQuotaSync(client)
+    local sid   = client:SteamID()
+    local entry = CS.ScanQuotas[sid]
+    local count = (entry and entry.day == GetDay()) and entry.count or 0
+    net.Start("CS_QuotaSync")
+        net.WriteUInt(count, 8)
+        net.WriteUInt(CFG.QuotaMax, 8)
+    net.Send(client)
+end
+
 local function SpawnFrozenProp(model, pos, ang)
     local ent = ents.Create("prop_dynamic")
     ent:SetModel(model)
@@ -215,7 +227,20 @@ hook.Add("PlayerUse", "CS_Scanner_ChargerUse", function(ply, ent)
     end
 end)
 
+timer.Create("CS_QuotaReset", 60, 0, function()
+    local today   = GetDay()
+    local changed = false
+    for sid, entry in pairs(CS.ScanQuotas) do
+        if entry.day != today then
+            CS.ScanQuotas[sid] = nil
+            changed = true
+        end
+    end
+    if changed then ix.data.Set("cs_scanQuotas", CS.ScanQuotas) end
+end)
+
 hook.Add("InitPostEntity", "CS_Scanner_PropRespawn", function()
+    CS.ScanQuotas = ix.data.Get("cs_scanQuotas", {})
     timer.Simple(3, function()
         local data = ix.data.Get(GetChargerMapKey(), nil)
         if !data then return end
@@ -244,6 +269,7 @@ hook.Add("PlayerLoadedCharacter", "CS_Scanner_CharacterLoad", function(client, c
     net.Start("CS_BatterySync")
         net.WriteUInt(battery, 8)
     net.Send(client)
+    SendQuotaSync(client)
     -- Issue scanner_device if not in inventory
     local inv = char:GetInventory()
     if !inv then return end
@@ -310,6 +336,13 @@ ix.command.Add("scansubject", {
             return SendDeny(client, "SCANNER UNIT NOT DETECTED // ACQUIRE DEVICE FIRST")
         end
 
+        local officerSID = client:SteamID()
+        local qEntry     = CS.ScanQuotas[officerSID]
+        if qEntry and qEntry.day == GetDay() and qEntry.count >= CFG.QuotaMax then
+            return SendDeny(client, string.format("DAILY QUOTA REACHED: %d / %d SCANS",
+                qEntry.count, CFG.QuotaMax))
+        end
+
         local battery = GetBattery(client)
         if battery <= 0 then return SendDeny(client, "BATTERY DEPLETED: USE CHARGER") end
 
@@ -326,6 +359,16 @@ ix.command.Add("scansubject", {
         end
 
         SetBattery(client, battery - 1)
+
+        local today    = GetDay()
+        local qCurrent = CS.ScanQuotas[officerSID]
+        if qCurrent and qCurrent.day == today then
+            qCurrent.count = qCurrent.count + 1
+        else
+            CS.ScanQuotas[officerSID] = {count = 1, day = today}
+        end
+        ix.data.Set("cs_scanQuotas", CS.ScanQuotas)
+        SendQuotaSync(client)
 
         if isNPC then
             math.randomseed(target:EntIndex() + os.time() % 10000)
@@ -416,6 +459,18 @@ ix.command.Add("scanstatus", {
         local battery = GetBattery(client)
         client:ChatPrint(string.format("[CS STATUS] Battery: %d/%d",
             battery, CFG.BatteryMax))
+    end,
+})
+
+ix.command.Add("scanquota", {
+    description = "Check your daily scan quota.",
+    OnRun = function(self, client)
+        if !IsCombine(client) then return client:Notify("Unauthorized.") end
+        local sid   = client:SteamID()
+        local entry = CS.ScanQuotas[sid]
+        local count = (entry and entry.day == GetDay()) and entry.count or 0
+        client:ChatPrint(string.format("[CS QUOTA] QUOTA: %d / %d SCANS TODAY",
+            count, CFG.QuotaMax))
     end,
 })
 
