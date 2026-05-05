@@ -1,5 +1,21 @@
 -- Client-side CWU hooks
 
+netstream.Hook("CWURecreationalEffect", function(duration)
+	PLUGIN.ChemEffectEnd = CurTime() + duration
+end)
+
+function PLUGIN:HUDPaint()
+	if (PLUGIN.ChemEffectEnd) then
+		if (CurTime() < PLUGIN.ChemEffectEnd) then
+			DrawMotionBlur(0.06, 0.6, 1/60)
+			surface.SetDrawColor(40, 200, 80, 30)
+			surface.DrawRect(0, 0, ScrW(), ScrH())
+		else
+			PLUGIN.ChemEffectEnd = nil
+		end
+	end
+end
+
 function PLUGIN:CreateCharacterInfo(panel)
 	if (LocalPlayer():IsCWU()) then
 		panel.cwuDivision = panel:Add("DLabel")

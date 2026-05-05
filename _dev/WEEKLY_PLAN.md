@@ -21,7 +21,7 @@ Goals:
 
 ## Day 2 — Tue May 5 · Recreational Chemical Client Visual Effect
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/cl_hooks.lua` — add `netstream.Hook("CWURecreationalEffect", function(duration) PLUGIN.ChemEffectEnd = CurTime() + duration end)` to receive the server-dispatched event

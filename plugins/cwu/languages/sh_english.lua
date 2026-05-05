@@ -77,5 +77,6 @@ LANGUAGE = {
 	-- Blueprint Request Flow
 	cwuBlueprintRequested = "Blueprint approval request submitted. A Director will review your request.",
 	cwuBlueprintApprovalPending = "You already have a pending request for this blueprint.",
-	cwuNoPendingRequests = "No pending blueprint approval requests."
+	cwuNoPendingRequests = "No pending blueprint approval requests.",
+	cwuChemEffect = "The haze washes over your senses."
 }
