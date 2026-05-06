@@ -34,7 +34,7 @@ Goals:
 
 ## Day 3 — Wed May 6 · Checkpoint Individual Clearance Integration
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-terminal/sv_plugin.lua` — in `DoApproveClearance`: after sending `CS_ClearanceResult` and clearing `CS.CWURequests[sid]`, find the target's online character and call `character:SetData("cs_clearance", {level = 1, expires = os.time() + CFG.ClearanceExpiry})`; guard with `if IsValid(targetPly) then local char = targetPly:GetCharacter(); if char then ... end end`

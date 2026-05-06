@@ -193,6 +193,10 @@ local function DoApproveClearance(ply, targetPly)
     local sid = targetPly:SteamID()
     if !CS.CWURequests[sid] then ply:Notify("No pending clearance request."); return false end
     CS.CWURequests[sid] = nil
+    local char = targetPly:GetCharacter()
+    if char then
+        char:SetData("cs_clearance", {level = 1, expires = os.time() + CFG.ClearanceExpiry})
+    end
     net.Start("CS_ClearanceResult")
         net.WriteBool(true)
         net.WriteString("Your clearance request was APPROVED.")
@@ -208,6 +212,8 @@ local function DoDenyClearance(ply, targetPly)
     if !CS.CWURequests[sid] then ply:Notify("No pending clearance request."); return false end
     CS.CWURequests[sid] = nil
     AddHeat(sid, CFG.ClearanceDenyHeat)
+    local char = targetPly:GetCharacter()
+    if char then char:SetData("cs_clearance", nil) end
     net.Start("CS_ClearanceResult")
         net.WriteBool(false)
         net.WriteString("Your clearance request was DENIED.")
@@ -646,6 +652,19 @@ timer.Create("CS_CurfewHeat", 30, 0, function()
     for _, ply in ipairs(player.GetAll()) do
         if !IsValid(ply) or !ply:Alive() or !IsResistance(ply) then continue end
         AddHeat(ply:SteamID(), 2)
+    end
+end)
+
+timer.Create("CS_ClearanceDecay", 120, 0, function()
+    local now = os.time()
+    for _, ply in ipairs(player.GetAll()) do
+        if !IsValid(ply) then continue end
+        local char = ply:GetCharacter()
+        if !char then continue end
+        local data = char:GetData("cs_clearance")
+        if data and data.expires < now then
+            char:SetData("cs_clearance", nil)
+        end
     end
 end)
 

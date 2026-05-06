@@ -44,6 +44,14 @@ local function HasClearance(client, mode)
 		if (client:Team() == FACTION_CWU) then
 			return true
 		end
+
+		local character = client:GetCharacter()
+		if (character) then
+			local clearance = character:GetData("cs_clearance")
+			if (clearance and clearance.expires > os.time()) then
+				return true
+			end
+		end
 	end
 
 	return false
