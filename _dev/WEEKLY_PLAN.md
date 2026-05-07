@@ -47,7 +47,7 @@ Goals:
 
 ## Day 4 — Thu May 7 · Checkpoint Entity Persistence
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/checkpoint/sh_plugin.lua` — define `Schema.SaveCheckpoints` in the shared plugin scope: iterate `ents.FindByClass("ix_checkpoint")`, build a table of `{pos, angles, name, mode}` for each valid entity, and write via `ix.data.Set("ix_checkpoints_" .. game.GetMap(), data)`; this makes the function available globally since Helix evaluates shared plugin files on both realms
