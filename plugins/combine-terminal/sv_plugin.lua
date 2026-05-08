@@ -21,7 +21,7 @@ local CFG = {
     ClearanceExpiry    = 1800,
     ClearanceDenyHeat  = 5,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
-    FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio"},
+    FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio", "combat_stim", "recreational_chem"},
 }
 
 -- ============================================================

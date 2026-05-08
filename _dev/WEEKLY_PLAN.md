@@ -59,7 +59,7 @@ Goals:
 
 ## Day 5 — Fri May 8 · Dual-Use Item Scanner Detection
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-scanner/sv_plugin.lua` — extend `CFG.FlaggedItems` to include `"combat_stim"` and `"recreational_chem"` so `GetRestrictedItems` picks up dual-use compounds; add `CFG.DualUseHeat = 8` (less than `SMUGGLE = 10` since these carry plausible deniability)

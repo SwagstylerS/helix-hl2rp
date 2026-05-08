@@ -19,7 +19,8 @@ local CFG = {
     HeatTier4          = 80,
     QuotaMax           = 20,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
-    FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio"},
+    FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio", "combat_stim", "recreational_chem"},
+    DualUseHeat        = 8,
     FakeContraband     = {
         "Unauthorized frequency transmitter",
         "Unmarked ration coupons",
@@ -43,6 +44,11 @@ CS.ScanQuotas  = CS.ScanQuotas  or {}
 -- ============================================================
 --  HELPERS
 -- ============================================================
+local function AddHeat(sid, amount)
+    CS.HeatScores = CS.HeatScores or {}
+    CS.HeatScores[sid] = math.Clamp((CS.HeatScores[sid] or 0) + amount, 0, 100)
+end
+
 local function IsCombine(client)
     return client:IsCombine() or client:Team() == FACTION_OTA
 end
@@ -102,22 +108,29 @@ end
 
 local function GetRestrictedItems(client)
     local char = client:GetCharacter()
-    if !char then return {} end
+    if !char then return {}, false end
     local inv = char:GetInventory()
-    if !inv then return {} end
-    local found = {}
+    if !inv then return {}, false end
+    local found      = {}
+    local hasDualUse = false
     for _, item in pairs(inv:GetItems()) do
         if item and item.uniqueID then
             local uid = string.lower(item.uniqueID)
             for _, flagged in ipairs(CFG.FlaggedItems) do
                 if string.find(uid, flagged, 1, true) then
-                    found[#found + 1] = item.name or item.uniqueID
+                    local itemDef = ix.item.list[uid]
+                    if itemDef and itemDef.isDualUse then
+                        found[#found + 1] = "Medical Compound"
+                        hasDualUse = true
+                    else
+                        found[#found + 1] = item.name or item.uniqueID
+                    end
                     break
                 end
             end
         end
     end
-    return found
+    return found, hasDualUse
 end
 
 local function GetFakeContraband(sid)
@@ -398,17 +411,19 @@ ix.command.Add("scansubject", {
         end
         CS.Cooldowns[sid] = now + CFG.ScanCooldown
 
-        local char       = target:GetCharacter()
-        local cid        = char and char:GetID() or 0
-        local warrants   = ix.data.Get("cs_warrants",  {})
-        local warrant    = warrants[sid]
-        local heatTier   = GetHeatTier(sid)
-        local restricted = GetRestrictedItems(target)
-        local hasContra  = #restricted > 0
-        local contraStr  = ""
+        local char                    = target:GetCharacter()
+        local cid                     = char and char:GetID() or 0
+        local warrants                = ix.data.Get("cs_warrants",  {})
+        local warrant                 = warrants[sid]
+        local heatTier                = GetHeatTier(sid)
+        local restricted, hasDualUse  = GetRestrictedItems(target)
+        local hasContra               = #restricted > 0
+        local contraStr               = ""
 
         if hasContra then
-            contraStr = table.concat(restricted, ", ")
+            if hasDualUse then AddHeat(sid, CFG.DualUseHeat) end
+            local raw = table.concat(restricted, ", ")
+            contraStr = hasDualUse and ("MEDICAL COMPOUND: " .. raw) or raw
         elseif heatTier >= 2 then
             contraStr = GetFakeContraband(sid)
             hasContra = true
