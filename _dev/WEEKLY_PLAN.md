@@ -69,3 +69,9 @@ Goals:
 - `plugins/cwu/items/crafted/sh_combat_stim.lua` — confirm `ITEM.isDualUse = true` is set (already present); no change needed
 - `plugins/cwu/items/crafted/sh_recreational_chem.lua` — confirm `ITEM.isDualUse = true` is set (already present); no change needed
 - `plugins/cwu/languages/sh_english.lua` — add string `cwuDualUseCarried = "MEDICAL COMPOUND DETECTED"` for potential future HUD use
+
+---
+
+## Day 6 — Sun May 10 · Weekend
+
+No pending tasks — all five days of the May 4–8 sprint are ✅ Complete.
