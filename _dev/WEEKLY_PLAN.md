@@ -87,3 +87,9 @@ No WEEKLY_PLAN entry exists for this week. No tasks were executed. A new weekly 
 ## Fri May 15 · No pending tasks
 
 No weekly plan was drafted for May 11–15. No tasks executed. A new plan should be created for the week of May 18.
+
+---
+
+## Sat May 16 · Weekend
+
+No pending tasks — Saturday. A new weekly plan should be drafted for the week of May 18.
