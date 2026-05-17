@@ -93,3 +93,9 @@ No weekly plan was drafted for May 11–15. No tasks executed. A new plan should
 ## Sat May 16 · Weekend
 
 No pending tasks — Saturday. A new weekly plan should be drafted for the week of May 18.
+
+---
+
+## Sun May 17 · Weekend
+
+No pending tasks — Sunday. A new weekly plan should be drafted for the week of May 18.
