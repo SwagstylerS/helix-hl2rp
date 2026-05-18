@@ -448,6 +448,7 @@ ix.command.Add("scansubject", {
             officer = client:Name(), pos = target:GetPos(),
         }
         if #history > 50 then table.remove(history, 1) end
+        ix.data.Set("cs_scanHistory", CS.ScanHistory)
 
         net.Start("CS_ScanStart")
             net.WriteEntity(target)

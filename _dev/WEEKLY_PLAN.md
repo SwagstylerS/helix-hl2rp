@@ -6,7 +6,7 @@
 
 ## Day 1 — Mon May 18 · Heat Score and Scan History Persistence
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-terminal/sv_plugin.lua` — add `hook.Add("InitPostEntity", "CS_Heat_Load", function() CS.HeatScores = ix.data.Get("cs_heatScores", {}); CS.ScanHistory = ix.data.Get("cs_scanHistory", {}) end)` immediately after the `CS.HeatScores = CS.HeatScores or {}` state block; this is the primary gap — both tables currently live only in memory and are wiped on every server restart

@@ -32,6 +32,11 @@ CS.HeatScores  = CS.HeatScores  or {}
 CS.CWURequests = CS.CWURequests or {}
 CS.CurfewActive = CS.CurfewActive or false
 
+hook.Add("InitPostEntity", "CS_Heat_Load", function()
+    CS.HeatScores  = ix.data.Get("cs_heatScores",  {})
+    CS.ScanHistory = ix.data.Get("cs_scanHistory", {})
+end)
+
 -- ============================================================
 --  HELPERS
 -- ============================================================
@@ -645,6 +650,7 @@ timer.Create("CS_HeatDecay", CFG.HeatDecayRate, 0, function()
     for sid, heat in pairs(CS.HeatScores) do
         CS.HeatScores[sid] = math.max(0, heat - CFG.HeatDecayAmount)
     end
+    ix.data.Set("cs_heatScores", CS.HeatScores)
 end)
 
 timer.Create("CS_CurfewHeat", 30, 0, function()
@@ -666,5 +672,10 @@ timer.Create("CS_ClearanceDecay", 120, 0, function()
             char:SetData("cs_clearance", nil)
         end
     end
+end)
+
+hook.Add("MapShutdown", "CS_Heat_FlushSave", function()
+    ix.data.Set("cs_heatScores",  CS.HeatScores)
+    ix.data.Set("cs_scanHistory", CS.ScanHistory)
 end)
 
