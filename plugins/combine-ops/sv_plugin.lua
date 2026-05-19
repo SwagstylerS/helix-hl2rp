@@ -103,6 +103,16 @@ end)
 -- ============================================================
 --  COMMANDS — COMMS
 -- ============================================================
+ix.command.Add("CombineRadio", {
+    description = "Transmit on the Combine radio channel.",
+    arguments   = {ix.type.text},
+    OnRun = function(self, client, message)
+        if !IsCombine(client) then return client:Notify("Unauthorized.") end
+        ix.chat.Send(client, "combine_radio", message)
+        ix.chat.Send(client, "combine_radio_eavesdrop", message)
+    end,
+})
+
 ix.command.Add("alert", {
     description = "Broadcast an alert message to all Combine units.",
     arguments   = {ix.type.text},

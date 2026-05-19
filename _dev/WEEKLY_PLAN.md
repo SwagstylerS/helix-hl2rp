@@ -18,7 +18,7 @@ Goals:
 
 ## Day 2 — Tue May 19 · Combine Radio Chat Channel
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-ops/sh_plugin.lua` — add a `combine_radio` chat class in a `do...end` block: `CLASS.color = Color(80, 160, 255)`, `CLASS.format = "%s [RADIO] \"%s\""`, `CanSay` checks `speaker:IsCombine()` (or `speaker:Team() == FACTION_OTA`) and returns `"@notAllowed"` for civilians, `CanHear` returns `true` only for Combine/OTA; register with `ix.chat.Register("combine_radio", CLASS)`

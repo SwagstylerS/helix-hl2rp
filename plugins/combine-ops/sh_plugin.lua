@@ -33,6 +33,59 @@ if CLIENT then
         arguments   = {ix.type.character},
         OnRun       = function(self, client, target) end,
     })
+    ix.command.Add("combineradio", {
+        description = "Transmit on the Combine radio channel.",
+        arguments   = {ix.type.text},
+        OnRun       = function(self, client, message) end,
+    })
+end
+
+-- Combine Radio chat class (Combine/OTA only)
+do
+    local CLASS = {}
+    CLASS.color  = Color(80, 160, 255)
+    CLASS.format = "%s [RADIO] \"%s\""
+
+    function CLASS:CanSay(speaker, text)
+        if !speaker:IsCombine() and speaker:Team() != FACTION_OTA then
+            return "@notAllowed"
+        end
+    end
+
+    function CLASS:CanHear(speaker, listener)
+        return listener:IsCombine() or listener:Team() == FACTION_OTA
+    end
+
+    function CLASS:OnChatAdd(speaker, text)
+        chat.AddText(self.color, string.format(self.format, speaker:Name(), text))
+    end
+
+    ix.chat.Register("combine_radio", CLASS)
+end
+
+-- Combine Radio eavesdrop (nearby non-Combine can overhear)
+do
+    local CLASS = {}
+    CLASS.color  = Color(80, 160, 255)
+    CLASS.format = "%s [RADIO] \"%s\""
+
+    function CLASS:CanSay(speaker, text)
+        return false
+    end
+
+    function CLASS:CanHear(speaker, listener)
+        if ix.chat.classes.combine_radio:CanHear(speaker, listener) then
+            return false
+        end
+        local chatRange = ix.config.Get("chatRange", 280)
+        return (speaker:GetPos() - listener:GetPos()):LengthSqr() <= (chatRange * chatRange)
+    end
+
+    function CLASS:OnChatAdd(speaker, text)
+        chat.AddText(self.color, string.format(self.format, speaker:Name(), text))
+    end
+
+    ix.chat.Register("combine_radio_eavesdrop", CLASS)
 end
 
 ix.util.Include("sv_plugin.lua")
