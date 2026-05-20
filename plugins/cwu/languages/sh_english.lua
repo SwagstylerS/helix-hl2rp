@@ -32,6 +32,7 @@ LANGUAGE = {
 	cwuSynthesizing = "Synthesizing...",
 	cwuNeedMedicalTraining = "You require medical training for this procedure.",
 	cwuNeedStimpak = "This procedure requires a medical stimpak.",
+	cwuNeedTraining = "Medical training required for compound synthesis.",
 
 	-- Commerce
 	cwuVendorTerminal = "VENDOR TERMINAL",

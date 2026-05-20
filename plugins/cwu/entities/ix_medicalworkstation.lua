@@ -217,6 +217,12 @@ if (SERVER) then
 		end
 
 		local character = client:GetCharacter()
+
+		if (!PLUGIN:CanUseBlueprint(character, "bp_medical_stimpak")) then
+			client:NotifyLocalized("cwuBlueprintTierLocked")
+			return
+		end
+
 		local inventory = character:GetInventory()
 		local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
 		local herbs = inventory:GetItemsByUniqueID("medical_herbs", true)
@@ -269,15 +275,35 @@ if (SERVER) then
 		end
 
 		local character = client:GetCharacter()
+
+		if (!character:GetData("medicalTraining", false)) then
+			client:NotifyLocalized("cwuNeedTraining")
+			return
+		end
+
+		local blueprintID = drugType == "combat" and "bp_combat_stim" or "bp_recreational_chem"
+
+		if (!PLUGIN:CanUseBlueprint(character, blueprintID)) then
+			client:NotifyLocalized("cwuBlueprintNotApproved")
+			return
+		end
+
+		local isRecreational = drugType != "combat"
 		local inventory = character:GetInventory()
 		local chemBases = inventory:GetItemsByUniqueID("chemical_base", true)
+		local herbs = isRecreational and inventory:GetItemsByUniqueID("medical_herbs", true) or nil
 
-		if (#chemBases < 2) then
+		if (isRecreational) then
+			if (#chemBases < 1 or #herbs < 1) then
+				client:NotifyLocalized("cwuMissingMaterials")
+				return
+			end
+		elseif (#chemBases < 2) then
 			client:NotifyLocalized("cwuMissingMaterials")
 			return
 		end
 
-		local outputItem = drugType == "combat" and "combat_stim" or "recreational_chem"
+		local outputItem = isRecreational and "recreational_chem" or "combat_stim"
 
 		entity:SetInUse(true)
 		entity:SetState(2)
@@ -285,15 +311,19 @@ if (SERVER) then
 		client:SetAction("@cwuSynthesizing", 20)
 
 		client:DoStaredAction(entity, function()
-			for i = 1, 2 do
-				if (chemBases[i]) then chemBases[i]:Remove() end
+			if (isRecreational) then
+				if (chemBases[1]) then chemBases[1]:Remove() end
+				if (herbs[1]) then herbs[1]:Remove() end
+			else
+				for i = 1, 2 do
+					if (chemBases[i]) then chemBases[i]:Remove() end
+				end
 			end
 
 			ix.item.Spawn(outputItem, entity:GetPos() + entity:GetUp() * 20, function(item, ent)
 				entity:EmitSound("buttons/combine_button1.wav")
 			end)
 
-			-- Intentionally vague notification (dual-use concealment)
 			client:Notify("Synthesis complete: Medical compound produced.")
 			entity:SetState(0)
 			entity:SetInUse(false)

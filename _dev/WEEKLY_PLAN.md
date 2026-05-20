@@ -30,7 +30,7 @@ Goals:
 
 ## Day 3 — Wed May 20 · Recreational Chem Blueprint + Medical Synthesis Gate
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/libs/sh_blueprints.lua` — add the missing blueprint: `PLUGIN:RegisterBlueprint("bp_recreational_chem", {name = "Recreational Chemical", tier = 2, materials = {{"chemical_base", 1}, {"medical_herbs", 1}}, output = "recreational_chem", outputQuantity = 1, craftTime = 20})`; tier 2 is correct (Director approval required) to match the dual-use / plausible-deniability framing in DIRECTION.md; this is the only crafted item without a corresponding blueprint entry

@@ -78,6 +78,15 @@ PLUGIN:RegisterBlueprint("bp_combine_maint", {
 	craftTime = 25
 })
 
+PLUGIN:RegisterBlueprint("bp_recreational_chem", {
+	name = "Recreational Chemical",
+	tier = 2,
+	materials = {{"chemical_base", 1}, {"medical_herbs", 1}},
+	output = "recreational_chem",
+	outputQuantity = 1,
+	craftTime = 20
+})
+
 function PLUGIN:CanUseBlueprint(character, blueprintID)
 	local blueprint = self:GetBlueprint(blueprintID)
 
