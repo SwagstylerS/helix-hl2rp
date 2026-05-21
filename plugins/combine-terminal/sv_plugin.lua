@@ -79,7 +79,17 @@ local function GetHeatTier(sid)
 end
 
 local function AddHeat(sid, amount)
+    local oldTier = GetHeatTier(sid)
     CS.HeatScores[sid] = math.Clamp((CS.HeatScores[sid] or 0) + amount, 0, CFG.HeatMax)
+    local newTier = GetHeatTier(sid)
+    if newTier > oldTier then
+        local ply = FindPlayerBySteamID(sid)
+        if IsValid(ply) then
+            net.Start("CS_HeatTierChange")
+                net.WriteUInt(newTier, 4)
+            net.Send(ply)
+        end
+    end
 end
 
 local function GetRestrictedItems(client)

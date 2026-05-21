@@ -53,6 +53,17 @@ net.Receive("CS_ClearanceResult", function()
     }
 end)
 
+net.Receive("CS_HeatTierChange", function()
+    local tier = net.ReadUInt(4)
+    local msgs = {
+        [1] = "Your recent activities have been noted.",
+        [2] = "You are under heightened Combine scrutiny.",
+        [3] = "ADVISORY: You are a person of interest to Civil Protection.",
+        [4] = "HIGH ALERT: You have been flagged for immediate attention.",
+    }
+    chat.AddText(Color(180, 180, 180), "[SYSTEM] ", Color(220, 220, 220), msgs[tier] or "")
+end)
+
 -- ============================================================
 --  TERMINAL ENTRY POINT
 -- ============================================================

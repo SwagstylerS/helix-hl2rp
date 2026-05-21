@@ -10,6 +10,7 @@ if SERVER then
     util.AddNetworkString("CS_TerminalDetail")
     util.AddNetworkString("CS_TerminalAction")
     util.AddNetworkString("CS_TerminalRefresh")
+    util.AddNetworkString("CS_HeatTierChange")
 end
 
 if CLIENT then

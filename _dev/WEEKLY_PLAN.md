@@ -43,7 +43,7 @@ Goals:
 
 ## Day 4 — Thu May 21 · Citizen Heat Tier Notifications
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-terminal/sh_plugin.lua` — add `util.AddNetworkString("CS_HeatTierChange")` to the existing `if SERVER then` block alongside the other network strings; this is the channel that tells a citizen their heat tier has escalated
