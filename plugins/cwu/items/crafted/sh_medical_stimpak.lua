@@ -3,6 +3,8 @@ ITEM.model = Model("models/props_lab/jar01a.mdl")
 ITEM.description = "A potent medical compound. Can be used for direct treatment or at a medical workstation for surgery."
 ITEM.base = "base_crafted"
 ITEM.category = "CWU Goods"
+ITEM.isHealingItem = true
+ITEM.healAmount = 40
 
 ITEM.functions.Inject = {
 	OnRun = function(itemTable)

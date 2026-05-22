@@ -147,6 +147,86 @@ end
 
 vgui.Register("ixCWUMedicalWorkstation", PANEL, "DFrame")
 
+-- Treatment panel: item-based healing, opened when trained medic targets a nearby patient
+local TREAT_PANEL = {}
+
+function TREAT_PANEL:Init()
+	self:SetSize(320, 280)
+	self:Center()
+	self:MakePopup()
+	self:SetTitle("CWU Treatment")
+end
+
+function TREAT_PANEL:SetData(targetEntIndex, healingItems)
+	self.targetEntIndex = targetEntIndex
+
+	local target = Entity(targetEntIndex)
+	local targetName = IsValid(target) and target:GetCharacter() and target:GetCharacter():GetName() or "Unknown"
+	local targetHealth = IsValid(target) and target:Health() or 0
+	local targetMaxHealth = IsValid(target) and target:GetMaxHealth() or 100
+
+	local headerLabel = vgui.Create("DLabel", self)
+	headerLabel:Dock(TOP)
+	headerLabel:DockMargin(5, 5, 5, 2)
+	headerLabel:SetText("TREAT PATIENT")
+	headerLabel:SetFont("DermaDefaultBold")
+	headerLabel:SetTextColor(Color(100, 150, 255))
+	headerLabel:SizeToContents()
+
+	local patientLabel = vgui.Create("DLabel", self)
+	patientLabel:Dock(TOP)
+	patientLabel:DockMargin(5, 2, 5, 4)
+	patientLabel:SetText(string.format("Patient: %s  |  Health: %d / %d", targetName, targetHealth, targetMaxHealth))
+	patientLabel:SetTextColor(Color(200, 200, 200))
+	patientLabel:SizeToContents()
+
+	local divider = vgui.Create("DPanel", self)
+	divider:Dock(TOP)
+	divider:SetTall(2)
+	divider:DockMargin(5, 0, 5, 4)
+	divider.Paint = function(pnl, w, h)
+		surface.SetDrawColor(60, 60, 60)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	if (#healingItems == 0) then
+		local emptyLabel = vgui.Create("DLabel", self)
+		emptyLabel:Dock(TOP)
+		emptyLabel:DockMargin(5, 5, 5, 5)
+		emptyLabel:SetText("No healing items in inventory.")
+		emptyLabel:SetTextColor(Color(180, 80, 80))
+		emptyLabel:SizeToContents()
+		return
+	end
+
+	local list = vgui.Create("DListView", self)
+	list:Dock(FILL)
+	list:DockMargin(5, 0, 5, 5)
+	list:AddColumn("Item")
+	list:AddColumn("Heals")
+
+	for _, itemData in ipairs(healingItems) do
+		local row = list:AddLine(itemData.name, "+" .. itemData.healAmount .. " HP")
+		row.itemID = itemData.id
+	end
+
+	list.OnRowSelected = function(pnl, lineID, line)
+		netstream.Start("CWUMedicalApply", targetEntIndex, line.itemID)
+		self:Remove()
+	end
+end
+
+vgui.Register("ixCWUMedicalTreat", TREAT_PANEL, "DFrame")
+
+netstream.Hook("CWUMedicalTreat", function(targetEntIndex, healingItems)
+	if (IsValid(ix.gui.cwuMedicalTreat)) then
+		ix.gui.cwuMedicalTreat:Remove()
+	end
+
+	ix.gui.cwuMedicalTreat = vgui.Create("ixCWUMedicalTreat")
+	ix.gui.cwuMedicalTreat:SetData(targetEntIndex, healingItems)
+end)
+
 netstream.Hook("CWUMedicalOpen", function(entIndex, data)
 	if (IsValid(ix.gui.cwuMedical)) then
 		ix.gui.cwuMedical:Remove()

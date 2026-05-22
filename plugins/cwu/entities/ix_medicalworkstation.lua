@@ -64,7 +64,29 @@ if (SERVER) then
 		local hasMedicalTraining = character:GetData("medicalTraining", false)
 		local inventory = character:GetInventory()
 
-		-- Check available synthesis recipes
+		-- Treatment path: trained medic looking at a nearby patient
+		if (hasMedicalTraining) then
+			local traceEnt = client:GetEyeTrace().Entity
+
+			if (IsValid(traceEnt) and traceEnt:IsPlayer() and traceEnt:GetPos():Distance(client:GetPos()) < 150) then
+				local healingItems = {}
+
+				for _, item in pairs(inventory:GetItems()) do
+					if (item.isHealingItem) then
+						healingItems[#healingItems + 1] = {
+							id = item:GetID(),
+							name = item.name,
+							healAmount = item.healAmount or 0
+						}
+					end
+				end
+
+				netstream.Start(client, "CWUMedicalTreat", traceEnt:EntIndex(), healingItems)
+				return
+			end
+		end
+
+		-- Synthesis path
 		local hasChemBase = #inventory:GetItemsByUniqueID("chemical_base", true) >= 2
 		local hasHerbs = #inventory:GetItemsByUniqueID("medical_herbs", true) >= 1
 
@@ -264,6 +286,49 @@ if (SERVER) then
 				client:SetAction()
 			end
 		end)
+	end)
+
+	-- Treatment: Item-based healing (trained medic + healing item from inventory)
+	netstream.Hook("CWUMedicalApply", function(client, targetEntIndex, itemID)
+		if (!IsValid(client) or !client:IsPlayer()) then return end
+
+		local character = client:GetCharacter()
+		if (!character) then return end
+
+		if (!character:GetData("medicalTraining", false)) then
+			client:NotifyLocalized("cwuNeedMedicalTraining")
+			return
+		end
+
+		local target = Entity(targetEntIndex)
+
+		if (!IsValid(target) or !target:IsPlayer()) then
+			client:Notify("Invalid patient.")
+			return
+		end
+
+		if (target:GetPos():Distance(client:GetPos()) > 200) then
+			client:Notify("Patient must be near you.")
+			return
+		end
+
+		local inventory = character:GetInventory()
+		local item = inventory:GetItems()[itemID]
+
+		if (!item or !item.isHealingItem) then
+			client:Notify("Invalid healing item.")
+			return
+		end
+
+		local healAmount = item.healAmount or 0
+		item:Remove()
+
+		target:SetHealth(math.min(target:Health() + healAmount, target:GetMaxHealth()))
+		target:EmitSound("items/medshot4.wav")
+		target:Notify("You have been treated by a CWU medic.")
+
+		PLUGIN:AwardLoyalty(character, 2, "treatment")
+		client:Notify("Treatment complete.")
 	end)
 
 	-- Synthesis: Illicit drugs (combat stim or recreational) - dual use tension

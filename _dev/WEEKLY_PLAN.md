@@ -55,7 +55,7 @@ Goals:
 
 ## Day 5 — Fri May 22 · Medical Workstation Patient Treatment
 
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_medicalworkstation.lua` — read the file; if the `Use()` handler only opens a synthesis panel, add a "Treat Patient" interaction path: when `character:GetData("medicalTraining", false)` is true and the activator is targeting another player within 150 units (`client:GetEyeTrace().Entity`), open the treatment UI via `netstream.Start(client, "CWUMedicalTreat", targetEntIndex, healingItems)` where `healingItems` is the medic's inventory filtered for items with `isHealingItem = true`
