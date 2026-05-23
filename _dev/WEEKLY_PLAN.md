@@ -63,3 +63,9 @@ Goals:
 - `plugins/cwu/derma/cl_medicalworkstation.lua` — read the file; if it only renders a synthesis list, add a second panel tab "TREAT PATIENT" that receives the `CWUMedicalTreat` netstream payload and displays target name, current health, and a listview of healing items from the medic's inventory; on item click send `netstream.Start(LocalPlayer(), "CWUMedicalApply", targetEntIndex, item.id)`
 - `plugins/cwu/items/crafted/sh_cwu_bandage.lua` — confirm `ITEM.isHealingItem = true` and `ITEM.healAmount = 20` are set; add them if missing so the treatment UI can discover and use this item
 - `plugins/cwu/items/crafted/sh_medical_stimpak.lua` — confirm `ITEM.isHealingItem = true` and `ITEM.healAmount = 40` are set; add them if missing; the stimpak should be the higher-value treatment option available only to Tier 3+ workers who can craft it
+
+---
+
+## Day 6 — Sat May 23 · Weekend
+
+No tasks scheduled. All 5 days of the May 18–22 week completed successfully.
