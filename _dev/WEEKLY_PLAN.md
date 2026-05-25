@@ -4,6 +4,11 @@
 
 ---
 
+## Mon May 25 — Pre-Week
+No tasks scheduled — plan begins May 26. No code changes executed.
+
+---
+
 ## Day 1 — Mon May 26 · Curfew Visible to Citizens
 **Status:** Pending
 
