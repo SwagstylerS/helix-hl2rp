@@ -133,20 +133,16 @@ ix.command.Add("curfew", {
     OnRun = function(self, client)
         if !IsSenior(client) then return client:Notify("Unauthorized.") end
         CS.CurfewActive = !CS.CurfewActive
-        local combineAll = GetAllCombine()
-        if #combineAll > 0 then
-            net.Start("CS_CurfewToggle")
-                net.WriteBool(CS.CurfewActive)
-                net.WriteString(client:Name())
-            net.Send(combineAll)
-        end
+        net.Start("CS_CurfewToggle")
+            net.WriteBool(CS.CurfewActive)
+            net.WriteString(client:Name())
+        net.Send(player.GetAll())
         client:Notify("Curfew " .. (CS.CurfewActive and "ACTIVATED." or "LIFTED."))
     end,
 })
 
--- Sync curfew state to newly loaded Combine characters
+-- Sync curfew state to all newly loaded characters (Combine and citizens alike)
 hook.Add("PlayerLoadedCharacter", "CS_Ops_CurfewSync", function(client, char)
-    if !IsCombine(client) then return end
     net.Start("CS_CurfewToggle")
         net.WriteBool(CS.CurfewActive)
         net.WriteString("SYSTEM")

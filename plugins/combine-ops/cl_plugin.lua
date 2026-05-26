@@ -109,13 +109,15 @@ local function DrawCurfewBanner()
     if !curfewActive then return end
     local ply = LocalPlayer()
     if !IsValid(ply) then return end
-    if ply:Team() != FACTION_OTA and !ply:IsCombine() then return end
 
-    local sw    = ScrW()
-    local pulse = math.abs(math.sin(CurTime() * 2))
-    local alpha = math.floor(180 + 75 * pulse)
-
-    draw.SimpleText("CURFEW ACTIVE", "CS_Notif", sw / 2, 6, Color(255, 60, 60, alpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+    if ply:Team() == FACTION_OTA or ply:IsCombine() then
+        local sw    = ScrW()
+        local pulse = math.abs(math.sin(CurTime() * 2))
+        local alpha = math.floor(180 + 75 * pulse)
+        draw.SimpleText("CURFEW ACTIVE", "CS_Notif", sw / 2, 6, Color(255, 60, 60, alpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+    else
+        draw.SimpleText("CURFEW IN EFFECT", "CS_Notif", ScrW() / 2, 6, Color(180, 60, 60, 180), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+    end
 end
 
 -- ============================================================

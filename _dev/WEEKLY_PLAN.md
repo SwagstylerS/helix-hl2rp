@@ -10,7 +10,7 @@ No tasks scheduled — plan begins May 26. No code changes executed.
 ---
 
 ## Day 1 — Mon May 26 · Curfew Visible to Citizens
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-ops/sv_plugin.lua` — in the `curfew` command `OnRun`, change `net.Send(combineAll)` to `net.Send(player.GetAll())` so every player receives `CS_CurfewToggle`; citizens currently accumulate heat from curfew with no awareness — this is the root fix
