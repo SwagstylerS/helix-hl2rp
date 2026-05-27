@@ -20,7 +20,7 @@ Goals:
 ---
 
 ## Day 2 — Tue May 27 · Citizen Clearance Status HUD
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-terminal/sh_plugin.lua` — add `util.AddNetworkString("CS_ClearanceSync")` inside the existing `if SERVER then` block alongside the other six network strings

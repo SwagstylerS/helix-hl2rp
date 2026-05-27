@@ -210,7 +210,12 @@ local function DoApproveClearance(ply, targetPly)
     CS.CWURequests[sid] = nil
     local char = targetPly:GetCharacter()
     if char then
-        char:SetData("cs_clearance", {level = 1, expires = os.time() + CFG.ClearanceExpiry})
+        local expires = os.time() + CFG.ClearanceExpiry
+        char:SetData("cs_clearance", {level = 1, expires = expires})
+        net.Start("CS_ClearanceSync")
+            net.WriteBool(true)
+            net.WriteInt(expires, 32)
+        net.Send(targetPly)
     end
     net.Start("CS_ClearanceResult")
         net.WriteBool(true)
@@ -228,7 +233,13 @@ local function DoDenyClearance(ply, targetPly)
     CS.CWURequests[sid] = nil
     AddHeat(sid, CFG.ClearanceDenyHeat)
     local char = targetPly:GetCharacter()
-    if char then char:SetData("cs_clearance", nil) end
+    if char then
+        char:SetData("cs_clearance", nil)
+        net.Start("CS_ClearanceSync")
+            net.WriteBool(false)
+            net.WriteInt(0, 32)
+        net.Send(targetPly)
+    end
     net.Start("CS_ClearanceResult")
         net.WriteBool(false)
         net.WriteString("Your clearance request was DENIED.")
@@ -687,5 +698,13 @@ end)
 hook.Add("MapShutdown", "CS_Heat_FlushSave", function()
     ix.data.Set("cs_heatScores",  CS.HeatScores)
     ix.data.Set("cs_scanHistory", CS.ScanHistory)
+end)
+
+hook.Add("PlayerLoadedCharacter", "CS_ClearanceOnLoad", function(client, char)
+    local data = char:GetData("cs_clearance")
+    net.Start("CS_ClearanceSync")
+        net.WriteBool(data != nil)
+        net.WriteInt(data and data.expires or 0, 32)
+    net.Send(client)
 end)
 

@@ -1,6 +1,8 @@
 
 local PLUGIN = PLUGIN
 
+local localClearanceExpires = 0
+
 -- ============================================================
 --  NET RECEIVERS
 -- ============================================================
@@ -62,6 +64,20 @@ net.Receive("CS_HeatTierChange", function()
         [4] = "HIGH ALERT: You have been flagged for immediate attention.",
     }
     chat.AddText(Color(180, 180, 180), "[SYSTEM] ", Color(220, 220, 220), msgs[tier] or "")
+end)
+
+net.Receive("CS_ClearanceSync", function()
+    local active  = net.ReadBool()
+    local expires = net.ReadInt(32)
+    localClearanceExpires = active and expires or 0
+end)
+
+hook.Add("HUDPaint", "CS_ClearanceBadge", function()
+    local ply = LocalPlayer()
+    if !IsValid(ply) or ply:IsCombine() then return end
+    if localClearanceExpires <= os.time() then return end
+    local mins = math.ceil((localClearanceExpires - os.time()) / 60)
+    draw.SimpleText("CLEARANCE: ACTIVE — " .. mins .. "m", "CS_Notif", ScrW() - 8, 6, Color(80, 200, 80), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
 end)
 
 -- ============================================================
