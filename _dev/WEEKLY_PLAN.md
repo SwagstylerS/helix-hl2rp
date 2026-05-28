@@ -32,7 +32,7 @@ Goals:
 ---
 
 ## Day 3 — Wed May 28 · CWU Loyalty Tier Persistent HUD
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/sv_hooks.lua` — in the existing `PlayerLoadedCharacter` hook, after the character class checks, add `if (client:IsCWU()) then netstream.Start(client, "CWULoyaltySync", {tier = char:GetData("loyaltyTier", 0), points = char:GetData("loyaltyPoints", 0)}) end` to push the worker's loyalty state on every character load

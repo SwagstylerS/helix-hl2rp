@@ -1,5 +1,33 @@
 -- Client-side CWU hooks
 
+CWU_LocalTier = 0
+CWU_LocalPoints = 0
+
+netstream.Hook("CWULoyaltySync", function(data)
+	CWU_LocalTier = data.tier
+	CWU_LocalPoints = data.points
+end)
+
+hook.Add("HUDPaint", "CWU_TierBadge", function()
+	local ply = LocalPlayer()
+
+	if (!IsValid(ply) or !ply:IsCWU()) then return end
+
+	local tierInfo = PLUGIN.LoyaltyTiers[CWU_LocalTier]
+
+	if (!tierInfo) then return end
+
+	draw.SimpleText(
+		tierInfo.name .. "  [Tier " .. CWU_LocalTier .. "]  — " .. CWU_LocalPoints .. " pts",
+		"DermaDefault",
+		10,
+		ScrH() - 20,
+		tierInfo.color,
+		TEXT_ALIGN_LEFT,
+		TEXT_ALIGN_BOTTOM
+	)
+end)
+
 netstream.Hook("CWURecreationalEffect", function(duration)
 	PLUGIN.ChemEffectEnd = CurTime() + duration
 end)

@@ -1,3 +1,12 @@
+function PLUGIN:PlayerLoadedCharacter(client, character)
+	if (client:IsCWU()) then
+		netstream.Start(client, "CWULoyaltySync", {
+			tier = character:GetData("loyaltyTier", 0),
+			points = character:GetData("loyaltyPoints", 0)
+		})
+	end
+end
+
 function PLUGIN:PlayerSpawnedCharacter(client, character)
 	local charIDStr = tostring(character:GetID())
 	local preApprovals = ix.data.Get("cwuPreApprovals", {})

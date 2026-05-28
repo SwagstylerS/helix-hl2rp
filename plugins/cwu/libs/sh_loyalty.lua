@@ -57,6 +57,10 @@ if (SERVER) then
 
 		if (IsValid(client)) then
 			client:NotifyLocalized("cwuLoyaltyGained", amount)
+			netstream.Start(client, "CWULoyaltySync", {
+				tier = character:GetData("loyaltyTier", 0),
+				points = points
+			})
 		end
 	end
 end
