@@ -42,7 +42,7 @@ Goals:
 ---
 
 ## Day 4 — Thu May 29 · Director Per-Worker Payroll
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_cwu_director_pc.lua` — add a `netstream.Hook("CWUDirectorPayWorker", function(client, charID, amount) ... end)` block immediately after the existing `CWUDirectorWithdraw` handler: validate `client:IsCWUDirector()`; clamp `amount = math.Clamp(math.floor(tonumber(amount) or 0), 1, 10000)`; early return with `cwuInsufficientTreasury` if `!PLUGIN:WithdrawTreasury(amount)`; iterate `player.GetAll()` to find `character:GetID() == charID`, call `character:GiveMoney(amount)`, log via `PLUGIN:LogTransaction({type="wage", seller="CWU Treasury", buyer=char:GetName(), buyerID=charID, item="wage", itemName="CWU Wage", quantity=1, price=amount, tax=0, terminal="Director Payroll"})`, notify both parties, and break on match; if no match found after the loop, refund via `PLUGIN:AddTreasury(amount)` and notify the director "Target worker is not online."

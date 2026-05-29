@@ -68,6 +68,8 @@ LANGUAGE = {
 	cwuTreasuryBalance = "CWU Treasury: %s",
 	cwuWithdrawSuccess = "Withdrawn %s from the CWU treasury.",
 	cwuInsufficientTreasury = "Insufficient funds in the CWU treasury.",
+	cwuWorkerPaid = "Paid %s %s from the CWU treasury.",
+	cwuWageReceived = "You received %s wages from the CWU Director.",
 
 	-- Combine Terminal
 	cwuCombineTerminal = "CIVIL WORKFORCE OVERSIGHT",

@@ -130,10 +130,50 @@ function PANEL:PopulatePersonnel()
 
 	self.personnelList:Clear()
 
-	-- Show CWU members first
+	-- Show CWU members first, with an inline Pay button per row
 	for _, v in ipairs(self.data.cwuMembers or {}) do
 		local line = self.personnelList:AddLine(v.name, "CWU - " .. (v.division or "Unassigned"), v.tier)
 		line.charID = v.charID
+
+		local charID = v.charID
+		local memberName = v.name
+
+		local payBtn = vgui.Create("DButton", line)
+		payBtn:SetText("Pay")
+		line.payBtn = payBtn
+
+		local basePL = line.PerformLayout
+		line.PerformLayout = function(self, w, h)
+			if basePL then basePL(self, w, h) end
+
+			if IsValid(self.payBtn) then
+				self.payBtn:SetPos(w - 44, 2)
+				self.payBtn:SetSize(40, h - 4)
+			end
+		end
+
+		payBtn.DoClick = function()
+			local payFrame = vgui.Create("DFrame")
+			payFrame:SetSize(220, 90)
+			payFrame:Center()
+			payFrame:MakePopup()
+			payFrame:SetTitle("Pay " .. memberName)
+
+			local entry = vgui.Create("DTextEntry", payFrame)
+			entry:SetPos(10, 30)
+			entry:SetSize(120, 25)
+			entry:SetNumeric(true)
+			entry:SetPlaceholderText("Amount")
+
+			local confirmBtn = vgui.Create("DButton", payFrame)
+			confirmBtn:SetPos(140, 30)
+			confirmBtn:SetSize(70, 25)
+			confirmBtn:SetText("Confirm")
+			confirmBtn.DoClick = function()
+				netstream.Start("CWUDirectorPayWorker", charID, tonumber(entry:GetValue()) or 0)
+				payFrame:Close()
+			end
+		end
 	end
 
 	-- Then unassigned citizens

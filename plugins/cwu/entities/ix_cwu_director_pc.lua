@@ -272,6 +272,46 @@ if (SERVER) then
 		end
 	end)
 
+	netstream.Hook("CWUDirectorPayWorker", function(client, charID, amount)
+		if (!client:IsCWUDirector()) then
+			return
+		end
+
+		amount = math.Clamp(math.floor(tonumber(amount) or 0), 1, 10000)
+
+		if (!PLUGIN:WithdrawTreasury(amount)) then
+			client:NotifyLocalized("cwuInsufficientTreasury")
+			return
+		end
+
+		for _, v in ipairs(player.GetAll()) do
+			local character = v:GetCharacter()
+
+			if (character and character:GetID() == charID) then
+				character:GiveMoney(amount)
+				PLUGIN:LogTransaction({
+					type = "wage",
+					seller = "CWU Treasury",
+					buyer = character:GetName(),
+					buyerID = charID,
+					item = "wage",
+					itemName = "CWU Wage",
+					quantity = 1,
+					price = amount,
+					tax = 0,
+					terminal = "Director Payroll"
+				})
+				client:NotifyLocalized("cwuWorkerPaid", character:GetName(), ix.currency.Get(amount))
+				v:NotifyLocalized("cwuWageReceived", ix.currency.Get(amount))
+				return
+			end
+		end
+
+		-- Worker not found online — refund and notify
+		PLUGIN:AddTreasury(amount)
+		client:Notify("Target worker is not online.")
+	end)
+
 	netstream.Hook("CWUBlueprintApprove", function(client, charID, blueprintID)
 		if (!client:IsCWUDirector()) then
 			return
