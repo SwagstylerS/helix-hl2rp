@@ -357,8 +357,9 @@ end
 
 local function BuildZoneCheckpointData()
     return {
-        zones       = ix.data.Get("cs_zones",       {}),
-        checkpoints = ix.data.Get("cs_checkpoints", {}),
+        zones       = ix.data.Get("cs_zones",          {}),
+        checkpoints = ix.data.Get("cs_checkpoints",    {}),
+        crossingLog = ix.data.Get("cs_checkpointLog",  {}),
     }
 end
 

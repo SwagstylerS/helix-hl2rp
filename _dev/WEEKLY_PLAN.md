@@ -52,7 +52,7 @@ Goals:
 ---
 
 ## Day 5 — Fri May 30 · Checkpoint Warrant Crossing Alert
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/checkpoint/entities/ix_checkpoint.lua` — read the entity's `Touch` or `StartTouch` handler; confirm whether the warrant detection path already fires a net alert; if not (expected), add inside the citizen-crossing evaluation block: `local warrants = ix.data.Get("cs_warrants", {}); local sid = ply:SteamID(); if (warrants[sid]) then net.Start("CS_BiometricAlert") net.WriteString("CHECKPOINT — " .. self:GetCheckpointName() .. ": " .. ply:Name() .. " [WANTED — " .. (warrants[sid].reason or "no reason") .. "]") net.WriteUInt(2, 4) net.Send(CS.GetCombinePlayers and CS.GetCombinePlayers() or {}) end` — this uses the existing `CS_BiometricAlert` network string declared in combine-scanner and the intel alert channel already visible in the terminal

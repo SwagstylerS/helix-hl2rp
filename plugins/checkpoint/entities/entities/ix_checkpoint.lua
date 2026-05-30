@@ -363,12 +363,33 @@ if (SERVER) then
 
 		local midpoint = self:GetMidpoint()
 		local radius = self:GetDetectionRadius()
+		local mode = self:GetMode()
+		local now = CurTime()
+
+		if (!self.crossingCooldowns) then self.crossingCooldowns = {} end
 
 		for _, ply in ipairs(player.GetAll()) do
 			if (IsValid(ply) and ply:Alive() and !ply:IsCombine() and ply:Team() != FACTION_ADMIN) then
 				if (midpoint:DistToSqr(ply:GetPos()) <= radius * radius) then
 					if (CheckWarrant(ply)) then
 						self:TriggerWarrantAlarm(ply)
+					end
+
+					local sid = ply:SteamID()
+					if (!(self.crossingCooldowns[sid] and self.crossingCooldowns[sid] > now)) then
+						self.crossingCooldowns[sid] = now + 30
+						local warrants = ix.data.Get("cs_warrants", {})
+						local log = ix.data.Get("cs_checkpointLog", {})
+						log[#log + 1] = {
+							name        = ply:Name(),
+							sid         = sid,
+							checkpoint  = self:GetCheckpointName(),
+							time        = os.time(),
+							wasWanted   = warrants[sid] != nil,
+							hadClearance = HasClearance(ply, mode),
+						}
+						if (#log > 100) then table.remove(log, 1) end
+						ix.data.Set("cs_checkpointLog", log)
 					end
 				end
 			end
@@ -430,13 +451,24 @@ if (SERVER) then
 		local cpName = self:GetCheckpointName()
 		local message = "[CHECKPOINT:" .. cpName .. "] WARRANT DETECTED: " .. name
 
-		-- Alert all online Combine.
+		-- Alert all online Combine and collect recipients for intel channel.
+		local alertTargets = {}
 		for _, ply in ipairs(player.GetAll()) do
 			if (ply:IsCombine()) then
 				ply:ChatPrint(message)
+				alertTargets[#alertTargets + 1] = ply
 			end
 		end
 
+		-- Feed into CS intel terminal alert channel.
+		if (#alertTargets > 0) then
+			local warrants = ix.data.Get("cs_warrants", {})
+			local sid = client:SteamID()
+			net.Start("CS_BiometricAlert")
+				net.WriteString("CHECKPOINT — " .. cpName .. ": " .. name .. " [WANTED — " .. (warrants[sid] and warrants[sid].reason or "no reason") .. "]")
+				net.WriteUInt(2, 4)
+			net.Send(alertTargets)
+		end
 
 		-- Log to file.
 		local logLine = os.date("[%Y-%m-%d %H:%M:%S] ") .. message .. "\n"
