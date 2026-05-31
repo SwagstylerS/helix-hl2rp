@@ -58,3 +58,8 @@ Goals:
 - `plugins/checkpoint/entities/ix_checkpoint.lua` — read the entity's `Touch` or `StartTouch` handler; confirm whether the warrant detection path already fires a net alert; if not (expected), add inside the citizen-crossing evaluation block: `local warrants = ix.data.Get("cs_warrants", {}); local sid = ply:SteamID(); if (warrants[sid]) then net.Start("CS_BiometricAlert") net.WriteString("CHECKPOINT — " .. self:GetCheckpointName() .. ": " .. ply:Name() .. " [WANTED — " .. (warrants[sid].reason or "no reason") .. "]") net.WriteUInt(2, 4) net.Send(CS.GetCombinePlayers and CS.GetCombinePlayers() or {}) end` — this uses the existing `CS_BiometricAlert` network string declared in combine-scanner and the intel alert channel already visible in the terminal
 - `plugins/checkpoint/entities/ix_checkpoint.lua` — also log the crossing attempt to a rolling `cs_checkpointLog` table (cap at 100 entries) via `ix.data.Set`: each entry contains `{name, sid, checkpoint=self:GetCheckpointName(), time=os.time(), wasWanted=warrants[sid]!=nil, hadClearance=bool}` so Combine can review attempted crossings at the terminal later
 - `plugins/combine-terminal/sv_plugin.lua` — in `BuildZoneCheckpointData()`, extend the return table to include `crossingLog = ix.data.Get("cs_checkpointLog", {})` so the terminal's Zones tab can expose recent crossings in a future UI pass; no derma change needed this session — the data plumbing is enough
+
+---
+
+## Sun May 31 — Weekend
+No tasks scheduled — week of May 26 fully complete. No code changes executed.
