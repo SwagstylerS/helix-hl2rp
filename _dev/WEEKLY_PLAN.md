@@ -4,6 +4,11 @@
 
 ---
 
+## Pre-week — Mon Jun 1
+No tasks scheduled. Plan begins Tuesday Jun 2.
+
+---
+
 ## Day 1 — Mon Jun 2 · Checkpoint Crossing Log in Terminal Zones Tab
 **Status:** Pending
 
