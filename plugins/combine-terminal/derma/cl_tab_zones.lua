@@ -151,6 +151,77 @@ function PANEL:Populate(data)
         end
     end
 
+    -- Spacer
+    local logSpacer = vgui.Create("DPanel", self)
+    logSpacer:Dock(TOP)
+    logSpacer:SetTall(12)
+    logSpacer.Paint = function() end
+
+    -- ==================== CROSSING LOG ====================
+    local crossingLog = zoneData.crossingLog or {}
+    local logTotal    = #crossingLog
+
+    local clHeader = vgui.Create("DPanel", self)
+    clHeader:Dock(TOP)
+    clHeader:SetTall(22)
+    clHeader:DockMargin(0, 0, 0, 2)
+    clHeader.Paint = function(self2, w, h)
+        local C = CS_TERM_COLORS
+        draw.SimpleText("CROSSING LOG", "CS_BodyBold", 4, h/2, C.borderDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        surface.SetDrawColor(C.borderDim)
+        surface.DrawRect(0, h - 1, w, 1)
+    end
+
+    if logTotal > 0 then
+        local shown   = math.min(logTotal, 25)
+        local clList  = vgui.Create("DListView", self)
+        clList:Dock(TOP)
+        clList:SetTall(math.min(shown * 20 + 24, 200))
+        clList:SetMultiSelect(false)
+        clList.Paint = function(self2, w, h)
+            local C = CS_TERM_COLORS
+            draw.RoundedBox(0, 0, 0, w, h, C.bgDark)
+        end
+
+        clList:AddColumn("TIME"):SetWidth(80)
+        clList:AddColumn("CITIZEN"):SetWidth(150)
+        clList:AddColumn("CHECKPOINT"):SetWidth(150)
+        clList:AddColumn("STATUS"):SetWidth(90)
+        StyleListHeaders(clList, C.borderDim)
+
+        for i = logTotal, math.max(1, logTotal - 24), -1 do
+            local entry = crossingLog[i]
+            local timeStr = os.date("%H:%M", entry.time or 0)
+            local statusStr, rowColor
+            if entry.wasWanted then
+                statusStr = "WANTED"
+                rowColor  = C.red
+            elseif entry.hadClearance then
+                statusStr = "CLEARED"
+                rowColor  = C.text
+            else
+                statusStr = "SUSPICIOUS"
+                rowColor  = C.yellow
+            end
+            local row = clList:AddLine(timeStr, entry.name or "Unknown", entry.checkpoint or "Unknown", statusStr)
+            for _, col in pairs(row.Columns or {}) do col:SetTextColor(rowColor); col:SetContentAlignment(5) end
+            row.Paint = function(self2, w, h)
+                if self2:IsHovered() then
+                    surface.SetDrawColor(Color(rowColor.r, rowColor.g, rowColor.b, 20))
+                    surface.DrawRect(0, 0, w, h)
+                end
+            end
+        end
+    else
+        local noLog = vgui.Create("DPanel", self)
+        noLog:Dock(TOP)
+        noLog:SetTall(28)
+        noLog.Paint = function(self2, w, h)
+            local C = CS_TERM_COLORS
+            draw.SimpleText("No crossing records.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        end
+    end
+
     -- Admin hint
     local hint = vgui.Create("DPanel", self)
     hint:Dock(BOTTOM)

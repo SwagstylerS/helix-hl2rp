@@ -10,7 +10,7 @@ No tasks scheduled. Plan begins Tuesday Jun 2.
 ---
 
 ## Day 1 — Mon Jun 2 · Checkpoint Crossing Log in Terminal Zones Tab
-**Status:** Pending
+**Status:** ✅
 
 Goals:
 - `plugins/combine-terminal/derma/cl_tab_zones.lua` — in `PANEL:Populate(data)`, after the existing checkpoints list block (~line 152, before the admin hint), add a spacer and a "CROSSING LOG" header panel styled with `C.borderDim`; render `zoneData.crossingLog` (passed from `BuildZoneCheckpointData()` as `data.zones.crossingLog`) as a `DListView` capped to the last 25 entries (newest first); columns: TIME (80px), CITIZEN (150px), CHECKPOINT (150px), STATUS (90px)
