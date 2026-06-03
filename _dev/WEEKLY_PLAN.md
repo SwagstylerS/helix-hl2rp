@@ -21,7 +21,7 @@ Goals:
 ---
 
 ## Day 2 — Tue Jun 3 · Zone-Entry Heat Accumulation Timer
-**Status:** Pending
+**Status:** ✅
 
 Goals:
 - `plugins/combine-terminal/sv_plugin.lua` — add `CS.ZoneHeatCooldowns = {}` to the STATE block (alongside `CS.HeatScores`, `CS.ScanHistory`); entries are keyed `"sid_zoneidx"` with a Unix timestamp of last application

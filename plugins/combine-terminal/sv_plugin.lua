@@ -27,10 +27,11 @@ local CFG = {
 -- ============================================================
 --  STATE
 -- ============================================================
-CS             = CS             or {}
-CS.HeatScores  = CS.HeatScores  or {}
-CS.CWURequests = CS.CWURequests or {}
-CS.CurfewActive = CS.CurfewActive or false
+CS                   = CS                   or {}
+CS.HeatScores        = CS.HeatScores        or {}
+CS.CWURequests       = CS.CWURequests       or {}
+CS.CurfewActive      = CS.CurfewActive      or false
+CS.ZoneHeatCooldowns = CS.ZoneHeatCooldowns or {}
 
 hook.Add("InitPostEntity", "CS_Heat_Load", function()
     CS.HeatScores  = ix.data.Get("cs_heatScores",  {})
@@ -652,16 +653,28 @@ timer.Create("CS_HeatSmuggle", 60, 0, function()
     end
 end)
 
-timer.Create("CS_HeatZone", 15, 0, function()
+timer.Create("CS_ZoneHeat", 30, 0, function()
     local zones = ix.data.Get("cs_zones", {})
+    local now   = os.time()
     for _, ply in ipairs(player.GetAll()) do
-        if !IsValid(ply) or !ply:Alive() or !IsResistance(ply) then continue end
+        if !IsValid(ply) or !ply:Alive() or IsCombine(ply) then continue end
+        local char = ply:GetCharacter()
+        if !char then continue end
+        local clearance = char:GetData("cs_clearance")
+        if clearance and clearance.expires > now then continue end
+        local sid = ply:SteamID()
         local pos = ply:GetPos()
-        for _, zone in ipairs(zones) do
+        for i, zone in ipairs(zones) do
             local zpos = zone.pos
             if type(zpos) == "table" then zpos = Vector(zpos.x or 0, zpos.y or 0, zpos.z or 0) end
             if (pos - zpos):Length() <= zone.radius then
-                AddHeat(ply:SteamID(), CFG.HeatAmounts.RESTRICT)
+                local key  = sid .. "_" .. i
+                local last = CS.ZoneHeatCooldowns[key]
+                if !last or (now - last) >= 120 then
+                    AddHeat(sid, CFG.HeatAmounts.RESTRICT)
+                    CS.ZoneHeatCooldowns[key] = now
+                    ix.data.Set("cs_heatScores", CS.HeatScores)
+                end
                 break
             end
         end
