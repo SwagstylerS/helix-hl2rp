@@ -3,9 +3,17 @@
 CWU_LocalTier = 0
 CWU_LocalPoints = 0
 
+local tierUpData = nil
+local tierUpAt = 0
+
 netstream.Hook("CWULoyaltySync", function(data)
 	CWU_LocalTier = data.tier
 	CWU_LocalPoints = data.points
+end)
+
+netstream.Hook("CWUTierUpAnnounce", function(data)
+	tierUpData = data
+	tierUpAt = CurTime()
 end)
 
 hook.Add("HUDPaint", "CWU_TierBadge", function()
@@ -18,13 +26,72 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 	if (!tierInfo) then return end
 
 	draw.SimpleText(
-		tierInfo.name .. "  [Tier " .. CWU_LocalTier .. "]  — " .. CWU_LocalPoints .. " pts",
+		tierInfo.name .. "  [Tier " .. CWU_LocalTier .. "]",
 		"DermaDefault",
 		10,
 		ScrH() - 20,
 		tierInfo.color,
 		TEXT_ALIGN_LEFT,
 		TEXT_ALIGN_BOTTOM
+	)
+
+	local barX = 10
+	local barY = ScrH() - 8
+	local barW = 160
+	local barH = 4
+	local fillRatio = (CWU_LocalPoints % 10) / 10
+
+	surface.SetDrawColor(40, 40, 40)
+	surface.DrawRect(barX, barY, barW, barH)
+	surface.SetDrawColor(100, 175, 100)
+	surface.DrawRect(barX, barY, math.floor(barW * fillRatio), barH)
+
+	if (tierUpData == nil) then return end
+
+	local elapsed = CurTime() - tierUpAt
+
+	if (elapsed >= 5) then
+		tierUpData = nil
+		return
+	end
+
+	local alpha = 255
+	if (elapsed > 4) then
+		alpha = math.floor(255 * (1 - (elapsed - 4)))
+	end
+
+	local panelW = 360
+	local panelH = 60
+	local panelX = ScrW() / 2 - panelW / 2
+	local panelY = ScrH() / 2 - 80 - panelH / 2
+
+	surface.SetDrawColor(20, 20, 20, math.floor(200 * alpha / 255))
+	surface.DrawRect(panelX, panelY, panelW, panelH)
+
+	surface.SetDrawColor(tierUpData.r, tierUpData.g, tierUpData.b, alpha)
+	surface.DrawRect(panelX, panelY, panelW, 2)
+	surface.DrawRect(panelX, panelY + panelH - 2, panelW, 2)
+	surface.DrawRect(panelX, panelY, 2, panelH)
+	surface.DrawRect(panelX + panelW - 2, panelY, 2, panelH)
+
+	draw.SimpleText(
+		"TIER ADVANCEMENT",
+		"DermaDefault",
+		ScrW() / 2,
+		panelY + 14,
+		Color(255, 255, 255, alpha),
+		TEXT_ALIGN_CENTER,
+		TEXT_ALIGN_CENTER
+	)
+
+	draw.SimpleText(
+		tierUpData.name .. " [Tier " .. tierUpData.tier .. "]",
+		"DermaDefault",
+		ScrW() / 2,
+		panelY + 38,
+		Color(tierUpData.r, tierUpData.g, tierUpData.b, alpha),
+		TEXT_ALIGN_CENTER,
+		TEXT_ALIGN_CENTER
 	)
 end)
 

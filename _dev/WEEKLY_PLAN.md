@@ -31,7 +31,7 @@ Goals:
 ---
 
 ## Day 3 — Wed Jun 4 · Loyalty Tier-Up Announcement
-**Status:** Pending
+**Status:** ✅
 
 Goals:
 - `plugins/cwu/libs/sh_loyalty.lua` — in `AwardLoyalty()`, inside the `if (newTier > oldTier)` block (line 49), after the existing `client:NotifyLocalized("cwuTierUp", ...)` call, add `netstream.Start(client, "CWUTierUpAnnounce", {tier = newTier, name = tierInfo.name, r = tierInfo.color.r, g = tierInfo.color.g, b = tierInfo.color.b})` so a richer client-side event fires on advancement

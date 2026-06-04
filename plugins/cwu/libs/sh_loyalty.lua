@@ -52,6 +52,13 @@ if (SERVER) then
 			if (IsValid(client)) then
 				local tierInfo = self:GetLoyaltyTierInfo(newTier)
 				client:NotifyLocalized("cwuTierUp", tierInfo.name, newTier)
+				netstream.Start(client, "CWUTierUpAnnounce", {
+					tier = newTier,
+					name = tierInfo.name,
+					r = tierInfo.color.r,
+					g = tierInfo.color.g,
+					b = tierInfo.color.b
+				})
 			end
 		end
 
