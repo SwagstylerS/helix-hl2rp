@@ -42,7 +42,7 @@ Goals:
 ---
 
 ## Day 4 — Thu Jun 5 · Scanner Illicit-Item Heat Calibration
-**Status:** Pending
+**Status:** ✅
 
 Goals:
 - `plugins/combine-scanner/sv_plugin.lua` — locate the scan handler where `CFG.DualUseHeat` is applied to flagged items; split flagged items into two sets: `illicit = {"combat_stim", "recreational_chem"}` and `suspicious = {"lockpick", "pistol", "smg1", "radio"}` (read directly from `CFG.FlaggedItems`); apply `CFG.HeatAmounts.SMUGGLE` (10) for illicit items and keep `CFG.DualUseHeat` (8) for merely suspicious items

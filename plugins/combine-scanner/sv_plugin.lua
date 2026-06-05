@@ -20,7 +20,9 @@ local CFG = {
     QuotaMax           = 20,
     SeniorKeywords     = {"jury", "grid", "oca", "sectoral", "commander", "division", "senior"},
     FlaggedItems       = {"lockpick", "pistol", "smg1", "contraband", "radio", "combat_stim", "recreational_chem"},
+    IllicitItems       = {combat_stim = true, recreational_chem = true},
     DualUseHeat        = 8,
+    HeatAmounts        = {SMUGGLE = 10},
     FakeContraband     = {
         "Unauthorized frequency transmitter",
         "Unmarked ration coupons",
@@ -108,29 +110,28 @@ end
 
 local function GetRestrictedItems(client)
     local char = client:GetCharacter()
-    if !char then return {}, false end
+    if !char then return {}, {} end
     local inv = char:GetInventory()
-    if !inv then return {}, false end
-    local found      = {}
-    local hasDualUse = false
+    if !inv then return {}, {} end
+    local illicit    = {}
+    local suspicious = {}
     for _, item in pairs(inv:GetItems()) do
         if item and item.uniqueID then
             local uid = string.lower(item.uniqueID)
             for _, flagged in ipairs(CFG.FlaggedItems) do
                 if string.find(uid, flagged, 1, true) then
-                    local itemDef = ix.item.list[uid]
-                    if itemDef and itemDef.isDualUse then
-                        found[#found + 1] = "Medical Compound"
-                        hasDualUse = true
+                    if CFG.IllicitItems[uid] then
+                        illicit[#illicit + 1] = uid
                     else
-                        found[#found + 1] = item.name or item.uniqueID
+                        local itemDef = ix.item.list[uid]
+                        suspicious[#suspicious + 1] = (itemDef and itemDef.isDualUse) and "Medical Compound" or (item.name or uid)
                     end
                     break
                 end
             end
         end
     end
-    return found, hasDualUse
+    return illicit, suspicious
 end
 
 local function GetFakeContraband(sid)
@@ -411,19 +412,49 @@ ix.command.Add("scansubject", {
         end
         CS.Cooldowns[sid] = now + CFG.ScanCooldown
 
-        local char                    = target:GetCharacter()
-        local cid                     = char and char:GetID() or 0
-        local warrants                = ix.data.Get("cs_warrants",  {})
-        local warrant                 = warrants[sid]
-        local heatTier                = GetHeatTier(sid)
-        local restricted, hasDualUse  = GetRestrictedItems(target)
-        local hasContra               = #restricted > 0
-        local contraStr               = ""
+        local char        = target:GetCharacter()
+        local cid         = char and char:GetID() or 0
+        local warrants    = ix.data.Get("cs_warrants",  {})
+        local warrant     = warrants[sid]
+        local heatTier    = GetHeatTier(sid)
+        local illicit, suspicious = GetRestrictedItems(target)
+        local hasIllicit  = #illicit > 0
+        local hasSuspicious = #suspicious > 0
+        local hasContra   = hasIllicit or hasSuspicious
+        local contraStr   = ""
 
-        if hasContra then
-            if hasDualUse then AddHeat(sid, CFG.DualUseHeat) end
-            local raw = table.concat(restricted, ", ")
-            contraStr = hasDualUse and ("MEDICAL COMPOUND: " .. raw) or raw
+        local contraItemNames = {
+            combat_stim       = "Combat Stimulant",
+            recreational_chem = "Recreational Chemical",
+        }
+
+        if hasIllicit then
+            local allCombine = {}
+            for _, p in ipairs(player.GetAll()) do
+                if IsValid(p) and IsCombine(p) then allCombine[#allCombine + 1] = p end
+            end
+            for _, uid in ipairs(illicit) do
+                AddHeat(sid, CFG.HeatAmounts.SMUGGLE)
+                local displayName = contraItemNames[uid] or uid
+                if #allCombine > 0 then
+                    net.Start("CS_BiometricAlert")
+                        net.WriteString("SMUGGLE SUSPECTED — " .. target:Name() .. ": " .. displayName)
+                        net.WriteUInt(3, 4)
+                    net.Send(allCombine)
+                end
+            end
+            ix.data.Set("cs_heatScores", CS.HeatScores)
+            local names = {}
+            for _, uid in ipairs(illicit) do
+                names[#names + 1] = contraItemNames[uid] or uid
+            end
+            contraStr = "MEDICAL COMPOUND: " .. table.concat(names, ", ")
+            if hasSuspicious then
+                contraStr = contraStr .. ", " .. table.concat(suspicious, ", ")
+            end
+        elseif hasSuspicious then
+            AddHeat(sid, CFG.DualUseHeat)
+            contraStr = table.concat(suspicious, ", ")
         elseif heatTier >= 2 then
             contraStr = GetFakeContraband(sid)
             hasContra = true
