@@ -70,6 +70,10 @@ LANGUAGE = {
 	cwuInsufficientTreasury = "Insufficient funds in the CWU treasury.",
 	cwuWorkerPaid = "Paid %s %s from the CWU treasury.",
 	cwuWageReceived = "You received %s wages from the CWU Director.",
+	cwuAssignedTo = "You have been assigned to the CWU %s division.",
+	cwuRemovedFromCWU = "You have been removed from CWU service.",
+	cwuLicenseGrantedSelf = "Your business licence has been granted by the Director.",
+	cwuLicenseRevokedSelf = "Your business licence has been revoked by the Director.",
 
 	-- Combine Terminal
 	cwuCombineTerminal = "CIVIL WORKFORCE OVERSIGHT",

@@ -53,7 +53,7 @@ Goals:
 ---
 
 ## Day 5 — Fri Jun 6 · Director-to-Worker Assignment Notifications
-**Status:** Pending
+**Status:** ✅
 
 Goals:
 - `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorAssign` netstream handler, after the target character's class is set, find the online player via `character:GetPlayer()` and call `targetClient:NotifyLocalized("cwuAssignedTo", division)` if `IsValid(targetClient)`

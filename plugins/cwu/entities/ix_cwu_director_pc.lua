@@ -155,7 +155,10 @@ if (SERVER) then
 				character:JoinClass(classID, true)
 				client:NotifyLocalized("cwuAssigned", character:GetName(), division)
 
-				v:Notify("You have been assigned to the CWU " .. division:sub(1, 1):upper() .. division:sub(2) .. " Division.")
+				if (IsValid(v)) then
+					v:NotifyLocalized("cwuAssignedTo", division)
+				end
+
 				break
 			end
 		end
@@ -173,7 +176,10 @@ if (SERVER) then
 				character:JoinClass(CLASS_CITIZEN, true)
 				client:NotifyLocalized("cwuRemoved", character:GetName())
 
-				v:Notify("You have been removed from the CWU.")
+				if (IsValid(v)) then
+					v:NotifyLocalized("cwuRemovedFromCWU")
+				end
+
 				break
 			end
 		end
@@ -216,6 +222,10 @@ if (SERVER) then
 					if (!inventory:HasItem("business_license")) then
 						inventory:Add("business_license")
 						client:NotifyLocalized("cwuLicenseGranted", character:GetName())
+
+						if (IsValid(v)) then
+							v:NotifyLocalized("cwuLicenseGrantedSelf")
+						end
 					end
 				else
 					local item = inventory:HasItem("business_license")
@@ -223,6 +233,10 @@ if (SERVER) then
 					if (item) then
 						inventory:Remove(item.id)
 						client:NotifyLocalized("cwuLicenseRevoked", character:GetName())
+
+						if (IsValid(v)) then
+							v:NotifyLocalized("cwuLicenseRevokedSelf")
+						end
 					end
 				end
 
