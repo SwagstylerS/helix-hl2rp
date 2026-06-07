@@ -60,3 +60,8 @@ Goals:
 - `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorRemove` netstream handler, find the online player and call `targetClient:NotifyLocalized("cwuRemovedFromCWU")` if online
 - `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorLicense` netstream handler (line ~204), after the grant or revoke path executes, notify the target character: `targetClient:NotifyLocalized("cwuLicenseGrantedSelf")` on grant, `targetClient:NotifyLocalized("cwuLicenseRevokedSelf")` on revoke — the Director currently sees confirmation but the worker has no feedback
 - `plugins/cwu/languages/sh_english.lua` — add four strings at the end of the Director PC section: `cwuAssignedTo = "You have been assigned to the CWU %s division."`, `cwuRemovedFromCWU = "You have been removed from CWU service."`, `cwuLicenseGrantedSelf = "Your business licence has been granted by the Director."`, `cwuLicenseRevokedSelf = "Your business licence has been revoked by the Director."`
+
+---
+
+## Weekend — Sun Jun 7
+No tasks scheduled. All Week of Jun 2–6 tasks completed. Next planning session begins Monday Jun 8.
