@@ -4,6 +4,11 @@
 
 ---
 
+## Monday Jun 8 — Pre-week note
+No tasks scheduled for today. Development week begins Tuesday Jun 9.
+
+---
+
 ## Day 1 — Mon Jun 9 · Production Crafting Loyalty + Drug Synthesis Loyalty
 **Status:** Pending
 
