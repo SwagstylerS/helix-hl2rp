@@ -10,7 +10,7 @@ No tasks scheduled for today. Development week begins Tuesday Jun 9.
 ---
 
 ## Day 1 — Mon Jun 9 · Production Crafting Loyalty + Drug Synthesis Loyalty
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_productiontable.lua` — In the `CWUProductionStart` netstream handler (~line 187), inside `timer.Create("CWUCraft_" .. entity:EntIndex(), craftTime, 1, function() ... end)`, after `entity:EmitSound(...)`, add: `if IsValid(client) then local char = client:GetCharacter() if char then PLUGIN:AwardLoyalty(char, 1, "crafting") end end` — awards 1 loyalty point when crafting completes (state transitions to 2); `client` is already captured in the enclosing closure

@@ -188,6 +188,13 @@ if (SERVER) then
 			if (IsValid(entity)) then
 				entity:SetState(2)
 				entity:EmitSound("buttons/combine_button1.wav")
+
+				if (IsValid(client)) then
+					local char = client:GetCharacter()
+					if (char) then
+						PLUGIN:AwardLoyalty(char, 1, "crafting")
+					end
+				end
 			end
 		end)
 	end)

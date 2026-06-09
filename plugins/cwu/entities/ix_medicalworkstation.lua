@@ -390,6 +390,7 @@ if (SERVER) then
 			end)
 
 			client:Notify("Synthesis complete: Medical compound produced.")
+			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 20, function()
