@@ -20,7 +20,7 @@ Goals:
 ---
 
 ## Day 2 — Tue Jun 10 · Work Order New-Order Notifications to Maintenance Workers
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/libs/sv_workorders.lua` — In `PLUGIN:GenerateWorkOrder(entity)` (line ~15), after `self:RefreshWorkOrderBoards()`, add a loop: `for _, ply in ipairs(player.GetAll()) do if IsValid(ply) and ply:GetCWUDivision() == "maintenance" then netstream.Start(ply, "CWUNewWorkOrder", {type = breakableInfo.type, location = string.format("%d, %d", math.floor(ePos.x), math.floor(ePos.y))}) end end` — notifies every online Maintenance worker when degradation generates a new order

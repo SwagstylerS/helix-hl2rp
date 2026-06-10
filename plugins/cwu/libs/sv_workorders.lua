@@ -42,6 +42,12 @@ function PLUGIN:GenerateWorkOrder(entity)
 
 	self:SaveWorkOrders(orders)
 	self:RefreshWorkOrderBoards()
+
+	for _, ply in ipairs(player.GetAll()) do
+		if (IsValid(ply) and ply:GetCWUDivision() == "maintenance") then
+			netstream.Start(ply, "CWUNewWorkOrder", {type = breakableInfo.type, location = string.format("%d, %d", math.floor(ePos.x), math.floor(ePos.y))})
+		end
+	end
 end
 
 function PLUGIN:SubmitManualWorkOrder(description, location, priority, submitter)

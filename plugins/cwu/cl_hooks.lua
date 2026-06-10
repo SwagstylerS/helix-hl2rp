@@ -6,6 +6,9 @@ CWU_LocalPoints = 0
 local tierUpData = nil
 local tierUpAt = 0
 
+local newOrderData = nil
+local newOrderAt = 0
+
 netstream.Hook("CWULoyaltySync", function(data)
 	CWU_LocalTier = data.tier
 	CWU_LocalPoints = data.points
@@ -14,6 +17,11 @@ end)
 netstream.Hook("CWUTierUpAnnounce", function(data)
 	tierUpData = data
 	tierUpAt = CurTime()
+end)
+
+netstream.Hook("CWUNewWorkOrder", function(data)
+	newOrderData = data
+	newOrderAt = CurTime()
 end)
 
 hook.Add("HUDPaint", "CWU_TierBadge", function()
@@ -107,6 +115,53 @@ function PLUGIN:HUDPaint()
 			surface.DrawRect(0, 0, ScrW(), ScrH())
 		else
 			PLUGIN.ChemEffectEnd = nil
+		end
+	end
+
+	if (newOrderData != nil) then
+		local elapsed = CurTime() - newOrderAt
+
+		if (elapsed >= 6) then
+			newOrderData = nil
+		elseif (LocalPlayer():GetCWUDivision() == "maintenance") then
+			local alpha = 255
+
+			if (elapsed > 5) then
+				alpha = math.floor(255 * (1 - (elapsed - 5)))
+			end
+
+			local panelW, panelH = 320, 48
+			local panelX = ScrW() / 2 - panelW / 2
+			local panelY = ScrH() - 130
+
+			surface.SetDrawColor(20, 20, 20, math.floor(210 * alpha / 255))
+			surface.DrawRect(panelX, panelY, panelW, panelH)
+
+			surface.SetDrawColor(100, 175, 100, alpha)
+			surface.DrawRect(panelX, panelY, panelW, 2)
+			surface.DrawRect(panelX, panelY + panelH - 2, panelW, 2)
+			surface.DrawRect(panelX, panelY, 2, panelH)
+			surface.DrawRect(panelX + panelW - 2, panelY, 2, panelH)
+
+			draw.SimpleText(
+				"NEW WORK ORDER",
+				"DermaDefault",
+				ScrW() / 2,
+				panelY + 14,
+				Color(255, 255, 255, alpha),
+				TEXT_ALIGN_CENTER,
+				TEXT_ALIGN_CENTER
+			)
+
+			draw.SimpleText(
+				"[" .. (newOrderData.type or "?") .. "] — " .. (newOrderData.location or "?"),
+				"DermaDefault",
+				ScrW() / 2,
+				panelY + 34,
+				Color(100, 175, 100, alpha),
+				TEXT_ALIGN_CENTER,
+				TEXT_ALIGN_CENTER
+			)
 		end
 	end
 end
