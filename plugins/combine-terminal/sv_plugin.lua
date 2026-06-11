@@ -385,6 +385,7 @@ local function BuildFullPayload()
         zones        = BuildZoneCheckpointData(),
         cwuRequests  = BuildCWURequests(),
         curfewActive = CS.CurfewActive,
+        detainees    = ix.data.Get("cs_detainees", {}),
     }
 end
 

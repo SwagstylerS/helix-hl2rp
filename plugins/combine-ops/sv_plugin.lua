@@ -164,5 +164,10 @@ ix.command.Add("transferdetainee", {
             net.WriteUInt(0, 4)
         net.Send(combineAll)
         client:Notify("Transfer logged for " .. targetPly:Name())
+
+        local log = ix.data.Get("cs_detainees", {})
+        log[#log + 1] = {name = targetPly:Name(), cid = cid, officer = client:Name(), time = os.time()}
+        while #log > 100 do table.remove(log, 1) end
+        ix.data.Set("cs_detainees", log)
     end,
 })

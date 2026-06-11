@@ -31,7 +31,7 @@ Goals:
 ---
 
 ## Day 3 — Wed Jun 11 · Detainee Log Persistence + Terminal Tab
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-ops/sv_plugin.lua` — In the `transferdetainee` command `OnRun` (line ~152), after `client:Notify("Transfer logged for " .. targetPly:Name())`, append a persistent entry: `local log = ix.data.Get("cs_detainees", {}); log[#log + 1] = {name = targetPly:Name(), cid = cid, officer = client:Name(), time = os.time()}; while #log > 100 do table.remove(log, 1) end; ix.data.Set("cs_detainees", log)` — caps log at 100 entries, oldest first

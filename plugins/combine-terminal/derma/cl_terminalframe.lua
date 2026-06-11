@@ -103,6 +103,7 @@ function PANEL:Populate()
         {"WARRANTS",   "CS_TabWarrants"},
         {"ZONES",      "CS_TabZones"},
         {"CLEARANCE",  "CS_TabCWU"},
+        {"DETAINEES",  "CS_TabDetainees"},
     }
 
     for _, info in ipairs(tabs) do
