@@ -42,7 +42,7 @@ Goals:
 ---
 
 ## Day 4 — Thu Jun 12 · Clearance Approval History Log
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/combine-terminal/sv_plugin.lua` — In `DoApproveClearance()` (line ~206), after `ix.data.Set` for the clearance data, append: `local hist = ix.data.Get("cs_clearanceHistory", {}); hist[#hist + 1] = {sid = sid, name = targetPly:Name(), officer = ply:Name(), decision = "APPROVED", time = os.time()}; while #hist > 200 do table.remove(hist, 1) end; ix.data.Set("cs_clearanceHistory", hist)`

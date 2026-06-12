@@ -223,6 +223,12 @@ local function DoApproveClearance(ply, targetPly)
         net.WriteString("Your clearance request was APPROVED.")
     net.Send(targetPly)
     ply:Notify("Clearance approved for " .. targetPly:Name())
+
+    local hist = ix.data.Get("cs_clearanceHistory", {})
+    hist[#hist + 1] = {sid = sid, name = targetPly:Name(), officer = ply:Name(), decision = "APPROVED", time = os.time()}
+    while #hist > 200 do table.remove(hist, 1) end
+    ix.data.Set("cs_clearanceHistory", hist)
+
     return true
 end
 
@@ -246,6 +252,12 @@ local function DoDenyClearance(ply, targetPly)
         net.WriteString("Your clearance request was DENIED.")
     net.Send(targetPly)
     ply:Notify("Clearance denied for " .. targetPly:Name())
+
+    local hist = ix.data.Get("cs_clearanceHistory", {})
+    hist[#hist + 1] = {sid = sid, name = targetPly:Name(), officer = ply:Name(), decision = "DENIED", time = os.time()}
+    while #hist > 200 do table.remove(hist, 1) end
+    ix.data.Set("cs_clearanceHistory", hist)
+
     return true
 end
 
@@ -386,6 +398,7 @@ local function BuildFullPayload()
         cwuRequests  = BuildCWURequests(),
         curfewActive = CS.CurfewActive,
         detainees    = ix.data.Get("cs_detainees", {}),
+        clearanceHistory = ix.data.Get("cs_clearanceHistory", {}),
     }
 end
 
