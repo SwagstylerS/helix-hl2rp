@@ -249,6 +249,13 @@ if (SERVER) then
 		for _, v in ipairs(player.GetAll()) do
 			if (IsValid(v) and v != client and (v:IsCWUDirector() or v:IsAdmin())) then
 				v:Notify(character:GetName() .. " has requested approval for " .. bp.name .. ".")
+				netstream.Start(v, "CWUBlueprintRequestAlert", {
+					charID = charID,
+					charName = character:GetName(),
+					blueprintID = blueprintID,
+					blueprintName = bp.name,
+					time = os.time()
+				})
 			end
 		end
 	end)

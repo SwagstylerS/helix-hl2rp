@@ -53,7 +53,7 @@ Goals:
 ---
 
 ## Day 5 — Fri Jun 13 · Live Blueprint Request Alert for Director PC
-**Status:** Pending
+**Status:** ✅ Complete
 
 Goals:
 - `plugins/cwu/entities/ix_productiontable.lua` — In the `CWURequestBlueprintApproval` netstream handler (line ~241), inside the `for _, v in ipairs(player.GetAll())` Director notification loop, after `v:Notify(...)`, add `netstream.Start(v, "CWUBlueprintRequestAlert", {charName = character:GetName(), blueprintName = bp.name})` so Directors receive a rich client-side event in addition to the plain notify
