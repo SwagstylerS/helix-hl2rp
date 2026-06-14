@@ -59,3 +59,8 @@ Goals:
 - `plugins/cwu/entities/ix_productiontable.lua` — In the `CWURequestBlueprintApproval` netstream handler (line ~241), inside the `for _, v in ipairs(player.GetAll())` Director notification loop, after `v:Notify(...)`, add `netstream.Start(v, "CWUBlueprintRequestAlert", {charName = character:GetName(), blueprintName = bp.name})` so Directors receive a rich client-side event in addition to the plain notify
 - `plugins/cwu/derma/cl_cwu_director_pc.lua` — At the bottom of the file before `vgui.Register`, add `netstream.Hook("CWUBlueprintRequestAlert", function(data) surface.PlaySound("buttons/button17.wav") if IsValid(ix.gui.cwuDirectorPC) and IsValid(ix.gui.cwuDirectorPC.blueprintRequestsList) then ix.gui.cwuDirectorPC.blueprintRequestsList:AddLine(data.charName, data.blueprintName, "PENDING") end end)` — plays the alert chime and, if the Director PC panel is currently open, inserts the new request directly into the blueprint requests list without requiring the panel to be closed and reopened
 - `plugins/cwu/derma/cl_cwu_director_pc.lua` — Confirm `self.blueprintRequestsList` is the field name used in `PANEL:CreateBlueprintRequestsTab()` (the `DListView` created there) and that it is assigned to `self.blueprintRequestsList`; if the field has a different name, use that name in the hook above
+
+---
+
+## Sunday Jun 14 — Weekend note
+No tasks scheduled for today. All Week of Jun 9–13 goals are complete. Next development week's plan to be authored separately.
