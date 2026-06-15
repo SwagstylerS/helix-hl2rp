@@ -5,7 +5,11 @@
 ---
 
 ## Day 1 — Mon Jun 15 · Heat Tier 4 "Person of Interest" Alert to Combine
-**Status:** Pending
+**Status:** ✅ Done
+
+- Added `CS_BiometricAlert` broadcast (priority 1) + `ChatPrint` to all Combine players when a citizen's heat crosses into Tier 4, in `AddHeat()`.
+- Fixed a pre-existing forward-reference bug: `FindPlayerBySteamID`/`GetCombinePlayers` were defined after `AddHeat` but called from within it, causing a nil-call error whenever a heat tier changed. Moved both definitions above `AddHeat` and removed the now-duplicate later definitions.
+- `heatTier`/`heatScore` fields in `BuildFullPayload()` were already populated — no change needed there.
 
 Goals:
 - `plugins/combine-terminal/sv_plugin.lua` — In the local `AddHeat(sid, amount)` function (~line 82), the existing tier-up block only sends `CS_HeatTierChange` to the citizen themselves. After that block, when `newTier == 4 and oldTier < 4`, also resolve the player via `FindPlayerBySteamID(sid)` and their character, then broadcast a `CS_BiometricAlert` to `GetCombinePlayers()` with a message formatted like `"PERSON OF INTEREST: " .. name .. " (CID:" .. cid .. ") — heat score reached critical levels (" .. CS.HeatScores[sid] .. "/100)"` and `net.WriteUInt(1, 4)` for the priority byte (matching the existing alert pattern used by `DoIssueWarrant` and `TriggerWarrantAlarm`)

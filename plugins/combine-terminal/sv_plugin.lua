@@ -79,6 +79,21 @@ local function GetHeatTier(sid)
     return 0
 end
 
+local function FindPlayerBySteamID(sid)
+    for _, ply in ipairs(player.GetAll()) do
+        if IsValid(ply) and ply:SteamID() == sid then return ply end
+    end
+    return nil
+end
+
+local function GetCombinePlayers()
+    local out = {}
+    for _, ply in ipairs(player.GetAll()) do
+        if IsValid(ply) and IsCombine(ply) then out[#out + 1] = ply end
+    end
+    return out
+end
+
 local function AddHeat(sid, amount)
     local oldTier = GetHeatTier(sid)
     CS.HeatScores[sid] = math.Clamp((CS.HeatScores[sid] or 0) + amount, 0, CFG.HeatMax)
@@ -89,6 +104,23 @@ local function AddHeat(sid, amount)
             net.Start("CS_HeatTierChange")
                 net.WriteUInt(newTier, 4)
             net.Send(ply)
+        end
+
+        if newTier == 4 and oldTier < 4 then
+            local name = IsValid(ply) and ply:Name() or "Unknown"
+            local cid  = 0
+            if IsValid(ply) then
+                local char = ply:GetCharacter()
+                if char then cid = char:GetID() end
+            end
+            local msg = "PERSON OF INTEREST: " .. name .. " (CID:" .. cid .. ") — heat score reached critical levels (" .. CS.HeatScores[sid] .. "/100)"
+            net.Start("CS_BiometricAlert")
+                net.WriteString(msg)
+                net.WriteUInt(1, 4)
+            net.Send(GetCombinePlayers())
+            for _, combinePly in ipairs(GetCombinePlayers()) do
+                combinePly:ChatPrint(msg)
+            end
         end
     end
 end
@@ -111,21 +143,6 @@ local function GetRestrictedItems(client)
         end
     end
     return found
-end
-
-local function GetCombinePlayers()
-    local out = {}
-    for _, ply in ipairs(player.GetAll()) do
-        if IsValid(ply) and IsCombine(ply) then out[#out + 1] = ply end
-    end
-    return out
-end
-
-local function FindPlayerBySteamID(sid)
-    for _, ply in ipairs(player.GetAll()) do
-        if IsValid(ply) and ply:SteamID() == sid then return ply end
-    end
-    return nil
 end
 
 local function FindPlayerByCID(cid)
