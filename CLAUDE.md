@@ -46,5 +46,5 @@ Prefer these — they encode the rules above:
 - **helix-sprint-executor** — implement the next Pending day of `_dev/WEEKLY_PLAN.md`.
 - **helix-inworld-voice** — write player-facing text in the correct faction voice.
 - **helix-lint** — run glualint (if installed) on changed Lua.
-- Vendored: **ponytail** (do-less / YAGNI gate), **council** (multi-perspective design review).
-  See `.claude/skills/THIRD_PARTY.md`.
+- Vendored: **ponytail** (do-less / YAGNI gate), **council-review** (Karpathy LLM-Council /
+  DMAD multi-perspective design review). See `.claude/skills/THIRD_PARTY.md`.
