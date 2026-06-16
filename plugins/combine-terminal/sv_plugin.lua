@@ -113,7 +113,7 @@ local function AddHeat(sid, amount)
                 local char = ply:GetCharacter()
                 if char then cid = char:GetID() end
             end
-            local msg = "PERSON OF INTEREST: " .. name .. " (CID:" .. cid .. ") — heat score reached critical levels (" .. CS.HeatScores[sid] .. "/100)"
+            local msg = "DISPATCH: 10-103M — " .. name .. " flagged for flagrant malcompliance. Designate for observation and detainment."
             net.Start("CS_BiometricAlert")
                 net.WriteString(msg)
                 net.WriteUInt(1, 4)

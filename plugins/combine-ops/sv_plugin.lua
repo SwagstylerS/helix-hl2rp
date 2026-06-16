@@ -159,8 +159,8 @@ ix.command.Add("transferdetainee", {
         local cid = target:GetID()
         local combineAll = GetAllCombine()
         net.Start("CS_BiometricAlert")
-            net.WriteString(string.format("DETAINEE TRANSFER: %s (CID:%d) — %s",
-                targetPly:Name(), cid, client:Name()))
+            net.WriteString(string.format("DISPATCH: Subject %s — 10-97, custody transfer in progress. Processing unit: %s.",
+                targetPly:Name(), client:Name()))
             net.WriteUInt(0, 4)
         net.Send(combineAll)
         client:Notify("Transfer logged for " .. targetPly:Name())
@@ -202,8 +202,8 @@ ix.command.Add("releasedetainee", {
 
         local combineAll = GetAllCombine()
         net.Start("CS_BiometricAlert")
-            net.WriteString(string.format("DETAINEE RELEASED: %s (CID:%d) — %s",
-                targetPly:Name(), cid, client:Name()))
+            net.WriteString(string.format("DISPATCH: Subject %s — 10-22, stand down. Released on authority of %s.",
+                targetPly:Name(), client:Name()))
             net.WriteUInt(0, 4)
         net.Send(combineAll)
         client:Notify("Release logged for " .. targetPly:Name())
