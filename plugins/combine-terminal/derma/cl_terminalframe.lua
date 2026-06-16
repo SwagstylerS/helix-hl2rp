@@ -14,6 +14,7 @@ CS_TERM_COLORS = {
     textDim    = Color(40, 120, 40),
     highlight  = Color(50, 180, 50, 60),
     hover      = Color(50, 180, 50, 30),
+    good       = Color(100, 220, 100),
     red        = Color(200, 50, 50),
     yellow     = Color(200, 180, 50),
     orange     = Color(200, 120, 50),

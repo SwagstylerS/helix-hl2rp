@@ -19,7 +19,7 @@ Goals:
 ---
 
 ## Day 2 — Tue Jun 16 · Detainee Release Command + Status Tracking
-**Status:** Pending
+**Status:** ✅ Done
 
 Goals:
 - `plugins/combine-ops/sv_plugin.lua` — In the `transferdetainee` command `OnRun` (~line 152), add `status = "DETAINED"` to the log entry table that's appended to `cs_detainees` (alongside `name`, `cid`, `officer`, `time`)

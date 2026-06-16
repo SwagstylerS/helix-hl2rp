@@ -61,17 +61,23 @@ function PANEL:Populate(data)
         list:AddColumn("NAME"):SetWidth(140)
         list:AddColumn("CID"):SetWidth(60):SetFixedWidth(true)
         list:AddColumn("OFFICER"):SetWidth(130)
+        list:AddColumn("STATUS"):SetWidth(80):SetFixedWidth(true)
         StyleListHeaders(list, C.borderDim)
 
         local now = os.time()
         for i = total, math.max(1, total - 49), -1 do
             local entry    = detainees[i]
             local timeStr  = os.date("%H:%M", entry.time or 0)
-            local rowColor = C.text
-            if (now - (entry.time or 0)) < 3600 then
-                rowColor = C.orange
+            local status   = entry.status or "DETAINED"
+            local rowColor
+            if status == "RELEASED" then
+                rowColor = C.good
+            elseif status == "DETAINED" then
+                rowColor = C.red
+            else
+                rowColor = (now - (entry.time or 0)) < 3600 and C.orange or C.text
             end
-            local row = list:AddLine(timeStr, entry.name or "Unknown", tostring(entry.cid or 0), entry.officer or "Unknown")
+            local row = list:AddLine(timeStr, entry.name or "Unknown", tostring(entry.cid or 0), entry.officer or "Unknown", status)
             for _, col in pairs(row.Columns or {}) do col:SetTextColor(rowColor); col:SetContentAlignment(5) end
             row.Paint = function(self2, w, h)
                 if self2:IsHovered() then

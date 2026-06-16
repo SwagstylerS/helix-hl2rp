@@ -166,8 +166,46 @@ ix.command.Add("transferdetainee", {
         client:Notify("Transfer logged for " .. targetPly:Name())
 
         local log = ix.data.Get("cs_detainees", {})
-        log[#log + 1] = {name = targetPly:Name(), cid = cid, officer = client:Name(), time = os.time()}
+        log[#log + 1] = {name = targetPly:Name(), cid = cid, officer = client:Name(), time = os.time(), status = "DETAINED"}
         while #log > 100 do table.remove(log, 1) end
         ix.data.Set("cs_detainees", log)
+    end,
+})
+
+ix.command.Add("releasedetainee", {
+    description = "Release a detained citizen and log the release to the intel board.",
+    arguments   = {ix.type.character},
+    OnRun = function(self, client, target)
+        if !IsCombine(client) then return client:Notify("Unauthorized.") end
+        local targetPly = target:GetPlayer()
+        if !IsValid(targetPly) then return client:Notify("Target is not online.") end
+        local cid = target:GetID()
+
+        local log = ix.data.Get("cs_detainees", {})
+        local found = false
+        for i = #log, 1, -1 do
+            local entry = log[i]
+            if entry.cid == cid and entry.status == "DETAINED" then
+                entry.status      = "RELEASED"
+                entry.releasedBy  = client:Name()
+                entry.releaseTime = os.time()
+                found = true
+                break
+            end
+        end
+
+        if !found then
+            return client:Notify("No active detention found for this citizen.")
+        end
+
+        ix.data.Set("cs_detainees", log)
+
+        local combineAll = GetAllCombine()
+        net.Start("CS_BiometricAlert")
+            net.WriteString(string.format("DETAINEE RELEASED: %s (CID:%d) — %s",
+                targetPly:Name(), cid, client:Name()))
+            net.WriteUInt(0, 4)
+        net.Send(combineAll)
+        client:Notify("Release logged for " .. targetPly:Name())
     end,
 })
