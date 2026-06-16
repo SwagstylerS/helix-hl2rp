@@ -7,7 +7,12 @@ Design rules that apply to all plugins. Check this before implementing any new m
 ## Interaction Model
 
 **No chat commands for world interaction.**
-Players must interact with the world through entities — use menus, terminals, props, or context actions. Chat commands (`/command`) are acceptable only for out-of-character admin/utility actions (e.g. `/panicbutton` as a last resort signal). Mechanics like detaining, releasing, trading, or operating equipment must go through an in-world entity or UI.
+Players must interact with the world through entities — use menus, terminals, props, or context actions. Mechanics like detaining, releasing, trading, panicking, or operating equipment must go through an in-world entity or UI. Chat commands are for server admin/operator use only.
+
+**Existing debt (to be reworked into entities):**
+- `/panicbutton` / `/panicclear` — should be a wearable device or wall-mounted button entity
+- `/transferdetainee` / `/releasedetainee` — should be an action on a terminal or processing entity
+- `/curfew` / `/alert` / `/CombineRadio` — senior Combine commands, lower priority but same rule applies
 
 ---
 
