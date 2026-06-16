@@ -25,25 +25,23 @@
     z-index: 99;
   }
 
-  /* CRT scanlines — animated downward scroll */
-  @keyframes scanroll { to { background-position-y: 6px; } }
+  /* Faint static scanline grid — texture only, not animated */
   .terminal::after {
     content: '';
     position: absolute;
     inset: 0;
     background: repeating-linear-gradient(
       0deg,
-      rgba(60,180,60,0.07),
-      rgba(60,180,60,0.07) 3px,
-      rgba(0,0,0,0.25) 3px,
-      rgba(0,0,0,0.25) 6px
+      transparent,
+      transparent 5px,
+      rgba(0,0,0,0.12) 5px,
+      rgba(0,0,0,0.12) 6px
     );
     pointer-events: none;
     z-index: 100;
-    animation: scanroll 5s linear infinite;
   }
 
-  #glitch-canvas {
+  #sweep-canvas {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -291,7 +289,7 @@
 
 <div class="terminal" id="term">
   <canvas id="grain-canvas" width="1000" height="650"></canvas>
-  <canvas id="glitch-canvas" width="1000" height="650"></canvas>
+  <canvas id="sweep-canvas" width="1000" height="650"></canvas>
 
   <div class="titlebar">
     <span class="classified">CLASSIFIED</span>
@@ -551,48 +549,86 @@
     ctx.putImageData(img, 0, 0);
   })();
 
-  // Glitch effect
+  // Sweep line + glitch
   (function() {
-    const canvas = document.getElementById('glitch-canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('sweep-canvas');
+    const ctx    = canvas.getContext('2d');
     const W = 1000, H = 650;
 
-    function drawGlitch() {
-      ctx.clearRect(0, 0, W, H);
-      const bands = Math.floor(Math.random() * 4) + 1;
-      for (let i = 0; i < bands; i++) {
-        const y      = Math.floor(Math.random() * H);
-        const h      = Math.floor(Math.random() * 6) + 1;
-        const xShift = (Math.random() - 0.5) * 60;
-        const alpha  = Math.random() * 0.35 + 0.1;
-        // bright displaced band
-        ctx.fillStyle = `rgba(120,255,120,${alpha})`;
-        ctx.fillRect(xShift, y, W, h);
-        // dark tear edge
-        ctx.fillStyle = `rgba(0,0,0,0.5)`;
-        ctx.fillRect(0, y + h, W, 1);
-      }
-      // occasionally a brief full-width bright flash
-      if (Math.random() < 0.3) {
-        ctx.fillStyle = 'rgba(80,200,80,0.06)';
-        ctx.fillRect(0, 0, W, H);
-      }
+    let sweepY      = 0;
+    let glitching   = false;
+    let glitchUntil = 0;
+    let glitchBands = [];
+    let lastTs      = null;
 
-      const hold = Math.random() * 120 + 40;
-      setTimeout(() => {
-        ctx.clearRect(0, 0, W, H);
-        // sometimes double-glitch
-        if (Math.random() < 0.35) {
-          setTimeout(drawGlitch, Math.random() * 80 + 30);
-        }
-      }, hold);
+    function triggerGlitch() {
+      glitching   = true;
+      glitchUntil = performance.now() + Math.random() * 180 + 60;
+      glitchBands = [];
+      const n = Math.floor(Math.random() * 4) + 1;
+      for (let i = 0; i < n; i++) {
+        glitchBands.push({
+          y: Math.random() * H,
+          h: Math.random() * 8 + 2,
+          a: Math.random() * 0.45 + 0.15,
+          x: (Math.random() - 0.5) * 40,
+        });
+      }
+      // sometimes schedule a double
+      if (Math.random() < 0.4) {
+        setTimeout(triggerGlitch, Math.random() * 120 + 60);
+      }
     }
 
     function scheduleGlitch() {
-      const delay = Math.random() * 4500 + 800;
-      setTimeout(() => { drawGlitch(); scheduleGlitch(); }, delay);
+      setTimeout(() => { triggerGlitch(); scheduleGlitch(); },
+        Math.random() * 4000 + 1200);
     }
     scheduleGlitch();
+
+    function frame(ts) {
+      if (!lastTs) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (glitching && ts > glitchUntil) glitching = false;
+
+      if (glitching) {
+        // draw displaced bands
+        for (const b of glitchBands) {
+          const grad = ctx.createLinearGradient(0, b.y - 2, 0, b.y + b.h + 2);
+          grad.addColorStop(0,   `rgba(120,255,120,0)`);
+          grad.addColorStop(0.3, `rgba(120,255,120,${b.a})`);
+          grad.addColorStop(0.7, `rgba(120,255,120,${b.a})`);
+          grad.addColorStop(1,   `rgba(120,255,120,0)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(b.x, b.y - 2, W, b.h + 4);
+          // dark tear
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(0, b.y + b.h, W, 1);
+        }
+        // stutter sweep — don't advance much
+        sweepY += dt * 15;
+      } else {
+        // normal sweep — visible soft band moving down
+        sweepY += dt * 90;
+      }
+      if (sweepY > H) sweepY -= H;
+
+      // draw the sweep band
+      const grad = ctx.createLinearGradient(0, sweepY - 18, 0, sweepY + 8);
+      grad.addColorStop(0,   'rgba(80,200,80,0)');
+      grad.addColorStop(0.4, 'rgba(80,200,80,0.18)');
+      grad.addColorStop(0.7, 'rgba(80,200,80,0.10)');
+      grad.addColorStop(1,   'rgba(80,200,80,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, sweepY - 18, W, 26);
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   })();
 
   // Live uptime
