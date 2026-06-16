@@ -52,6 +52,25 @@ function PANEL:Init()
     self.m_TabPanels = {}
     self.m_ActiveTab = nil
     self.m_flBoot = CurTime()
+    self.m_GlitchBands = {}
+
+    timer.Create("CS_TermGlitch_" .. tostring(self), 1, 0, function()
+        if !IsValid(self) then return end
+        if math.random() < 0.35 then
+            self.m_GlitchBands = {}
+            local count = math.random(1, 3)
+            for _ = 1, count do
+                self.m_GlitchBands[#self.m_GlitchBands + 1] = {
+                    y = math.random(0, 620),
+                    h = math.random(1, 5),
+                    a = math.random(18, 55),
+                }
+            end
+            timer.Simple(math.Rand(0.05, 0.15), function()
+                if IsValid(self) then self.m_GlitchBands = {} end
+            end)
+        end
+    end)
 
     -- Pre-compute phosphor grain (static — same positions every frame)
     self.m_Grain = {}
@@ -93,6 +112,10 @@ function PANEL:Init()
         surface.SetDrawColor(C.borderDim)
         surface.DrawOutlinedRect(0, 0, w, h, 1)
     end
+end
+
+function PANEL:OnRemove()
+    timer.Remove("CS_TermGlitch_" .. tostring(self))
 end
 
 function PANEL:SetTerminalData(data)
@@ -203,10 +226,19 @@ function PANEL:Paint(w, h)
         surface.DrawRect(math.floor(g.x * w), math.floor(g.y * h), 1, 1)
     end
 
-    -- CRT scanlines
-    for y = 0, h, 3 do
+    -- CRT scanlines (scrolling downward)
+    local scanOffset = (CurTime() * 20) % 6
+    for y = -6 + scanOffset, h, 6 do
         surface.SetDrawColor(C.scanline)
-        surface.DrawRect(0, y, w, 1)
+        surface.DrawRect(0, math.floor(y), w, 1)
+    end
+
+    -- Glitch bands
+    for _, band in ipairs(self.m_GlitchBands or {}) do
+        surface.SetDrawColor(100, 255, 100, band.a)
+        surface.DrawRect(0, band.y, w, band.h)
+        surface.SetDrawColor(0, 0, 0, 120)
+        surface.DrawRect(0, band.y + band.h, w, 1)
     end
 
     -- Subtle vignette at edges

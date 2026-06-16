@@ -25,7 +25,8 @@
     z-index: 99;
   }
 
-  /* CRT scanlines */
+  /* CRT scanlines — animated downward scroll */
+  @keyframes scanroll { to { background-position-y: 6px; } }
   .terminal::after {
     content: '';
     position: absolute;
@@ -33,12 +34,20 @@
     background: repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 2px,
-      rgba(0,0,0,0.18) 2px,
-      rgba(0,0,0,0.18) 3px
+      transparent 4px,
+      rgba(0,0,0,0.20) 4px,
+      rgba(0,0,0,0.20) 6px
     );
     pointer-events: none;
     z-index: 100;
+    animation: scanroll 5s linear infinite;
+  }
+
+  #glitch-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 103;
   }
 
   /* vignette */
@@ -282,6 +291,7 @@
 
 <div class="terminal" id="term">
   <canvas id="grain-canvas" width="1000" height="650"></canvas>
+  <canvas id="glitch-canvas" width="1000" height="650"></canvas>
 
   <div class="titlebar">
     <span class="classified">CLASSIFIED</span>
@@ -539,6 +549,50 @@
       }
     }
     ctx.putImageData(img, 0, 0);
+  })();
+
+  // Glitch effect
+  (function() {
+    const canvas = document.getElementById('glitch-canvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1000, H = 650;
+
+    function drawGlitch() {
+      ctx.clearRect(0, 0, W, H);
+      const bands = Math.floor(Math.random() * 4) + 1;
+      for (let i = 0; i < bands; i++) {
+        const y      = Math.floor(Math.random() * H);
+        const h      = Math.floor(Math.random() * 6) + 1;
+        const xShift = (Math.random() - 0.5) * 60;
+        const alpha  = Math.random() * 0.35 + 0.1;
+        // bright displaced band
+        ctx.fillStyle = `rgba(120,255,120,${alpha})`;
+        ctx.fillRect(xShift, y, W, h);
+        // dark tear edge
+        ctx.fillStyle = `rgba(0,0,0,0.5)`;
+        ctx.fillRect(0, y + h, W, 1);
+      }
+      // occasionally a brief full-width bright flash
+      if (Math.random() < 0.3) {
+        ctx.fillStyle = 'rgba(80,200,80,0.06)';
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      const hold = Math.random() * 120 + 40;
+      setTimeout(() => {
+        ctx.clearRect(0, 0, W, H);
+        // sometimes double-glitch
+        if (Math.random() < 0.35) {
+          setTimeout(drawGlitch, Math.random() * 80 + 30);
+        }
+      }, hold);
+    }
+
+    function scheduleGlitch() {
+      const delay = Math.random() * 4500 + 800;
+      setTimeout(() => { drawGlitch(); scheduleGlitch(); }, delay);
+    }
+    scheduleGlitch();
   })();
 
   // Live uptime
