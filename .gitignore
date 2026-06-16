@@ -1,3 +1,10 @@
 
 *.sublime-*
-.claude/
+
+# Ignore everything under .claude by default...
+.claude/*
+# ...but track committed project skills
+!.claude/skills/
+# Keep machine-local + secret config out of git
+.claude/settings.local.json
+.claude/*.local.json
