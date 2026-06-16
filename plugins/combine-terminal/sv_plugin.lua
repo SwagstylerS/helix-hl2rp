@@ -5,18 +5,25 @@ local PLUGIN = PLUGIN
 --  CONFIG
 -- ============================================================
 local CFG = {
-    WarrantExpiry      = 86400,
-    HeatDecayRate      = 60,
-    HeatDecayAmount    = 1,
-    HeatMax            = 100,
-    HeatTier1          = 15,
-    HeatTier2          = 30,
-    HeatTier3          = 55,
-    HeatTier4          = 80,
-    HeatMeetDist       = 300,
-    HeatMeetMinScore   = 10,
-    HeatMeetMinCount   = 2,
-    HeatAmounts        = {MEETING=5, SMUGGLE=10, RESTRICT=15},
+    WarrantExpiry       = 86400,
+    HeatDecayRate       = 60,
+    HeatDecayAmount     = 1,
+    HeatMax             = 200,
+    HeatDecayFloor      = 180,
+    HeatTier1           = 15,
+    HeatTier2           = 40,
+    HeatTier3           = 80,
+    HeatTier4           = 120,
+    HeatTier5           = 180,
+    HeatTier6           = 200,
+    HeatMeetDist        = 300,
+    HeatMeetMinScore    = 10,
+    HeatMeetMinCount    = 2,
+    HeatAmounts         = {MEETING=5, SMUGGLE=10, RESTRICT=15},
+    HeatBleedDist       = 200,
+    HeatBleedTier4      = 5,
+    HeatBleedSterilized = 15,
+    HeatBleedCooldown   = 60,
 
     ClearanceExpiry    = 1800,
     ClearanceDenyHeat  = 5,
@@ -27,15 +34,18 @@ local CFG = {
 -- ============================================================
 --  STATE
 -- ============================================================
-CS                   = CS                   or {}
-CS.HeatScores        = CS.HeatScores        or {}
-CS.CWURequests       = CS.CWURequests       or {}
-CS.CurfewActive      = CS.CurfewActive      or false
-CS.ZoneHeatCooldowns = CS.ZoneHeatCooldowns or {}
+CS                    = CS                    or {}
+CS.HeatScores         = CS.HeatScores         or {}
+CS.CWURequests        = CS.CWURequests        or {}
+CS.CurfewActive       = CS.CurfewActive       or false
+CS.ZoneHeatCooldowns  = CS.ZoneHeatCooldowns  or {}
+CS.Sterilized         = CS.Sterilized         or {}
+CS.HeatBleedCooldowns = CS.HeatBleedCooldowns or {}
 
 hook.Add("InitPostEntity", "CS_Heat_Load", function()
     CS.HeatScores  = ix.data.Get("cs_heatScores",  {})
     CS.ScanHistory = ix.data.Get("cs_scanHistory", {})
+    CS.Sterilized  = ix.data.Get("cs_sterilized",  {})
 end)
 
 -- ============================================================
@@ -72,11 +82,36 @@ end
 
 local function GetHeatTier(sid)
     local h = CS.HeatScores[sid] or 0
+    if h >= CFG.HeatTier6 then return 6 end
+    if h >= CFG.HeatTier5 then return 5 end
     if h >= CFG.HeatTier4 then return 4 end
     if h >= CFG.HeatTier3 then return 3 end
     if h >= CFG.HeatTier2 then return 2 end
     if h >= CFG.HeatTier1 then return 1 end
     return 0
+end
+
+local function FindPlayerBySteamID(sid)
+    for _, ply in ipairs(player.GetAll()) do
+        if IsValid(ply) and ply:SteamID() == sid then return ply end
+    end
+    return nil
+end
+
+local function GetCombinePlayers()
+    local out = {}
+    for _, ply in ipairs(player.GetAll()) do
+        if IsValid(ply) and IsCombine(ply) then out[#out + 1] = ply end
+    end
+    return out
+end
+
+local function GetOTAPlayers()
+    local out = {}
+    for _, ply in ipairs(player.GetAll()) do
+        if IsValid(ply) and ply:Team() == FACTION_OTA then out[#out + 1] = ply end
+    end
+    return out
 end
 
 local function AddHeat(sid, amount)
@@ -89,6 +124,56 @@ local function AddHeat(sid, amount)
             net.Start("CS_HeatTierChange")
                 net.WriteUInt(newTier, 4)
             net.Send(ply)
+        end
+
+        if newTier == 4 and oldTier < 4 then
+            local name = IsValid(ply) and ply:Name() or "Unknown"
+            local cid  = 0
+            if IsValid(ply) then
+                local char = ply:GetCharacter()
+                if char then cid = char:GetID() end
+            end
+            local msg = "DISPATCH: 10-103M — " .. name .. " flagged for flagrant malcompliance. Designate for observation and detainment."
+            net.Start("CS_BiometricAlert")
+                net.WriteString(msg)
+                net.WriteUInt(1, 4)
+            net.Send(GetCombinePlayers())
+            for _, combinePly in ipairs(GetCombinePlayers()) do
+                combinePly:ChatPrint(msg)
+            end
+        end
+
+        if newTier == 5 and oldTier < 5 then
+            local name = IsValid(ply) and ply:Name() or "Unknown"
+            local msg = "DISPATCH: 10-103C — " .. name .. " classified Terminal Non-Compliant. Overwatch directive pending."
+            local combinePlayers = GetCombinePlayers()
+            net.Start("CS_BiometricAlert")
+                net.WriteString(msg)
+                net.WriteUInt(1, 4)
+            net.Send(combinePlayers)
+            for _, combinePly in ipairs(combinePlayers) do
+                combinePly:ChatPrint(msg)
+            end
+        end
+
+        if newTier == 6 and oldTier < 6 then
+            local name = IsValid(ply) and ply:Name() or "Unknown"
+            CS.Sterilized[sid] = true
+            ix.data.Set("cs_sterilized", CS.Sterilized)
+            if IsValid(ply) then
+                local char = ply:GetCharacter()
+                if char then char:SetData("cs_sterilized", true) end
+            end
+            local msg = "OVERWATCH DIRECTIVE: Sterilization order issued — " .. name .. " designated for terminal pacification. OTA units respond."
+            local otaPlayers = GetOTAPlayers()
+            if #otaPlayers > 0 then
+                net.Start("CS_SterilizeOrder")
+                    net.WriteString(msg)
+                net.Send(otaPlayers)
+                for _, otaPly in ipairs(otaPlayers) do
+                    otaPly:ChatPrint(msg)
+                end
+            end
         end
     end
 end
@@ -111,21 +196,6 @@ local function GetRestrictedItems(client)
         end
     end
     return found
-end
-
-local function GetCombinePlayers()
-    local out = {}
-    for _, ply in ipairs(player.GetAll()) do
-        if IsValid(ply) and IsCombine(ply) then out[#out + 1] = ply end
-    end
-    return out
-end
-
-local function FindPlayerBySteamID(sid)
-    for _, ply in ipairs(player.GetAll()) do
-        if IsValid(ply) and ply:SteamID() == sid then return ply end
-    end
-    return nil
 end
 
 local function FindPlayerByCID(cid)
@@ -223,6 +293,12 @@ local function DoApproveClearance(ply, targetPly)
         net.WriteString("Your clearance request was APPROVED.")
     net.Send(targetPly)
     ply:Notify("Clearance approved for " .. targetPly:Name())
+
+    local hist = ix.data.Get("cs_clearanceHistory", {})
+    hist[#hist + 1] = {sid = sid, name = targetPly:Name(), officer = ply:Name(), decision = "APPROVED", time = os.time()}
+    while #hist > 200 do table.remove(hist, 1) end
+    ix.data.Set("cs_clearanceHistory", hist)
+
     return true
 end
 
@@ -246,6 +322,12 @@ local function DoDenyClearance(ply, targetPly)
         net.WriteString("Your clearance request was DENIED.")
     net.Send(targetPly)
     ply:Notify("Clearance denied for " .. targetPly:Name())
+
+    local hist = ix.data.Get("cs_clearanceHistory", {})
+    hist[#hist + 1] = {sid = sid, name = targetPly:Name(), officer = ply:Name(), decision = "DENIED", time = os.time()}
+    while #hist > 200 do table.remove(hist, 1) end
+    ix.data.Set("cs_clearanceHistory", hist)
+
     return true
 end
 
@@ -278,6 +360,7 @@ BuildTerminalRecords = function()
             wIssuedAt      = warrant and warrant.issuedAt or 0,
             heatTier       = GetHeatTier(sid),
             heatScore      = CS.HeatScores[sid] or 0,
+            sterilized     = CS.Sterilized[sid] == true,
             cwuPending     = CS.CWURequests[sid] != nil,
             restrictedItems = items,
             notes          = note and note.text or "",
@@ -378,13 +461,16 @@ end
 
 local function BuildFullPayload()
     return {
-        records      = BuildTerminalRecords(),
-        units        = BuildActiveUnits(),
-        recentScans  = BuildRecentScans(50),
-        warrants     = BuildWarrantList(),
-        zones        = BuildZoneCheckpointData(),
-        cwuRequests  = BuildCWURequests(),
-        curfewActive = CS.CurfewActive,
+        records          = BuildTerminalRecords(),
+        units            = BuildActiveUnits(),
+        recentScans      = BuildRecentScans(50),
+        warrants         = BuildWarrantList(),
+        zones            = BuildZoneCheckpointData(),
+        cwuRequests      = BuildCWURequests(),
+        curfewActive     = CS.CurfewActive,
+        detainees        = ix.data.Get("cs_detainees",       {}),
+        clearanceHistory = ix.data.Get("cs_clearanceHistory", {}),
+        eliminations     = ix.data.Get("cs_eliminations",    {}),
     }
 end
 
@@ -439,6 +525,8 @@ end
 CS.BuildFullPayload = BuildFullPayload
 CS.IsCombine        = IsCombine
 CS.IsSenior         = IsSenior
+CS.GetHeatTier      = GetHeatTier
+CS.IsSterilized     = function(sid) return CS.Sterilized[sid] == true end
 
 -- ============================================================
 --  NET RECEIVERS — TERMINAL ACTIONS
@@ -632,6 +720,7 @@ timer.Create("CS_HeatMeeting", 30, 0, function()
     for _, ply in ipairs(player.GetAll()) do
         if IsValid(ply) and ply:Alive() and IsResistance(ply) then civilians[#civilians + 1] = ply end
     end
+    -- Meeting heat
     for _, ply in ipairs(civilians) do
         local sid = ply:SteamID()
         if (CS.HeatScores[sid] or 0) < CFG.HeatMeetMinScore then continue end
@@ -643,6 +732,27 @@ timer.Create("CS_HeatMeeting", 30, 0, function()
             end
         end
         if nearby >= CFG.HeatMeetMinCount then AddHeat(sid, CFG.HeatAmounts.MEETING) end
+    end
+    -- Heat bleed: proximity contamination from high-heat / sterilized citizens
+    local now = CurTime()
+    for _, ply in ipairs(civilians) do
+        local sid = ply:SteamID()
+        local cooldownKey = "bleed_" .. sid
+        if CS.HeatBleedCooldowns[cooldownKey] and CS.HeatBleedCooldowns[cooldownKey] > now then continue end
+        for _, other in ipairs(player.GetAll()) do
+            if other == ply or !IsValid(other) or !other:Alive() then continue end
+            if (ply:GetPos() - other:GetPos()):Length() > CFG.HeatBleedDist then continue end
+            local osid = other:SteamID()
+            if CS.Sterilized[osid] then
+                AddHeat(sid, CFG.HeatBleedSterilized)
+                CS.HeatBleedCooldowns[cooldownKey] = now + CFG.HeatBleedCooldown
+                break
+            elseif GetHeatTier(osid) >= 4 and GetHeatTier(sid) < 4 then
+                AddHeat(sid, CFG.HeatBleedTier4)
+                CS.HeatBleedCooldowns[cooldownKey] = now + CFG.HeatBleedCooldown
+                break
+            end
+        end
     end
 end)
 
@@ -683,7 +793,8 @@ end)
 
 timer.Create("CS_HeatDecay", CFG.HeatDecayRate, 0, function()
     for sid, heat in pairs(CS.HeatScores) do
-        CS.HeatScores[sid] = math.max(0, heat - CFG.HeatDecayAmount)
+        local floor = CS.Sterilized[sid] and CFG.HeatDecayFloor or 0
+        CS.HeatScores[sid] = math.max(floor, heat - CFG.HeatDecayAmount)
     end
     ix.data.Set("cs_heatScores", CS.HeatScores)
 end)
@@ -712,6 +823,46 @@ end)
 hook.Add("MapShutdown", "CS_Heat_FlushSave", function()
     ix.data.Set("cs_heatScores",  CS.HeatScores)
     ix.data.Set("cs_scanHistory", CS.ScanHistory)
+    ix.data.Set("cs_sterilized",  CS.Sterilized)
+end)
+
+hook.Add("PlayerDeath", "CS_OTAKillConfirm", function(victim, inflictor, attacker)
+    if !IsValid(attacker) or !attacker:IsPlayer() then return end
+    if attacker:Team() != FACTION_OTA then return end
+    local vsid = victim:SteamID()
+    if !CS.Sterilized[vsid] then return end
+
+    CS.HeatScores[vsid] = 0
+    CS.Sterilized[vsid] = nil
+    ix.data.Set("cs_heatScores", CS.HeatScores)
+    ix.data.Set("cs_sterilized", CS.Sterilized)
+
+    local vchar = victim:GetCharacter()
+    if vchar then vchar:SetData("cs_sterilized", nil) end
+
+    local vname      = victim:Name()
+    local vcid       = vchar and vchar:GetID() or 0
+    local achar      = attacker:GetCharacter()
+    local officerName = attacker:Name()
+    local officerCID = achar and achar:GetID() or 0
+
+    if achar then
+        achar:SetData("cs_efficiency", (achar:GetData("cs_efficiency", 0) + 1))
+    end
+
+    local elims = ix.data.Get("cs_eliminations", {})
+    elims[#elims + 1] = {name = vname, cid = vcid, officer = officerName, officerCID = officerCID, time = os.time()}
+    while #elims > 200 do table.remove(elims, 1) end
+    ix.data.Set("cs_eliminations", elims)
+
+    local msg = "OVERWATCH: Sterilization of " .. vname .. " confirmed. Unit " .. officerName .. " — compliance recorded."
+    local combinePlayers = GetCombinePlayers()
+    net.Start("CS_EliminationConfirm")
+        net.WriteString(msg)
+    net.Send(combinePlayers)
+    for _, combinePly in ipairs(combinePlayers) do
+        combinePly:ChatPrint(msg)
+    end
 end)
 
 hook.Add("PlayerLoadedCharacter", "CS_ClearanceOnLoad", function(client, char)

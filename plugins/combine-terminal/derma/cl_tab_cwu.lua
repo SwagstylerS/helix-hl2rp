@@ -29,6 +29,23 @@ local function SendAction(action, data)
     net.SendToServer()
 end
 
+local function StyleListHeaders(list, borderCol)
+    for _, col in ipairs(list.Columns) do
+        local header = col.Header
+        if IsValid(header) then
+            header:SetFont("CS_Notif")
+            header:SetTextColor(Color(255, 255, 255))
+            header:SetContentAlignment(5)
+            header.Paint = function(self2, w, h)
+                local C = CS_TERM_COLORS
+                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
+                surface.SetDrawColor(borderCol)
+                surface.DrawRect(0, h - 1, w, 1)
+            end
+        end
+    end
+end
+
 local PANEL = {}
 
 AccessorFunc(PANEL, "m_TerminalFrame", "TerminalFrame")
@@ -55,16 +72,17 @@ function PANEL:Populate(data)
 
     if #requests == 0 then
         local noReq = vgui.Create("DPanel", self)
-        noReq:Dock(FILL)
+        noReq:Dock(TOP)
+        noReq:SetTall(28)
         noReq.Paint = function(self2, w, h)
             local C = CS_TERM_COLORS
             draw.SimpleText("No pending clearance requests.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
-        return
-    end
+    else
 
     local scroll = vgui.Create("DScrollPanel", self)
-    scroll:Dock(FILL)
+    scroll:Dock(TOP)
+    scroll:SetTall(math.min(#requests * 34, 200))
     scroll:GetVBar():SetWide(0)
 
     for _, req in ipairs(requests) do
@@ -107,6 +125,59 @@ function PANEL:Populate(data)
         end, C.red)
         denyBtn:Dock(LEFT)
         denyBtn:SetWide(90)
+    end
+    end
+
+    local history = data and data.clearanceHistory or {}
+    local total   = #history
+
+    local histHeader = vgui.Create("DLabel", self)
+    histHeader:Dock(TOP)
+    histHeader:DockMargin(0, 8, 0, 2)
+    histHeader:SetTall(20)
+    histHeader:SetText("CLEARANCE HISTORY")
+    histHeader:SetFont("CS_BodyBold")
+    histHeader:SetTextColor(C.borderDim)
+    histHeader:SetContentAlignment(4)
+
+    if total > 0 then
+        local shown = math.min(total, 50)
+        local histList = vgui.Create("DListView", self)
+        histList:Dock(TOP)
+        histList:SetTall(math.min(shown * 20 + 24, 400))
+        histList:SetMultiSelect(false)
+        histList.Paint = function(self2, w, h)
+            local C = CS_TERM_COLORS
+            draw.RoundedBox(0, 0, 0, w, h, C.bgDark)
+        end
+
+        histList:AddColumn("TIME"):SetWidth(80)
+        histList:AddColumn("NAME"):SetWidth(140)
+        histList:AddColumn("OFFICER"):SetWidth(130)
+        histList:AddColumn("DECISION"):SetWidth(80)
+        StyleListHeaders(histList, C.borderDim)
+
+        for i = total, math.max(1, total - 49), -1 do
+            local entry    = history[i]
+            local timeStr  = os.date("%H:%M", entry.time or 0)
+            local rowColor = entry.decision == "DENIED" and C.red or C.text
+            local row = histList:AddLine(timeStr, entry.name or "Unknown", entry.officer or "Unknown", entry.decision or "")
+            for _, col in pairs(row.Columns or {}) do col:SetTextColor(rowColor); col:SetContentAlignment(5) end
+            row.Paint = function(self2, w, h)
+                if self2:IsHovered() then
+                    surface.SetDrawColor(Color(rowColor.r, rowColor.g, rowColor.b, 20))
+                    surface.DrawRect(0, 0, w, h)
+                end
+            end
+        end
+    else
+        local noHist = vgui.Create("DPanel", self)
+        noHist:Dock(TOP)
+        noHist:SetTall(28)
+        noHist.Paint = function(self2, w, h)
+            local C = CS_TERM_COLORS
+            draw.SimpleText("No clearance decisions logged.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        end
     end
 end
 

@@ -167,8 +167,8 @@ function PANEL:Rebuild()
     -- Heat
     local heatScore = d.heatScore or 0
     local heatTier  = d.heatTier or 0
-    local heatStr   = string.format("%d/100 (TIER %d)", heatScore, heatTier)
-    local heatCol   = heatTier >= 4 and C.red or (heatTier >= 3 and C.orange or (heatTier >= 2 and C.yellow or C.text))
+    local heatStr   = string.format("%d/200 (TIER %d)", heatScore, heatTier)
+    local heatCol   = heatTier >= 5 and C.red or (heatTier >= 4 and C.red or (heatTier >= 3 and C.orange or (heatTier >= 2 and C.yellow or C.text)))
     MakeInfoRow(leftPanel, "HEAT LEVEL:", heatStr, heatCol)
 
     -- Warrant

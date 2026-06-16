@@ -188,6 +188,13 @@ if (SERVER) then
 			if (IsValid(entity)) then
 				entity:SetState(2)
 				entity:EmitSound("buttons/combine_button1.wav")
+
+				if (IsValid(client)) then
+					local char = client:GetCharacter()
+					if (char) then
+						PLUGIN:AwardLoyalty(char, 1, "crafting")
+					end
+				end
 			end
 		end)
 	end)
@@ -242,6 +249,13 @@ if (SERVER) then
 		for _, v in ipairs(player.GetAll()) do
 			if (IsValid(v) and v != client and (v:IsCWUDirector() or v:IsAdmin())) then
 				v:Notify(character:GetName() .. " has requested approval for " .. bp.name .. ".")
+				netstream.Start(v, "CWUBlueprintRequestAlert", {
+					charID = charID,
+					charName = character:GetName(),
+					blueprintID = blueprintID,
+					blueprintName = bp.name,
+					time = os.time()
+				})
 			end
 		end
 	end)

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CS Terminal Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; }
+
+  .terminal {
+    width: 1000px;
+    height: 650px;
+    background: rgba(10,25,10,0.97);
+    border: 2px solid rgb(50,180,50);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #grain-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* Faint static scanline grid — texture only, not animated */
+  .terminal::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 5px,
+      rgba(0,0,0,0.12) 5px,
+      rgba(0,0,0,0.12) 6px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  #sweep-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 103;
+  }
+
+  /* vignette */
+  .terminal::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.45) 100%);
+    pointer-events: none;
+    z-index: 101;
+  }
+
+  .titlebar {
+    height: 20px;
+    border-bottom: 1px solid rgb(50,180,50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .titlebar .classified { position: absolute; left: 8px; color: rgb(200,50,50); font-size: 10px; font-weight: 900; }
+  .titlebar .title { color: rgb(100,255,100); font-size: 13px; font-weight: 900; letter-spacing: 1px; }
+  .titlebar .uptime { position: absolute; right: 8px; color: rgb(40,120,40); font-size: 10px; }
+
+  .tabbar {
+    height: 30px;
+    margin: 0 6px;
+    background: rgb(5,15,5);
+    border: 1px solid rgb(30,100,30);
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(40,120,40);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border-right: 1px solid rgb(30,100,30);
+    letter-spacing: 0.5px;
+  }
+  .tab:last-child { border-right: none; }
+  .tab.active {
+    background: rgba(50,180,50,0.16);
+    color: rgb(100,255,100);
+    border-bottom: 2px solid rgb(50,180,50);
+  }
+  .tab:hover:not(.active) { background: rgba(50,180,50,0.06); color: rgb(80,200,80); }
+
+  .content {
+    flex: 1;
+    margin: 4px 6px 0 6px;
+    background: rgb(8,20,8);
+    border: 1px solid rgb(30,100,30);
+    padding: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 4px;
+    height: 28px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+
+  .search-box {
+    flex: 1;
+    background: rgb(5,15,5);
+    border: 1px solid rgb(30,100,30);
+    color: rgb(40,120,40);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+  .search-box::placeholder { color: rgb(40,120,40); }
+
+  .filter-box {
+    width: 160px;
+    background: rgb(5,15,5);
+    border: 1px solid rgb(30,100,30);
+    color: rgb(80,200,80);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 0 6px;
+    appearance: none;
+  }
+
+  .list-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  thead tr {
+    background: rgb(0,0,0);
+    border-bottom: 1px solid rgb(30,100,30);
+  }
+  thead th {
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    text-align: center;
+    padding: 3px 4px;
+    letter-spacing: 0.3px;
+  }
+
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: rgba(80,200,80,0.08); }
+  tbody td {
+    text-align: center;
+    padding: 3px 4px;
+    font-size: 11px;
+  }
+
+  .row-green  { color: rgb(80,200,80); }
+  .row-yellow { color: rgb(200,180,50); }
+  .row-orange { color: rgb(200,120,50); }
+  .row-red    { color: rgb(200,50,50); }
+  .row-bright { color: rgb(100,255,100); }
+
+  .records-bar {
+    height: 16px;
+    color: rgb(40,120,40);
+    font-size: 10px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .close-btn {
+    margin: 4px 6px 6px 6px;
+    height: 26px;
+    background: rgb(5,15,5);
+    border: 1px solid rgb(50,180,50);
+    color: rgb(100,255,100);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .close-btn:hover { background: rgb(12,28,12); }
+
+  /* Section headers inside tab content */
+  .section-header {
+    height: 22px;
+    border-bottom: 1px solid rgb(30,100,30);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+
+  .tab-panel { display: none; flex-direction: column; height: 100%; }
+  .tab-panel.active { display: flex; }
+
+  /* Detainees & Warrants share same pattern */
+  .list-view {
+    background: rgb(5,15,5);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .hint { color: rgb(40,120,40); font-size: 10px; padding: 2px 4px; flex-shrink: 0; }
+
+  .issue-section { margin-top: 10px; flex-shrink: 0; }
+  .issue-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    margin-top: 4px;
+  }
+  .issue-label { color: rgb(40,120,40); font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .issue-entry {
+    background: rgb(5,15,5);
+    border: 1px solid rgb(30,100,30);
+    color: rgb(80,200,80);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 0 4px;
+    height: 24px;
+  }
+  .issue-entry.cid { width: 80px; }
+  .issue-entry.reason { flex: 1; }
+  .action-btn {
+    height: 24px;
+    padding: 0 12px;
+    background: rgb(5,15,5);
+    border: 1px solid rgb(200,50,50);
+    color: rgb(200,50,50);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .action-btn:hover { background: rgba(200,50,50,0.15); }
+
+  .empty-msg {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(40,120,40);
+    font-size: 11px;
+  }
+
+  /* Tab switcher labels below the mockup */
+  .switcher {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+  }
+  .switcher button {
+    background: #222;
+    border: 1px solid #444;
+    color: #aaa;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .switcher button.active { border-color: rgb(50,180,50); color: rgb(100,255,100); }
+</style>
+</head>
+<body>
+
+<div class="terminal" id="term">
+  <canvas id="grain-canvas" width="1000" height="650"></canvas>
+  <canvas id="sweep-canvas" width="1000" height="650"></canvas>
+
+  <div class="titlebar">
+    <span class="classified">CLASSIFIED</span>
+    <span class="title">CIVIL PROTECTION OPERATIONS TERMINAL</span>
+    <span class="uptime">UPTIME: 00:04:17</span>
+  </div>
+
+  <div class="tabbar" id="tabbar">
+    <div class="tab active" data-tab="database">DATABASE</div>
+    <div class="tab" data-tab="units">UNITS</div>
+    <div class="tab" data-tab="scans">SCANS</div>
+    <div class="tab" data-tab="warrants">WARRANTS</div>
+    <div class="tab" data-tab="clearance">CLEARANCE</div>
+    <div class="tab" data-tab="detainees">DETAINEES</div>
+  </div>
+
+  <div class="content">
+
+    <!-- DATABASE TAB -->
+    <div class="tab-panel active" id="tab-database">
+      <div class="toolbar">
+        <input class="search-box" placeholder="Search by name or CID..." readonly>
+        <select class="filter-box">
+          <option>ALL</option>
+          <option>WARRANTED</option>
+          <option>HIGH HEAT</option>
+          <option>BLACKSITE PENDING</option>
+          <option>BLACKSITE APPROVED</option>
+          <option>ACTIVE POPULACE</option>
+        </select>
+      </div>
+      <div class="list-wrap">
+        <div class="list-view">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:160px">NAME</th>
+                <th style="width:65px">CID</th>
+                <th style="width:55px">SCANS</th>
+                <th style="width:110px">LAST SCAN</th>
+                <th style="width:70px">HEAT</th>
+                <th style="width:80px">WARRANT</th>
+                <th style="width:95px">BLACKSITE</th>
+                <th style="width:70px">STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-red"><td>Wallace Breen</td><td>0012</td><td>14</td><td>09:41 16/06</td><td>T4 (83)</td><td>YES</td><td>APPROVED</td><td>ONLINE</td></tr>
+              <tr class="row-yellow"><td>Judith Mossman</td><td>0031</td><td>6</td><td>08:15 16/06</td><td>T3 (62)</td><td>YES</td><td>PENDING</td><td>ONLINE</td></tr>
+              <tr class="row-orange"><td>Isaac Kleiner</td><td>0047</td><td>3</td><td>07:30 16/06</td><td>T3 (58)</td><td>NO</td><td>CLEAR</td><td>OFFLINE</td></tr>
+              <tr class="row-green"><td>Alyx Vance</td><td>0088</td><td>1</td><td>06:00 16/06</td><td>T1 (18)</td><td>NO</td><td>CLEAR</td><td>ONLINE</td></tr>
+              <tr class="row-green"><td>Barney Calhoun</td><td>0103</td><td>2</td><td>NONE</td><td>T0 (4)</td><td>NO</td><td>CLEAR</td><td>OFFLINE</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="records-bar">RECORDS: 5</div>
+      </div>
+    </div>
+
+    <!-- WARRANTS TAB -->
+    <div class="tab-panel" id="tab-warrants">
+      <div class="section-header row-red">ACTIVE WARRANTS (2)</div>
+      <div class="list-view">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:140px">NAME</th>
+              <th style="width:60px">CID</th>
+              <th style="width:240px">REASON</th>
+              <th style="width:120px">ISSUED BY</th>
+              <th style="width:80px">EXPIRES</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-red"><td>Wallace Breen</td><td>0012</td><td>Unauthorised restricted zone entry</td><td>OFC. Reynolds</td><td>18h 22m</td></tr>
+            <tr class="row-red"><td>Judith Mossman</td><td>0031</td><td>Flagrant malcompliance</td><td>SGT. Harlow</td><td>6h 44m</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hint">Double-click a warrant to clear it (senior only)</div>
+
+      <div class="issue-section">
+        <div class="section-header row-bright">ISSUE NEW WARRANT</div>
+        <div class="issue-row">
+          <span class="issue-label">CID:</span>
+          <input class="issue-entry cid" type="text" readonly>
+          <span class="issue-label">Reason:</span>
+          <input class="issue-entry reason" type="text" readonly>
+          <button class="action-btn">ISSUE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAINEES TAB -->
+    <div class="tab-panel" id="tab-detainees">
+      <div class="section-header" style="color:rgb(40,120,40)">DETAINEE TRANSFERS (3)</div>
+      <div class="list-view">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:80px">TIME</th>
+              <th style="width:140px">NAME</th>
+              <th style="width:60px">CID</th>
+              <th style="width:130px">OFFICER</th>
+              <th style="width:80px">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-green" style="color:rgb(100,220,100)">07:12</td><td class="row-green" style="color:rgb(100,220,100)">Isaac Kleiner</td><td class="row-green" style="color:rgb(100,220,100)">0047</td><td class="row-green" style="color:rgb(100,220,100)">OFC. Reynolds</td><td style="color:rgb(100,220,100)">RELEASED</td></tr>
+            <tr><td class="row-red">08:34</td><td class="row-red">Judith Mossman</td><td class="row-red">0031</td><td class="row-red">SGT. Harlow</td><td class="row-red">DETAINED</td></tr>
+            <tr><td class="row-red">09:51</td><td class="row-red">Wallace Breen</td><td class="row-red">0012</td><td class="row-red">OFC. Reynolds</td><td class="row-red">DETAINED</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- UNITS TAB -->
+    <div class="tab-panel" id="tab-units">
+      <div class="section-header" style="color:rgb(80,200,80)">ONLINE UNITS (3)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th>NAME</th><th>CLASS</th><th>FACTION</th><th>STATUS</th></tr></thead>
+          <tbody>
+            <tr class="row-green"><td>OFC. Reynolds</td><td>Civil Protection</td><td>MPF</td><td>ONLINE</td></tr>
+            <tr class="row-green"><td>SGT. Harlow</td><td>Civil Protection</td><td>MPF</td><td>ONLINE</td></tr>
+            <tr class="row-green"><td>OTA Unit 7</td><td>Overwatch Transhuman</td><td>OTA</td><td>ONLINE</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SCANS TAB -->
+    <div class="tab-panel" id="tab-scans">
+      <div class="section-header row-bright">SCAN LOG — LAST 4 ENTRIES</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:120px">TIME</th><th style="width:180px">CITIZEN</th><th style="width:65px">CID</th><th style="width:180px">OFFICER</th><th style="width:60px">HEAT</th><th style="width:100px">GRID</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>09:42 16/06</td><td>Wallace Breen</td><td>0012</td><td>OFC. Reynolds</td><td>T4</td><td>-3,1</td></tr>
+            <tr class="row-green"><td>08:20 16/06</td><td>Alyx Vance</td><td>0088</td><td>SGT. Harlow</td><td>T1</td><td>0,0</td></tr>
+            <tr class="row-orange"><td>07:55 16/06</td><td>Isaac Kleiner</td><td>0047</td><td>OFC. Reynolds</td><td>T3</td><td>1,-1</td></tr>
+            <tr class="row-yellow"><td>07:31 16/06</td><td>Judith Mossman</td><td>0031</td><td>OFC. Reynolds</td><td>T2</td><td>0,0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="height:10px"></div>
+      <div class="section-header" style="color:rgb(30,100,30)">CHECKPOINT CROSSINGS (3)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:80px">TIME</th><th style="width:180px">CITIZEN</th><th style="width:180px">CHECKPOINT</th><th style="width:100px">STATUS</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>09:41</td><td>Wallace Breen</td><td>East Gate</td><td>WANTED</td></tr>
+            <tr class="row-yellow"><td>08:34</td><td>Judith Mossman</td><td>East Gate</td><td>SUSPICIOUS</td></tr>
+            <tr class="row-green"><td>08:20</td><td>Alyx Vance</td><td>East Gate</td><td>CLEARED</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ZONES TAB -->
+    <div class="tab-panel" id="tab-zones">
+      <div class="section-header row-red">RESTRICTED ZONES (2)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:250px">NAME</th><th style="width:120px">GRID</th><th style="width:100px">RADIUS</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>Restricted Block D</td><td>-3,1</td><td>512 units</td></tr>
+            <tr class="row-red"><td>Processing Wing</td><td>2,-2</td><td>256 units</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-header" style="color:rgb(50,180,50);margin-top:12px">CHECKPOINTS (1)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:250px">NAME</th><th style="width:120px">GRID</th><th style="width:100px">RADIUS</th></tr></thead>
+          <tbody>
+            <tr class="row-green"><td>East Gate</td><td>0,0</td><td>128 units</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-header" style="color:rgb(30,100,30);margin-top:12px">CROSSING LOG</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:80px">TIME</th><th style="width:150px">CITIZEN</th><th style="width:150px">CHECKPOINT</th><th style="width:90px">STATUS</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>09:41</td><td>Wallace Breen</td><td>East Gate</td><td>WANTED</td></tr>
+            <tr class="row-yellow"><td>08:34</td><td>Judith Mossman</td><td>East Gate</td><td>SUSPICIOUS</td></tr>
+            <tr class="row-green"><td>08:20</td><td>Alyx Vance</td><td>East Gate</td><td>CLEARED</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hint">Zones and checkpoints are managed via admin commands.</div>
+    </div>
+
+    <!-- CLEARANCE TAB -->
+    <div class="tab-panel" id="tab-clearance">
+      <div class="section-header" style="color:rgb(80,200,80)">CWU CLEARANCE REQUESTS (1)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th>TIME</th><th>SUBJECT</th><th>CID</th><th>PURPOSE</th><th>DECISION</th></tr></thead>
+          <tbody>
+            <tr class="row-yellow"><td>09:10</td><td>Barney Calhoun</td><td>0103</td><td>Material requisition</td><td>PENDING</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <button class="close-btn">DISCONNECT TERMINAL</button>
+
+</div><!-- /terminal -->
+
+<div class="switcher" id="switcher">
+  <button class="active" data-tab="database">DATABASE</button>
+  <button data-tab="units">UNITS</button>
+  <button data-tab="scans">SCANS</button>
+  <button data-tab="warrants">WARRANTS</button>
+  <button data-tab="clearance">CLEARANCE</button>
+  <button data-tab="detainees">DETAINEES</button>
+</div>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#switcher button').forEach(b => b.classList.remove('active'));
+
+    const panel = document.getElementById('tab-' + name);
+    if (panel) panel.classList.add('active');
+
+    document.querySelectorAll('.tab[data-tab="' + name + '"]').forEach(t => t.classList.add('active'));
+    document.querySelectorAll('#switcher button[data-tab="' + name + '"]').forEach(b => b.classList.add('active'));
+  }
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.tab));
+  });
+  document.querySelectorAll('#switcher button').forEach(b => {
+    b.addEventListener('click', () => switchTab(b.dataset.tab));
+  });
+
+  // Phosphor grain
+  (function() {
+    const canvas = document.getElementById('grain-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(1000, 650);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (Math.random() < 0.14) {
+        d[i]   = 80;
+        d[i+1] = 200;
+        d[i+2] = 80;
+        d[i+3] = Math.floor(Math.random() * 28) + 8;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  })();
+
+  // Sweep line + glitch
+  (function() {
+    const canvas = document.getElementById('sweep-canvas');
+    const ctx    = canvas.getContext('2d');
+    const W = 1000, H = 650;
+
+    let sweepY      = 0;
+    let glitching   = false;
+    let glitchUntil = 0;
+    let glitchBands = [];
+    let lastTs      = null;
+
+    function triggerGlitch() {
+      glitching   = true;
+      glitchUntil = performance.now() + Math.random() * 180 + 60;
+      glitchBands = [];
+      const n = Math.floor(Math.random() * 4) + 1;
+      for (let i = 0; i < n; i++) {
+        glitchBands.push({
+          y: Math.random() * H,
+          h: Math.random() * 8 + 2,
+          a: Math.random() * 0.45 + 0.15,
+          x: (Math.random() - 0.5) * 40,
+        });
+      }
+      // sometimes schedule a double
+      if (Math.random() < 0.4) {
+        setTimeout(triggerGlitch, Math.random() * 120 + 60);
+      }
+    }
+
+    function scheduleGlitch() {
+      setTimeout(() => { triggerGlitch(); scheduleGlitch(); },
+        Math.random() * 4000 + 1200);
+    }
+    scheduleGlitch();
+
+    function frame(ts) {
+      if (!lastTs) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (glitching && ts > glitchUntil) glitching = false;
+
+      if (glitching) {
+        // draw displaced bands
+        for (const b of glitchBands) {
+          const grad = ctx.createLinearGradient(0, b.y - 2, 0, b.y + b.h + 2);
+          grad.addColorStop(0,   `rgba(120,255,120,0)`);
+          grad.addColorStop(0.3, `rgba(120,255,120,${b.a})`);
+          grad.addColorStop(0.7, `rgba(120,255,120,${b.a})`);
+          grad.addColorStop(1,   `rgba(120,255,120,0)`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(b.x, b.y - 2, W, b.h + 4);
+          // dark tear
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(0, b.y + b.h, W, 1);
+        }
+        // stutter sweep — don't advance much
+        sweepY += dt * 15;
+      } else {
+        // normal sweep — visible soft band moving down
+        sweepY += dt * 90;
+      }
+      if (sweepY > H) sweepY -= H;
+
+      // draw the sweep band
+      const grad = ctx.createLinearGradient(0, sweepY - 18, 0, sweepY + 8);
+      grad.addColorStop(0,   'rgba(80,200,80,0)');
+      grad.addColorStop(0.4, 'rgba(80,200,80,0.18)');
+      grad.addColorStop(0.7, 'rgba(80,200,80,0.10)');
+      grad.addColorStop(1,   'rgba(80,200,80,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, sweepY - 18, W, 26);
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  // Live uptime
+  const start = Date.now();
+  setInterval(() => {
+    const s = Math.floor((Date.now() - start) / 1000);
+    const h = String(Math.floor(s/3600)).padStart(2,'0');
+    const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const sec = String(s%60).padStart(2,'0');
+    document.querySelector('.uptime').textContent = `UPTIME: ${h}:${m}:${sec}`;
+  }, 1000);
+</script>
+
+</body>
+</html>

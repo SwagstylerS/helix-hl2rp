@@ -1,67 +1,63 @@
 # Weekly Development Plan
-**Week of Jun 2 – Jun 6, 2026**
-**Goal:** Close the final Pillar 1 intel gaps (crossing log UI, zone-entry heat), complete Pillar 3's incentive feedback loop (tier-up visual), and clean up dual-use heat calibration and Director-to-worker notifications.
+**Week of Jun 15 – Jun 19, 2026**
+**Goal:** Close remaining Pillar 1 intel/enforcement loops (heat-tier escalation alerts, detainee release lifecycle, curfew checkpoint lockdown) and extend the Commerce/Loyalty loop with vendor stock alerts and a Model Citizen tax perk.
 
 ---
 
-## Pre-week — Mon Jun 1
-No tasks scheduled. Plan begins Tuesday Jun 2.
+## Day 1 — Mon Jun 15 · Heat Tier 4 "Person of Interest" Alert to Combine
+**Status:** ✅ Done
 
----
-
-## Day 1 — Mon Jun 2 · Checkpoint Crossing Log in Terminal Zones Tab
-**Status:** ✅
+- Added `CS_BiometricAlert` broadcast (priority 1) + `ChatPrint` to all Combine players when a citizen's heat crosses into Tier 4, in `AddHeat()`.
+- Fixed a pre-existing forward-reference bug: `FindPlayerBySteamID`/`GetCombinePlayers` were defined after `AddHeat` but called from within it, causing a nil-call error whenever a heat tier changed. Moved both definitions above `AddHeat` and removed the now-duplicate later definitions.
+- `heatTier`/`heatScore` fields in `BuildFullPayload()` were already populated — no change needed there.
 
 Goals:
-- `plugins/combine-terminal/derma/cl_tab_zones.lua` — in `PANEL:Populate(data)`, after the existing checkpoints list block (~line 152, before the admin hint), add a spacer and a "CROSSING LOG" header panel styled with `C.borderDim`; render `zoneData.crossingLog` (passed from `BuildZoneCheckpointData()` as `data.zones.crossingLog`) as a `DListView` capped to the last 25 entries (newest first); columns: TIME (80px), CITIZEN (150px), CHECKPOINT (150px), STATUS (90px)
-- `plugins/combine-terminal/derma/cl_tab_zones.lua` — per crossing row, set STATUS to `"WANTED"` / `"CLEARED"` / `"SUSPICIOUS"` based on `entry.wasWanted` / `entry.hadClearance`; colour rows red for wanted (`C.red`), green for cleared (`C.good`), amber for suspicious (`C.warn`)
-- `plugins/combine-terminal/derma/cl_tab_zones.lua` — add an "empty" panel ("No crossing records.") when `crossingLog` is `nil` or `#crossingLog == 0`, using the same style as the existing "No checkpoints defined." panel
-- This directly completes the deferred item from Day 5 of last week ("data plumbing is enough this session — the data plumbing is enough")
+- `plugins/combine-terminal/sv_plugin.lua` — In the local `AddHeat(sid, amount)` function (~line 82), the existing tier-up block only sends `CS_HeatTierChange` to the citizen themselves. After that block, when `newTier == 4 and oldTier < 4`, also resolve the player via `FindPlayerBySteamID(sid)` and their character, then broadcast a `CS_BiometricAlert` to `GetCombinePlayers()` with a message formatted like `"PERSON OF INTEREST: " .. name .. " (CID:" .. cid .. ") — heat score reached critical levels (" .. CS.HeatScores[sid] .. "/100)"` and `net.WriteUInt(1, 4)` for the priority byte (matching the existing alert pattern used by `DoIssueWarrant` and `TriggerWarrantAlarm`)
+- `plugins/combine-terminal/sv_plugin.lua` — Also `ChatPrint` the same message to each Combine player in `GetCombinePlayers()` so it's visible without opening the terminal, consistent with how checkpoint warrant alarms notify Combine via chat
+- No new persistence needed — the DATABASE tab (`cl_tab_database.lua`) already exposes a "HIGH HEAT" filter and per-record `heatTier`/`heatScore` columns, so the alert is the missing real-time notification piece; verify the existing `heatTier`/`heatScore` fields are populated in `BuildFullPayload()`'s `records` table (they already are per `GetHeatTier`/`CS.HeatScores` usage at ~line 291-292)
 
 ---
 
-## Day 2 — Tue Jun 3 · Zone-Entry Heat Accumulation Timer
-**Status:** ✅
+## Day 2 — Tue Jun 16 · Detainee Release Command + Status Tracking
+**Status:** ✅ Done
 
 Goals:
-- `plugins/combine-terminal/sv_plugin.lua` — add `CS.ZoneHeatCooldowns = {}` to the STATE block (alongside `CS.HeatScores`, `CS.ScanHistory`); entries are keyed `"sid_zoneidx"` with a Unix timestamp of last application
-- `plugins/combine-terminal/sv_plugin.lua` — after the existing `CS_HeatMeeting` timer (~line 629), add `timer.Create("CS_ZoneHeat", 30, 0, function() ... end)` that: (1) reads `local zones = ix.data.Get("cs_zones", {})`; (2) iterates `player.GetAll()` skipping Combine; (3) for each non-Combine player checks if their character has no active clearance (`char:GetData("cs_clearance") == nil or char:GetData("cs_clearance").expires < os.time()`); (4) for each zone where player distance ≤ `zone.radius`, checks cooldown key `sid .. "_" .. i`; (5) if cooldown is absent or expired (120 s), calls `AddHeat(sid, CFG.HeatAmounts.RESTRICT)`, sets cooldown, and saves heat via `ix.data.Set("cs_heatScores", CS.HeatScores)`
-- `plugins/combine-terminal/sv_plugin.lua` — inside the same `CS_ZoneHeat` timer, after applying heat, fire `CS_HeatTierChange` to the affected player if their tier advanced (reuse the same tier-change net block used by the scan handler), so the citizen receives the tier-notification HUD added in the May 21 feature
+- `plugins/combine-ops/sv_plugin.lua` — In the `transferdetainee` command `OnRun` (~line 152), add `status = "DETAINED"` to the log entry table that's appended to `cs_detainees` (alongside `name`, `cid`, `officer`, `time`)
+- `plugins/combine-ops/sv_plugin.lua` — Add a new command `releasedetainee` (mirrors `transferdetainee`: `description`, `arguments = {ix.type.character}`, `IsCombine(client)` check, target must be online via `target:GetPlayer()`). `OnRun`: load `cs_detainees`, scan from the end (`for i = #log, 1, -1`) for the most recent entry where `entry.cid == target:GetID() and entry.status == "DETAINED"`, set `entry.status = "RELEASED"`, `entry.releasedBy = client:Name()`, `entry.releaseTime = os.time()`, then `ix.data.Set("cs_detainees", log)`. If no matching entry is found, `client:Notify("No active detention found for this citizen.")` and return. On success, broadcast `CS_BiometricAlert` to `GetCombinePlayers()` with `"DETAINEE RELEASED: " .. targetPly:Name() .. " (CID:" .. cid .. ") — " .. client:Name()` and priority `net.WriteUInt(0, 4)`, plus `client:Notify("Release logged for " .. targetPly:Name())`
+- `plugins/combine-terminal/sv_plugin.lua` — No change needed: `BuildFullPayload()` already returns `detainees = ix.data.Get("cs_detainees", {})` (added June 11), so the new `status`/`releasedBy`/`releaseTime` fields flow through automatically
+- `plugins/combine-terminal/derma/cl_tab_detainees.lua` — In `PANEL:Populate()` (~line 32), add a `STATUS` column (`SetWidth(80):SetFixedWidth(true)`) after `OFFICER` in the `DListView`; populate each row with `entry.status or "DETAINED"`; colour rows where `status == "DETAINED"` using `C.red`, and rows where `status == "RELEASED"` using `C.good` (override the existing `< 3600s` orange highlight logic so status colour takes priority over the recency colour)
 
 ---
 
-## Day 3 — Wed Jun 4 · Loyalty Tier-Up Announcement
-**Status:** ✅
+## Day 3 — Wed Jun 17 · Vendor Terminal Out-of-Stock Alert to Owner
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/libs/sh_loyalty.lua` — in `AwardLoyalty()`, inside the `if (newTier > oldTier)` block (line 49), after the existing `client:NotifyLocalized("cwuTierUp", ...)` call, add `netstream.Start(client, "CWUTierUpAnnounce", {tier = newTier, name = tierInfo.name, r = tierInfo.color.r, g = tierInfo.color.g, b = tierInfo.color.b})` so a richer client-side event fires on advancement
-- `plugins/cwu/cl_hooks.lua` — add `local tierUpData = nil; local tierUpAt = 0` near the top; add `netstream.Hook("CWUTierUpAnnounce", function(data) tierUpData = data; tierUpAt = CurTime() end)` near the existing `CWULoyaltySync` hook
-- `plugins/cwu/cl_hooks.lua` — in the `CWU_TierBadge` HUDPaint hook, add a 5-second announcement overlay when `tierUpData ~= nil and (CurTime() - tierUpAt) < 5`: draw a centered panel (360 × 60) at `ScrW()/2`, `ScrH()/2 - 80` with background `Color(20, 20, 20, 200)`, tier-coloured border, and two lines — `"TIER ADVANCEMENT"` in white and `tierUpData.name .. " [Tier " .. tierUpData.tier .. "]"` in the tier colour; alpha-fade out in the final second; clear `tierUpData` once elapsed
-- `plugins/cwu/cl_hooks.lua` — in the same `CWU_TierBadge` hook, replace the raw `CWU_LocalPoints .. " pts"` text with a mini progress bar (160 × 4 px) drawn just below the tier text: fill ratio = `(CWU_LocalPoints % 10) / 10`, using `Color(100, 175, 100)` on `Color(40, 40, 40)`, so workers can see progress toward the next tier boundary of 10 points per tier
+- `plugins/cwu/entities/ix_vendorterminal.lua` — In the `CWUVendorPurchase` netstream handler (~line 242), after `table.remove(stock, stockIndex)` and `entity:SetNetVar("stock", stock)`, check if `#stock == 0`. If so, and `entity:GetOwnerCharID() > 0`, loop `player.GetAll()` to find the owner (same pattern as the loyalty-award loop just below it) and `netstream.Start(ownerPly, "CWUVendorOutOfStock", {terminalName = entity:GetNWString("TerminalName", "Vendor Terminal")})` — only fires while the owner is online
+- `plugins/cwu/cl_hooks.lua` — Near the top with `newOrderData`/`newOrderAt` (~line 9), add `local outOfStockData = nil` and `local outOfStockAt = 0`
+- `plugins/cwu/cl_hooks.lua` — After the `CWUNewWorkOrder` hook (~line 25), add `netstream.Hook("CWUVendorOutOfStock", function(data) outOfStockData = data; outOfStockAt = CurTime() end)`
+- `plugins/cwu/cl_hooks.lua` — In `PLUGIN:HUDPaint()` (~line 110), after the `newOrderData` banner block, add a parallel 6-second banner (reuse the same 320×48 panel layout, positioned at `ScrH() - 130 - 56` so it stacks above the work-order banner if both are active) with a red/orange border `Color(200, 140, 60)`; first line "VENDOR OUT OF STOCK"; second line `(outOfStockData.terminalName or "Vendor Terminal") .. " has sold out — restock to resume sales."`; clear `outOfStockData` after 6 seconds, same fade-out as the work order banner
 
 ---
 
-## Day 4 — Thu Jun 5 · Scanner Illicit-Item Heat Calibration
-**Status:** ✅
+## Day 4 — Thu Jun 18 · Model Citizen (Tier 5) Vendor Tax Discount
+**Status:** Pending
 
 Goals:
-- `plugins/combine-scanner/sv_plugin.lua` — locate the scan handler where `CFG.DualUseHeat` is applied to flagged items; split flagged items into two sets: `illicit = {"combat_stim", "recreational_chem"}` and `suspicious = {"lockpick", "pistol", "smg1", "radio"}` (read directly from `CFG.FlaggedItems`); apply `CFG.HeatAmounts.SMUGGLE` (10) for illicit items and keep `CFG.DualUseHeat` (8) for merely suspicious items
-- `plugins/combine-scanner/sv_plugin.lua` — when an illicit item triggers SMUGGLE heat, fire `net.Start("CS_BiometricAlert")` with message `"SMUGGLE SUSPECTED — " .. targetName .. ": " .. itemDisplayName` and tier byte `3`; broadcast to all Combine (not only seniors), so every officer on duty gets the alert — currently only a scan at tier 3 escalates, but catching illicit goods should always escalate regardless of who did the scan
-- `plugins/combine-scanner/sv_plugin.lua` — add `contraItemNames = {combat_stim = "Combat Stimulant", recreational_chem = "Recreational Chemical"}` lookup table near the top of the scan handler to give readable names in the alert instead of raw `uniqueID` strings
-- `plugins/combine-scanner/sv_plugin.lua` — after the heat is applied for illicit items, call `ix.data.Set("cs_heatScores", CS.HeatScores)` immediately (the scan handler currently defers persistence to the decay timer; illicit-item heat should be durable on scan)
+- `plugins/cwu/sh_plugin.lua` — Near the existing `ix.config.Add("cwuTaxRate", 10, ...)` (~line 20), add `ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Model Citizen) sellers.", nil, {category = "CWU"})`
+- `plugins/cwu/entities/ix_vendorterminal.lua` — In `CWUVendorPurchase` (~line 242), the existing loyalty-award loop after the sale (`for _, v in ipairs(player.GetAll())` matching `ownerChar:GetID() == ownerCharID`) only runs *after* tax/earnings are computed. Restructure so this owner lookup happens **before** the `taxRate` calculation (~line 268), storing the found `ownerChar` (may be `nil` if owner offline). Then compute `taxRate`: if `ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5`, apply `taxRate = taxRate * (1 - ix.config.Get("cwuModelCitizenTaxDiscount", 50) / 100)`, else use the normal `ix.config.Get("cwuTaxRate", 10) / 100`
+- `plugins/cwu/entities/ix_vendorterminal.lua` — Reuse the already-found `ownerChar` for the existing `PLUGIN:AwardLoyalty(ownerChar, 1, "sale")` call (~line 308), removing the now-duplicate second `player.GetAll()` loop
+- `plugins/cwu/languages/sh_english.lua` — No new strings required; this is a silent economic perk reflected only in the seller's `earnings` total and the transaction log's `tax` column
 
 ---
 
-## Day 5 — Fri Jun 6 · Director-to-Worker Assignment Notifications
-**Status:** ✅
+## Day 5 — Fri Jun 19 · Curfew Checkpoint Auto-Lockdown
+**Status:** Pending
 
 Goals:
-- `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorAssign` netstream handler, after the target character's class is set, find the online player via `character:GetPlayer()` and call `targetClient:NotifyLocalized("cwuAssignedTo", division)` if `IsValid(targetClient)`
-- `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorRemove` netstream handler, find the online player and call `targetClient:NotifyLocalized("cwuRemovedFromCWU")` if online
-- `plugins/cwu/entities/ix_cwu_director_pc.lua` — in the `CWUDirectorLicense` netstream handler (line ~204), after the grant or revoke path executes, notify the target character: `targetClient:NotifyLocalized("cwuLicenseGrantedSelf")` on grant, `targetClient:NotifyLocalized("cwuLicenseRevokedSelf")` on revoke — the Director currently sees confirmation but the worker has no feedback
-- `plugins/cwu/languages/sh_english.lua` — add four strings at the end of the Director PC section: `cwuAssignedTo = "You have been assigned to the CWU %s division."`, `cwuRemovedFromCWU = "You have been removed from CWU service."`, `cwuLicenseGrantedSelf = "Your business licence has been granted by the Director."`, `cwuLicenseRevokedSelf = "Your business licence has been revoked by the Director."`
+- `plugins/combine-ops/sv_plugin.lua` — In the `curfew` command `OnRun` (~line 131), after toggling `CS.CurfewActive`, iterate `ents.FindByClass("ix_checkpoint")`. When curfew is being **activated** (`CS.CurfewActive == true`), for each valid checkpoint store its current mode in a module table `CS.CheckpointPreCurfewModes[entity:EntIndex()] = entity:GetMode()` (init this table near the other `CS.*` state tables ~line 17-19) and then `entity:SetMode(3)` (mode 3 = RED/"CP-OTA only", per `plugins/checkpoint/entities/entities/ix_checkpoint.lua` `MODE_RED`)
+- `plugins/combine-ops/sv_plugin.lua` — When curfew is being **lifted** (`CS.CurfewActive == false`), for each checkpoint restore `entity:SetMode(CS.CheckpointPreCurfewModes[entity:EntIndex()] or 1)` (default to 1 = GREEN if no stored value), then clear `CS.CheckpointPreCurfewModes`
+- `plugins/combine-ops/sv_plugin.lua` — After adjusting checkpoint modes, broadcast a `ChatPrint` to `GetAllCombine()`: `"[CURFEW] All checkpoints set to LOCKDOWN (RED)."` on activation, or `"[CURFEW] Checkpoint lockdown lifted — modes restored."` on deactivation
+- `plugins/checkpoint/entities/entities/ix_checkpoint.lua` — No code change needed: `SetMode`/`GetMode` are already generated by `NetworkVar("Int", 0, "Mode")` and the client-side `Draw`/`HUDPaint` and `ShouldCollide` hooks already react to `GetMode()` changes; also call `Schema:SaveCheckpoints()` is not required here since mode changes from curfew are transient and should not persist across map restarts (unlike admin-set modes via `ENT:Use`)
 
 ---
-
-## Weekend — Sun Jun 7
-No tasks scheduled. All Week of Jun 2–6 tasks completed. Next planning session begins Monday Jun 8.

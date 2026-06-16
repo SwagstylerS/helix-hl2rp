@@ -647,6 +647,20 @@ function PANEL:PopulateTransactionLog()
 	end
 end
 
+netstream.Hook("CWUBlueprintRequestAlert", function(data)
+	surface.PlaySound("buttons/button17.wav")
+
+	if (IsValid(ix.gui.cwuDirectorPC) and IsValid(ix.gui.cwuDirectorPC.bpRequestsList)) then
+		local line = ix.gui.cwuDirectorPC.bpRequestsList:AddLine(
+			data.charName,
+			data.blueprintName,
+			os.date("%m/%d %H:%M", data.time)
+		)
+		line.charID = data.charID
+		line.bpID = data.blueprintID
+	end
+end)
+
 vgui.Register("ixCWUDirectorPC", PANEL, "DFrame")
 
 -- Open when server sends data
