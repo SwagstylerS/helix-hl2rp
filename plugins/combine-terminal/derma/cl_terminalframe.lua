@@ -53,6 +53,13 @@ function PANEL:Init()
     self.m_ActiveTab = nil
     self.m_flBoot = CurTime()
 
+    -- Pre-compute phosphor grain (static — same positions every frame)
+    self.m_Grain = {}
+    local rng = math.random
+    for i = 1, 700 do
+        self.m_Grain[i] = {x = rng(), y = rng(), a = rng(2, 9)}
+    end
+
     -- Close button
     self.closeBtn = vgui.Create("DButton", self)
     self.closeBtn:Dock(BOTTOM)
@@ -189,6 +196,12 @@ function PANEL:Paint(w, h)
 
     -- Classification
     draw.SimpleText("CLASSIFIED", "CS_Small", 10, 10, C.red, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+    -- Phosphor grain
+    for _, g in ipairs(self.m_Grain) do
+        surface.SetDrawColor(80, 200, 80, g.a)
+        surface.DrawRect(math.floor(g.x * w), math.floor(g.y * h), 1, 1)
+    end
 
     -- CRT scanlines
     for y = 0, h, 3 do
