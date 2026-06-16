@@ -62,8 +62,32 @@ net.Receive("CS_HeatTierChange", function()
         [2] = "You are under heightened Combine scrutiny.",
         [3] = "ADVISORY: You are a person of interest to Civil Protection.",
         [4] = "HIGH ALERT: You have been flagged for immediate attention.",
+        [5] = "You are being actively tracked by Combine units.",
     }
-    chat.AddText(Color(180, 180, 180), "[SYSTEM] ", Color(220, 220, 220), msgs[tier] or "")
+    local msg = msgs[tier]
+    if msg and msg != "" then
+        chat.AddText(Color(180, 180, 180), "[SYSTEM] ", Color(220, 220, 220), msg)
+    end
+end)
+
+net.Receive("CS_SterilizeOrder", function()
+    local msg = net.ReadString()
+    CS_NotifQueue = CS_NotifQueue or {}
+    CS_NotifQueue[#CS_NotifQueue + 1] = {
+        lines  = {"OVERWATCH DIRECTIVE", msg},
+        color  = Color(200, 30, 30),
+        showAt = CurTime(),
+    }
+end)
+
+net.Receive("CS_EliminationConfirm", function()
+    local msg = net.ReadString()
+    CS_NotifQueue = CS_NotifQueue or {}
+    CS_NotifQueue[#CS_NotifQueue + 1] = {
+        lines  = {"COMPLIANCE RECORDED", msg},
+        color  = Color(80, 200, 80),
+        showAt = CurTime(),
+    }
 end)
 
 net.Receive("CS_ClearanceSync", function()

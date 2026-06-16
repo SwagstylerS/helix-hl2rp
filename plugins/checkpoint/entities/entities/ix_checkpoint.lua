@@ -57,6 +57,15 @@ local function HasClearance(client, mode)
 	return false
 end
 
+-- Sterilized check via CS global or character data fallback.
+local function CheckSterilized(client)
+	if CS and CS.IsSterilized then
+		return CS.IsSterilized(client:SteamID())
+	end
+	local character = client:GetCharacter()
+	return character and character:GetData("cs_sterilized") == true or false
+end
+
 -- Warrant detection with 3 fallback methods.
 local function CheckWarrant(client)
 	-- Method 1: Custom hook for external integration.
@@ -368,14 +377,40 @@ if (SERVER) then
 
 		if (!self.crossingCooldowns) then self.crossingCooldowns = {} end
 
+		if (!self.paAnnounce)      then self.paAnnounce      = {} end
+		if (!self.sterilizeAlerts) then self.sterilizeAlerts = {} end
+
 		for _, ply in ipairs(player.GetAll()) do
 			if (IsValid(ply) and ply:Alive() and !ply:IsCombine() and ply:Team() != FACTION_ADMIN) then
 				if (midpoint:DistToSqr(ply:GetPos()) <= radius * radius) then
-					if (CheckWarrant(ply)) then
+					local sid = ply:SteamID()
+
+					-- Sterilized: OTA-only alarm (separate from warrant alarm, own cooldown)
+					if (CheckSterilized(ply)) then
+						if (!(self.sterilizeAlerts[sid] and self.sterilizeAlerts[sid] > now)) then
+							self.sterilizeAlerts[sid] = now + 30
+							self:TriggerSterilizeAlarm(ply)
+						end
+					elseif (CheckWarrant(ply)) then
 						self:TriggerWarrantAlarm(ply)
 					end
 
-					local sid = ply:SteamID()
+					-- Environmental anxiety: PA announces Tier 2+ citizens on approach
+					local heatTier = CS and CS.GetHeatTier and CS.GetHeatTier(sid) or 0
+					if (heatTier >= 2 and !(self.paAnnounce[sid] and self.paAnnounce[sid] > now)) then
+						self.paAnnounce[sid] = now + 60
+						if (heatTier >= 5) then
+							self:EmitSound("ambient/alarms/warningbell1.wav", 90, 80)
+						else
+							local cpName = self:GetCheckpointName()
+							for _, nearby in ipairs(player.GetAll()) do
+								if (midpoint:DistToSqr(nearby:GetPos()) <= (radius + 200) * (radius + 200)) then
+									nearby:ChatPrint("[CHECKPOINT PA] Citizen " .. ply:Name() .. " — report to processing.")
+								end
+							end
+						end
+					end
+
 					if (!(self.crossingCooldowns[sid] and self.crossingCooldowns[sid] > now)) then
 						self.crossingCooldowns[sid] = now + 30
 						local warrants = ix.data.Get("cs_warrants", {})
@@ -485,6 +520,41 @@ if (SERVER) then
 		end)
 	end
 
+	function ENT:TriggerSterilizeAlarm(client)
+		if (self:GetAlarm()) then return end
+		self:SetAlarm(true)
+		self:EmitSound("ambient/alarms/warningbell1.wav", 100, 80)
+
+		local name   = client:Name()
+		local cpName = self:GetCheckpointName()
+		local otaTargets = {}
+
+		for _, ply in ipairs(player.GetAll()) do
+			if (ply:Team() == FACTION_OTA) then
+				ply:ChatPrint("[CHECKPOINT:" .. cpName .. "] OVERWATCH PRIORITY: " .. name .. " — STERILIZE ON SIGHT.")
+				otaTargets[#otaTargets + 1] = ply
+			end
+		end
+
+		if (#otaTargets > 0) then
+			net.Start("CS_BiometricAlert")
+				net.WriteString("CHECKPOINT — " .. cpName .. ": OVERWATCH TARGET " .. name .. " DETECTED — STERILIZE ON SIGHT")
+				net.WriteUInt(3, 4)
+			net.Send(otaTargets)
+		end
+
+		local logLine = os.date("[%Y-%m-%d %H:%M:%S] ") .. "[CHECKPOINT:" .. cpName .. "] STERILIZE TARGET: " .. name .. "\n"
+		file.Append("ixhl2rp_checkpoint_log.txt", logLine)
+
+		local entIndex = self:EntIndex()
+		timer.Create("ix_checkpoint_alarm_" .. entIndex, 5, 1, function()
+			if (IsValid(self)) then
+				self:SetAlarm(false)
+				self:StopSound("ambient/alarms/warningbell1.wav")
+			end
+		end)
+	end
+
 	-- Collision filtering for checkpoints.
 	hook.Add("ShouldCollide", "ix_checkpoints", function(a, b)
 		local client
@@ -517,7 +587,16 @@ if (SERVER) then
 					return true
 				end
 
-				return !HasClearance(client, mode)
+				-- Sterilized citizens are always blocked regardless of mode.
+				if (CheckSterilized(client)) then
+					return true
+				end
+
+				-- Tier 3+ citizens face effective one-step-higher restriction.
+				local heatTier = CS and CS.GetHeatTier and CS.GetHeatTier(client:SteamID()) or 0
+				local effectiveMode = (heatTier >= 3) and math.max(mode, MODE_YELLOW) or mode
+
+				return !HasClearance(client, effectiveMode)
 			else
 				return entity:GetMode() != MODE_GREEN
 			end

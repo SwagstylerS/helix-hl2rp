@@ -128,12 +128,13 @@ end
 
 function PANEL:Populate()
     local tabs = {
-        {"DATABASE",   "CS_TabDatabase"},
-        {"UNITS",      "CS_TabUnits"},
-        {"SCANS",      "CS_TabScans"},
-        {"WARRANTS",   "CS_TabWarrants"},
-        {"CLEARANCE",  "CS_TabCWU"},
-        {"DETAINEES",  "CS_TabDetainees"},
+        {"DATABASE",     "CS_TabDatabase"},
+        {"UNITS",        "CS_TabUnits"},
+        {"SCANS",        "CS_TabScans"},
+        {"WARRANTS",     "CS_TabWarrants"},
+        {"CLEARANCE",    "CS_TabCWU"},
+        {"DETAINEES",    "CS_TabDetainees"},
+        {"ELIMINATIONS", "CS_TabEliminations"},
     }
 
     for _, info in ipairs(tabs) do
