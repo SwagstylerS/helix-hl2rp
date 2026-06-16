@@ -7,12 +7,14 @@ Design rules that apply to all plugins. Check this before implementing any new m
 ## Interaction Model
 
 **No chat commands for world interaction.**
-Players must interact with the world through entities — use menus, terminals, props, or context actions. Mechanics like detaining, releasing, trading, panicking, or operating equipment must go through an in-world entity or UI. Chat commands are for server admin/operator use only.
+Players must interact with the world through entities — use menus, terminals, props, or context actions. Mechanics like detaining, releasing, trading, panicking, or operating equipment must go through an in-world entity or UI.
+
+**Exception — communication commands are fine.** If the mechanic *is* sending text (radio channels, dispatch broadcasts, faction comms), a chat command is the correct implementation. `/CombineRadio`, `/alert`, and similar are acceptable as-is.
 
 **Existing debt (to be reworked into entities):**
 - `/panicbutton` / `/panicclear` — should be a wearable device or wall-mounted button entity
 - `/transferdetainee` / `/releasedetainee` — should be an action on a terminal or processing entity
-- `/curfew` / `/alert` / `/CombineRadio` — senior Combine commands, lower priority but same rule applies
+- `/curfew` — should be a switch or terminal action for senior Combine
 
 ---
 
