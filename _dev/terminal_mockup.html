@@ -18,15 +18,11 @@
     overflow: hidden;
   }
 
-  /* Phosphor grain overlay */
-  .grain {
+  #grain-canvas {
     position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 99;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.15'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
   }
 
   /* CRT scanlines */
@@ -285,7 +281,7 @@
 <body>
 
 <div class="terminal" id="term">
-  <div class="grain"></div>
+  <canvas id="grain-canvas" width="1000" height="650"></canvas>
 
   <div class="titlebar">
     <span class="classified">CLASSIFIED</span>
@@ -527,6 +523,23 @@
   document.querySelectorAll('#switcher button').forEach(b => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
   });
+
+  // Phosphor grain
+  (function() {
+    const canvas = document.getElementById('grain-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(1000, 650);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (Math.random() < 0.12) {
+        d[i]   = 80;
+        d[i+1] = 200;
+        d[i+2] = 80;
+        d[i+3] = Math.floor(Math.random() * 22) + 3;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  })();
 
   // Live uptime
   const start = Date.now();
