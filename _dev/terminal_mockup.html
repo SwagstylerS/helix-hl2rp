@@ -286,7 +286,6 @@
     <div class="tab" data-tab="units">UNITS</div>
     <div class="tab" data-tab="scans">SCANS</div>
     <div class="tab" data-tab="warrants">WARRANTS</div>
-    <div class="tab" data-tab="zones">ZONES</div>
     <div class="tab" data-tab="clearance">CLEARANCE</div>
     <div class="tab" data-tab="detainees">DETAINEES</div>
   </div>
@@ -408,15 +407,27 @@
 
     <!-- SCANS TAB -->
     <div class="tab-panel" id="tab-scans">
-      <div class="section-header" style="color:rgb(80,200,80)">RECENT BIOMETRIC SCANS (4)</div>
+      <div class="section-header row-bright">SCAN LOG — LAST 4 ENTRIES</div>
       <div class="list-view">
         <table>
-          <thead><tr><th>TIME</th><th>SUBJECT</th><th>CID</th><th>OFFICER</th><th>HEAT ΔDELTA</th><th>FLAGS</th></tr></thead>
+          <thead><tr><th style="width:120px">TIME</th><th style="width:180px">CITIZEN</th><th style="width:65px">CID</th><th style="width:180px">OFFICER</th><th style="width:60px">HEAT</th><th style="width:100px">GRID</th></tr></thead>
           <tbody>
-            <tr class="row-orange"><td>09:42</td><td>Wallace Breen</td><td>0012</td><td>OFC. Reynolds</td><td>+10</td><td>LOCKPICK</td></tr>
-            <tr class="row-green"><td>08:20</td><td>Alyx Vance</td><td>0088</td><td>SGT. Harlow</td><td>+0</td><td>NONE</td></tr>
-            <tr class="row-green"><td>07:55</td><td>Isaac Kleiner</td><td>0047</td><td>OFC. Reynolds</td><td>+0</td><td>NONE</td></tr>
-            <tr class="row-yellow"><td>07:31</td><td>Judith Mossman</td><td>0031</td><td>OFC. Reynolds</td><td>+5</td><td>NONE</td></tr>
+            <tr class="row-red"><td>09:42 16/06</td><td>Wallace Breen</td><td>0012</td><td>OFC. Reynolds</td><td>T4</td><td>-3,1</td></tr>
+            <tr class="row-green"><td>08:20 16/06</td><td>Alyx Vance</td><td>0088</td><td>SGT. Harlow</td><td>T1</td><td>0,0</td></tr>
+            <tr class="row-orange"><td>07:55 16/06</td><td>Isaac Kleiner</td><td>0047</td><td>OFC. Reynolds</td><td>T3</td><td>1,-1</td></tr>
+            <tr class="row-yellow"><td>07:31 16/06</td><td>Judith Mossman</td><td>0031</td><td>OFC. Reynolds</td><td>T2</td><td>0,0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="height:10px"></div>
+      <div class="section-header" style="color:rgb(30,100,30)">CHECKPOINT CROSSINGS (3)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:80px">TIME</th><th style="width:180px">CITIZEN</th><th style="width:180px">CHECKPOINT</th><th style="width:100px">STATUS</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>09:41</td><td>Wallace Breen</td><td>East Gate</td><td>WANTED</td></tr>
+            <tr class="row-yellow"><td>08:34</td><td>Judith Mossman</td><td>East Gate</td><td>SUSPICIOUS</td></tr>
+            <tr class="row-green"><td>08:20</td><td>Alyx Vance</td><td>East Gate</td><td>CLEARED</td></tr>
           </tbody>
         </table>
       </div>
@@ -481,7 +492,6 @@
   <button data-tab="units">UNITS</button>
   <button data-tab="scans">SCANS</button>
   <button data-tab="warrants">WARRANTS</button>
-  <button data-tab="zones">ZONES</button>
   <button data-tab="clearance">CLEARANCE</button>
   <button data-tab="detainees">DETAINEES</button>
 </div>
