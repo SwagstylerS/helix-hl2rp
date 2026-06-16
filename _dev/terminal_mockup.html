@@ -531,11 +531,11 @@
     const img = ctx.createImageData(1000, 650);
     const d = img.data;
     for (let i = 0; i < d.length; i += 4) {
-      if (Math.random() < 0.25) {
+      if (Math.random() < 0.14) {
         d[i]   = 80;
         d[i+1] = 200;
         d[i+2] = 80;
-        d[i+3] = Math.floor(Math.random() * 55) + 15;
+        d[i+3] = Math.floor(Math.random() * 28) + 8;
       }
     }
     ctx.putImageData(img, 0, 0);
