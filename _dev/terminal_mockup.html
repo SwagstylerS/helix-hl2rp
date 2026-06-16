@@ -424,16 +424,37 @@
 
     <!-- ZONES TAB -->
     <div class="tab-panel" id="tab-zones">
-      <div class="section-header" style="color:rgb(80,200,80)">SURVEILLANCE ZONES (2)</div>
+      <div class="section-header row-red">RESTRICTED ZONES (2)</div>
       <div class="list-view">
         <table>
-          <thead><tr><th>ZONE NAME</th><th>HEAT MOD</th><th>LAST TRIGGER</th></tr></thead>
+          <thead><tr><th style="width:250px">NAME</th><th style="width:120px">GRID</th><th style="width:100px">RADIUS</th></tr></thead>
           <tbody>
-            <tr class="row-orange"><td>Restricted Block D</td><td>+15/entry</td><td>09:41 (Breen)</td></tr>
-            <tr class="row-green"><td>Market Square</td><td>+5/loiter</td><td>08:20 (Vance)</td></tr>
+            <tr class="row-red"><td>Restricted Block D</td><td>-3,1</td><td>512 units</td></tr>
+            <tr class="row-red"><td>Processing Wing</td><td>2,-2</td><td>256 units</td></tr>
           </tbody>
         </table>
       </div>
+      <div class="section-header" style="color:rgb(50,180,50);margin-top:12px">CHECKPOINTS (1)</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:250px">NAME</th><th style="width:120px">GRID</th><th style="width:100px">RADIUS</th></tr></thead>
+          <tbody>
+            <tr class="row-green"><td>East Gate</td><td>0,0</td><td>128 units</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-header" style="color:rgb(30,100,30);margin-top:12px">CROSSING LOG</div>
+      <div class="list-view">
+        <table>
+          <thead><tr><th style="width:80px">TIME</th><th style="width:150px">CITIZEN</th><th style="width:150px">CHECKPOINT</th><th style="width:90px">STATUS</th></tr></thead>
+          <tbody>
+            <tr class="row-red"><td>09:41</td><td>Wallace Breen</td><td>East Gate</td><td>WANTED</td></tr>
+            <tr class="row-yellow"><td>08:34</td><td>Judith Mossman</td><td>East Gate</td><td>SUSPICIOUS</td></tr>
+            <tr class="row-green"><td>08:20</td><td>Alyx Vance</td><td>East Gate</td><td>CLEARED</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hint">Zones and checkpoints are managed via admin commands.</div>
     </div>
 
     <!-- CLEARANCE TAB -->
