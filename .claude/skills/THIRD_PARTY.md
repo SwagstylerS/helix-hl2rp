@@ -7,6 +7,7 @@ load offline in fresh/ephemeral Claude Code sessions. Each retains its upstream 
 |---|---|---|---|---|
 | `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-help`, `ponytail-debt` | https://github.com/DietrichGebert/ponytail (`skills/`) | MIT | `99139a2` | 2026-06-16 |
 | `council-review` | https://github.com/ngmeyer/council-review | MIT | `e9a9ee3` | 2026-06-16 |
+| `stop-slop` | https://github.com/hardikpandya/stop-slop | MIT | `8da1f03` | 2026-06-16 |
 
 ## Notes
 - **ponytail** — "lazy senior dev" mode: forces the simplest solution that works (YAGNI,
@@ -23,6 +24,10 @@ load offline in fresh/ephemeral Claude Code sessions. Each retains its upstream 
   providers/keys needed**. Invoke with `/council-review`, "run the council", "pressure-test
   this". (Karpathy's own `karpathy/llm-council`, ~21k★, is a standalone FastAPI/React web app
   that needs an OpenRouter key — not a drop-in skill — so this faithful skill port is used.)
+- **stop-slop** — removes AI "tells" from prose (banned-phrase list, structural anti-patterns,
+  rhythm rules, a self-audit grid). Self-contained, no deps. Use when drafting/editing/reviewing
+  text — keeps in-world strings, docs, and commit/PR copy from reading like generated boilerplate.
+  Complements `helix-inworld-voice` (faction voice) and `helix-convention-check` (no gamey text).
 - **gmod-addon-maker** (github.com/davila7/claude-code-templates) was **not** vendored as a
   skill — it is generic GMod (not Helix-aware) and would compete with `helix-scaffold` for
   triggers. Only its realm/guard rules were adapted into
