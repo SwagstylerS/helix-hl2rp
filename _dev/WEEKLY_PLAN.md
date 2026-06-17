@@ -1,6 +1,6 @@
 # Weekly Development Plan
 **Week of Jun 15 – Jun 19, 2026**
-**Goal:** Close remaining Pillar 1 intel/enforcement loops (heat-tier escalation alerts, detainee release lifecycle, curfew checkpoint lockdown) and extend the Commerce/Loyalty loop with vendor stock alerts and a Model Citizen tax perk.
+**Goal:** Close remaining Pillar 1 intel/enforcement loops (heat-tier escalation alerts, detainee release lifecycle, curfew checkpoint lockdown) and extend the Commerce/Loyalty loop with vendor stock alerts and a Union Exemplar tax perk.
 
 ---
 
@@ -57,7 +57,7 @@ Original goals (superseded by the above):
 
 ---
 
-## Day 4 — Thu Jun 18 · Model Citizen (Tier 5) Vendor Tax Discount
+## Day 4 — Thu Jun 18 · Union Exemplar (Tier 5) Vendor Tax Discount
 **Status:** ✅ Done
 
 - Added `ix.config.Add("cwuModelCitizenTaxDiscount", 50, ...)` in `sh_plugin.lua` alongside `cwuTaxRate`.
@@ -66,7 +66,7 @@ Original goals (superseded by the above):
 - Silent economic perk — no new player-facing strings; reflects only in the seller's earnings total and the transaction log's `tax` column.
 
 Goals:
-- `plugins/cwu/sh_plugin.lua` — Near the existing `ix.config.Add("cwuTaxRate", 10, ...)` (~line 20), add `ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Model Citizen) sellers.", nil, {category = "CWU"})`
+- `plugins/cwu/sh_plugin.lua` — Near the existing `ix.config.Add("cwuTaxRate", 10, ...)` (~line 20), add `ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Union Exemplar) sellers.", nil, {category = "CWU"})`
 - `plugins/cwu/entities/ix_vendorterminal.lua` — In `CWUVendorPurchase` (~line 242), the existing loyalty-award loop after the sale (`for _, v in ipairs(player.GetAll())` matching `ownerChar:GetID() == ownerCharID`) only runs *after* tax/earnings are computed. Restructure so this owner lookup happens **before** the `taxRate` calculation (~line 268), storing the found `ownerChar` (may be `nil` if owner offline). Then compute `taxRate`: if `ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5`, apply `taxRate = taxRate * (1 - ix.config.Get("cwuModelCitizenTaxDiscount", 50) / 100)`, else use the normal `ix.config.Get("cwuTaxRate", 10) / 100`
 - `plugins/cwu/entities/ix_vendorterminal.lua` — Reuse the already-found `ownerChar` for the existing `PLUGIN:AwardLoyalty(ownerChar, 1, "sale")` call (~line 308), removing the now-duplicate second `player.GetAll()` loop
 - `plugins/cwu/languages/sh_english.lua` — No new strings required; this is a silent economic perk reflected only in the seller's `earnings` total and the transaction log's `tax` column

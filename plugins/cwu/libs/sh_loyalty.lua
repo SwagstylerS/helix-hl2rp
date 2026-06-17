@@ -4,7 +4,7 @@ PLUGIN.LoyaltyTiers = {
 	[2] = {name = "Trusted", color = Color(100, 200, 100)},
 	[3] = {name = "Valued", color = Color(100, 100, 255)},
 	[4] = {name = "Exemplary", color = Color(200, 100, 255)},
-	[5] = {name = "Model Citizen", color = Color(255, 215, 0)}
+	[5] = {name = "Union Exemplar", color = Color(255, 215, 0)}
 }
 
 function PLUGIN:GetLoyaltyTier(character)

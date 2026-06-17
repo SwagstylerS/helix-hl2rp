@@ -1,4 +1,10 @@
 function PLUGIN:PlayerLoadedCharacter(client, character)
+	-- citizenStanding: persistent stub for future citizen activities to write to.
+	-- Read it anywhere as character:GetData("citizenStanding", 0). No UI/tiers/gates yet.
+	if (character:GetData("citizenStanding", nil) == nil) then
+		character:SetData("citizenStanding", 0)
+	end
+
 	if (client:IsCWU()) then
 		netstream.Start(client, "CWULoyaltySync", {
 			tier = character:GetData("loyaltyTier", 0),

@@ -22,7 +22,7 @@ ix.config.Add("cwuTaxRate", 10, "Percentage tax on vendor terminal sales.", nil,
 	category = "cwu"
 })
 
-ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Model Citizen) sellers.", nil, {
+ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Union Exemplar) sellers.", nil, {
 	data = {min = 0, max = 100},
 	category = "CWU"
 })
