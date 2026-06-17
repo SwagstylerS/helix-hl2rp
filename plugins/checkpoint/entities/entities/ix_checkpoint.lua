@@ -288,7 +288,7 @@ if (SERVER) then
 	function ENT:RebootCheckpoint()
 		self:SetDisabled(false)
 		self:SetHealth(MAX_HEALTH)
-		self:SetMode(MODE_GREEN)
+		self:SetMode((CS and CS.CurfewActive) and MODE_YELLOW or MODE_GREEN)
 		self:EmitSound("buttons/combine_button7.wav", 100, 100)
 
 		local name = self:GetCheckpointName()
