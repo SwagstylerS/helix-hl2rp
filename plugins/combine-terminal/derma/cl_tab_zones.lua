@@ -3,22 +3,6 @@
 --  CS_TabZones — Zones & Checkpoints tab
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local function GetGridFromPos(pos)
     if type(pos) == "table" then
@@ -66,7 +50,7 @@ function PANEL:Populate(data)
         zList:AddColumn("NAME"):SetWidth(250)
         zList:AddColumn("GRID"):SetWidth(120)
         zList:AddColumn("RADIUS"):SetWidth(100)
-        StyleListHeaders(zList, C.red)
+        CS_StyleListHeaders(zList, C.red)
 
         for _, zone in ipairs(zones) do
             local row = zList:AddLine(
@@ -124,7 +108,7 @@ function PANEL:Populate(data)
         cpList:AddColumn("NAME"):SetWidth(250)
         cpList:AddColumn("GRID"):SetWidth(120)
         cpList:AddColumn("RADIUS"):SetWidth(100)
-        StyleListHeaders(cpList, C.border)
+        CS_StyleListHeaders(cpList, C.border)
 
         for _, cp in ipairs(checkpoints) do
             local row = cpList:AddLine(
@@ -187,7 +171,7 @@ function PANEL:Populate(data)
         clList:AddColumn("CITIZEN"):SetWidth(150)
         clList:AddColumn("CHECKPOINT"):SetWidth(150)
         clList:AddColumn("STATUS"):SetWidth(90)
-        StyleListHeaders(clList, C.borderDim)
+        CS_StyleListHeaders(clList, C.borderDim)
 
         for i = logTotal, math.max(1, logTotal - 24), -1 do
             local entry = crossingLog[i]

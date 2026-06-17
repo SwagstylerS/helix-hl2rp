@@ -59,7 +59,7 @@ function PANEL:CreatePersonnelTab()
 	self.personnelList:DockMargin(5, 0, 5, 5)
 	self.personnelList:AddColumn("Name")
 	self.personnelList:AddColumn("Status")
-	self.personnelList:AddColumn("Tier")
+	self.personnelList:AddColumn("Standing")
 	self.personnelList:SetMultiSelect(false)
 
 	local buttonBar = vgui.Create("DPanel", self.personnelPanel)
@@ -134,7 +134,7 @@ function PANEL:PopulatePersonnel()
 
 	-- Show CWU members first, with an inline Pay button per row
 	for _, v in ipairs(self.data.cwuMembers or {}) do
-		local line = self.personnelList:AddLine(v.name, "CWU - " .. (v.division or "Unassigned"), v.tier)
+		local line = self.personnelList:AddLine(v.name, "CWU - " .. (v.division or "Unassigned"), (PLUGIN.LoyaltyTiers[v.tier] or PLUGIN.LoyaltyTiers[0]).name)
 		line.charID = v.charID
 
 		local charID = v.charID
@@ -180,7 +180,7 @@ function PANEL:PopulatePersonnel()
 
 	-- Then unassigned citizens
 	for _, v in ipairs(self.data.citizens or {}) do
-		local line = self.personnelList:AddLine(v.name, "Citizen", v.tier)
+		local line = self.personnelList:AddLine(v.name, "Citizen", (PLUGIN.LoyaltyTiers[v.tier] or PLUGIN.LoyaltyTiers[0]).name)
 		line.charID = v.charID
 	end
 end

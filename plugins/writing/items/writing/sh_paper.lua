@@ -45,13 +45,16 @@ ITEM.functions.Edit = {
 
 	OnCanRun = function(item)
 		local owner = item:GetData("owner", 0)
+		local character = item.player:GetCharacter()
 
-		return owner == 0 or owner == item.player:GetCharacter():GetID() and item:GetData("text", "") == ""
+		return owner == 0 or (character and owner == character:GetID() and item:GetData("text", "") == "")
 	end
 }
 
 ITEM.functions.take.OnCanRun = function(item)
 	local owner = item:GetData("owner", 0)
 
-	return IsValid(item.entity) and (owner == 0 or owner == item.player:GetCharacter():GetID())
+	local character = item.player:GetCharacter()
+
+	return IsValid(item.entity) and (owner == 0 or (character and owner == character:GetID()))
 end

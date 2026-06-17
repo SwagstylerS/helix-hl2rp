@@ -3,22 +3,6 @@
 --  CS_TabWarrants — Warrants & BOLOs tab
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local function MakeActionButton(parent, label, onClick, color)
     local btn = vgui.Create("DButton", parent)
@@ -89,7 +73,7 @@ function PANEL:Populate(data)
         wListView:AddColumn("REASON"):SetWidth(240)
         wListView:AddColumn("ISSUED BY"):SetWidth(120)
         wListView:AddColumn("EXPIRES"):SetWidth(80)
-        StyleListHeaders(wListView, C.red)
+        CS_StyleListHeaders(wListView, C.red)
 
         for _, warrant in ipairs(wList) do
             local expStr

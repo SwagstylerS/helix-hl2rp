@@ -140,6 +140,11 @@ if (SERVER) then
 			return
 		end
 
+		-- client must actually be at the table, not just know its index
+		if (client:GetPos():DistToSqr(entity:GetPos()) > 65536) then
+			return
+		end
+
 		if (entity:GetState() != 0) then
 			return
 		end
@@ -151,6 +156,8 @@ if (SERVER) then
 		end
 
 		local character = client:GetCharacter()
+		if (!character) then return end
+
 		local inventory = character:GetInventory()
 
 		-- Validate blueprint access

@@ -3,22 +3,6 @@
 --  CS_TabDatabase — Civilian Database tab (list + detail)
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local function StyleRow(row, rowCol)
     row.Paint = function(self, w, h)
@@ -130,7 +114,7 @@ function PANEL:Init()
     self.list:AddColumn("WARRANT"):SetWidth(80)
     self.list:AddColumn("BLACKSITE"):SetWidth(95)
     self.list:AddColumn("STATUS"):SetWidth(70)
-    StyleListHeaders(self.list, C.border)
+    CS_StyleListHeaders(self.list, C.border)
 
     self.list.OnRowSelected = function(_, _, row)
         local sid = row.m_SID

@@ -3,22 +3,6 @@
 --  CS_TabScans — Biometric scan log + checkpoint crossing log
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local PANEL = {}
 
@@ -61,7 +45,7 @@ function PANEL:Populate(data)
         scanList:AddColumn("OFFICER"):SetWidth(180)
         scanList:AddColumn("HEAT"):SetWidth(60)
         scanList:AddColumn("GRID"):SetWidth(100)
-        StyleListHeaders(scanList, C.border)
+        CS_StyleListHeaders(scanList, C.border)
 
         scanList.OnRowSelected = function(_, _, row)
             local sid = row.m_SID
@@ -139,7 +123,7 @@ function PANEL:Populate(data)
         cpList:AddColumn("CITIZEN"):SetWidth(180)
         cpList:AddColumn("CHECKPOINT"):SetWidth(180)
         cpList:AddColumn("STATUS"):SetWidth(100)
-        StyleListHeaders(cpList, C.borderDim)
+        CS_StyleListHeaders(cpList, C.borderDim)
 
         local total = #crossings
         for i = total, math.max(1, total - 24), -1 do

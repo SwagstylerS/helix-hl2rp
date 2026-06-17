@@ -3,22 +3,6 @@
 --  CS_TabEliminations — Confirmed sterilization log
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local PANEL = {}
 
@@ -56,7 +40,7 @@ function PANEL:Populate(data)
         list:AddColumn("CID"):SetWidth(65)
         list:AddColumn("OFFICER"):SetWidth(200)
         list:AddColumn("EFF."):SetWidth(40)
-        StyleListHeaders(list, C.red)
+        CS_StyleListHeaders(list, C.red)
 
         local rowCol = C.red
         for i = #elims, math.max(1, #elims - 99), -1 do

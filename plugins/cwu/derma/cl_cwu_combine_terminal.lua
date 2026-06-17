@@ -281,7 +281,7 @@ function PANEL:PopulateRoster()
 		local line = self.rosterList:AddLine(
 			v.name,
 			division:sub(1, 1):upper() .. division:sub(2),
-			v.tier .. " - " .. tierInfo.name,
+			tierInfo.name,
 			v.isDirector and "DIRECTOR" or "Worker",
 			statusText
 		)

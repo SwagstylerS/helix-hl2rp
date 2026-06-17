@@ -266,7 +266,7 @@ if (SERVER) then
 		-- Alert Combine.
 		for _, ply in ipairs(player.GetAll()) do
 			if (ply:IsCombine()) then
-				ply:ChatPrint("[CHECKPOINT] " .. name .. " has been DESTROYED and is offline.")
+				ply:ChatPrint("DISPATCH // CHECKPOINT " .. name .. " DISABLED — STRUCTURE OFFLINE")
 			end
 		end
 
@@ -295,7 +295,7 @@ if (SERVER) then
 
 		for _, ply in ipairs(player.GetAll()) do
 			if (ply:IsCombine()) then
-				ply:ChatPrint("[CHECKPOINT] " .. name .. " is back ONLINE.")
+				ply:ChatPrint("DISPATCH // CHECKPOINT " .. name .. " RESTORED — STRUCTURE ONLINE")
 			end
 		end
 
@@ -447,7 +447,7 @@ if (SERVER) then
 
 	function ENT:Use(activator)
 		if (self:GetDisabled()) then
-			activator:ChatPrint("This checkpoint is offline. Rebooting...")
+			activator:ChatPrint("This checkpoint is unpowered.")
 			return
 		end
 

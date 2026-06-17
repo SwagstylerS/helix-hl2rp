@@ -29,7 +29,7 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 	self.list:Dock(FILL)
 	self.list:DockMargin(5, 0, 5, 5)
 	self.list:AddColumn("Blueprint")
-	self.list:AddColumn("Tier")
+	self.list:AddColumn("Clearance")
 	self.list:AddColumn("Time")
 	self.list:AddColumn("Status")
 	self.list:SetMultiSelect(false)
@@ -46,7 +46,7 @@ function PANEL:SetBlueprints(entIndex, blueprints)
 				status = isPending and "Approval Pending" or "Request Approval"
 				statusColor = isPending and Color(255, 200, 100) or Color(100, 150, 255)
 			else
-				status = "Tier Locked"
+				status = "Insufficient Clearance"
 				statusColor = Color(255, 100, 100)
 			end
 		elseif (!bp.hasMaterials) then

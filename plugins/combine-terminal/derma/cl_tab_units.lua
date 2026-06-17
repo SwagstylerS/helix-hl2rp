@@ -3,22 +3,6 @@
 --  CS_TabUnits — Active Combine Units tab
 -- ============================================================
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local PANEL = {}
 
@@ -61,7 +45,7 @@ function PANEL:Init()
     self.list:AddColumn("STATUS"):SetWidth(80)
     self.list:AddColumn("ZONE"):SetWidth(160)
     self.list:AddColumn("SCANS"):SetWidth(55)
-    StyleListHeaders(self.list, C.border)
+    CS_StyleListHeaders(self.list, C.border)
 end
 
 function PANEL:Populate(data)

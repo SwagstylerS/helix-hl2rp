@@ -238,7 +238,12 @@ if (SERVER) then
 			return
 		end
 
+		if (client:GetPos():DistToSqr(entity:GetPos()) > 65536) then
+			return
+		end
+
 		local character = client:GetCharacter()
+		if (!character) then return end
 
 		if (!PLUGIN:CanUseBlueprint(character, "bp_medical_stimpak")) then
 			client:NotifyLocalized("cwuBlueprintTierLocked")
@@ -339,7 +344,12 @@ if (SERVER) then
 			return
 		end
 
+		if (client:GetPos():DistToSqr(entity:GetPos()) > 65536) then
+			return
+		end
+
 		local character = client:GetCharacter()
+		if (!character) then return end
 
 		if (!character:GetData("medicalTraining", false)) then
 			client:NotifyLocalized("cwuNeedTraining")

@@ -5,22 +5,6 @@
 
 local C = CS_TERM_COLORS
 
-local function StyleListHeaders(list, borderCol)
-    for _, col in ipairs(list.Columns) do
-        local header = col.Header
-        if IsValid(header) then
-            header:SetFont("CS_Notif")
-            header:SetTextColor(Color(255, 255, 255))
-            header:SetContentAlignment(5)
-            header.Paint = function(self2, w, h)
-                local C = CS_TERM_COLORS
-                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
-                surface.SetDrawColor(borderCol)
-                surface.DrawRect(0, h - 1, w, 1)
-            end
-        end
-    end
-end
 
 local PANEL = {}
 
@@ -62,7 +46,7 @@ function PANEL:Populate(data)
         list:AddColumn("CID"):SetWidth(60):SetFixedWidth(true)
         list:AddColumn("OFFICER"):SetWidth(130)
         list:AddColumn("STATUS"):SetWidth(80):SetFixedWidth(true)
-        StyleListHeaders(list, C.borderDim)
+        CS_StyleListHeaders(list, C.borderDim)
 
         local now = os.time()
         for i = total, math.max(1, total - 49), -1 do

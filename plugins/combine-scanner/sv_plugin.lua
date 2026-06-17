@@ -353,12 +353,11 @@ ix.command.Add("scansubject", {
         local officerSID = client:SteamID()
         local qEntry     = CS.ScanQuotas[officerSID]
         if qEntry and qEntry.day == GetDay() and qEntry.count >= CFG.QuotaMax then
-            return SendDeny(client, string.format("DAILY QUOTA REACHED: %d / %d SCANS",
-                qEntry.count, CFG.QuotaMax))
+            return SendDeny(client, "DAILY PROCESSING QUOTA REACHED // STAND DOWN")
         end
 
         local battery = GetBattery(client)
-        if battery <= 0 then return SendDeny(client, "BATTERY DEPLETED: USE CHARGER") end
+        if battery <= 0 then return SendDeny(client, "POWER CELL DEPLETED // RETURN TO CHARGING UNIT") end
 
         local target = client:GetEyeTrace().Entity
         local isNPC  = IsValid(target) and target:IsNPC()
@@ -407,8 +406,7 @@ ix.command.Add("scansubject", {
         local now = CurTime()
 
         if CS.Cooldowns[sid] and now < CS.Cooldowns[sid] then
-            local rem = math.ceil(CS.Cooldowns[sid] - now)
-            return SendDeny(client, string.format("COOLDOWN: %ds REMAINING", rem))
+            return SendDeny(client, "SUBJECT RECENTLY PROCESSED // STAND BY")
         end
         CS.Cooldowns[sid] = now + CFG.ScanCooldown
 
@@ -516,7 +514,7 @@ ix.command.Add("scanquota", {
         local sid   = client:SteamID()
         local entry = CS.ScanQuotas[sid]
         local count = (entry and entry.day == GetDay()) and entry.count or 0
-        client:ChatPrint(string.format("[CS QUOTA] QUOTA: %d / %d SCANS TODAY",
+        client:ChatPrint(string.format("DISPATCH // PROCESSING ALLOCATION: %d OF %d THIS CYCLE",
             count, CFG.QuotaMax))
     end,
 })

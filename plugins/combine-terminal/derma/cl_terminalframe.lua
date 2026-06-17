@@ -32,6 +32,24 @@ surface.CreateFont("CS_Notif",    {font="Courier New", size=11, weight=700, anti
 surface.CreateFont("CS_Header",   {font="Courier New", size=11, weight=900, antialias=true})
 surface.CreateFont("CS_DetailHeader", {font="Courier New", size=16, weight=900, antialias=true})
 
+-- Shared by every terminal tab. Was copy-pasted identically into 9 files.
+function CS_StyleListHeaders(list, borderCol)
+    for _, col in ipairs(list.Columns) do
+        local header = col.Header
+        if IsValid(header) then
+            header:SetFont("CS_Notif")
+            header:SetTextColor(Color(255, 255, 255))
+            header:SetContentAlignment(5)
+            header.Paint = function(self2, w, h)
+                local C = CS_TERM_COLORS
+                draw.RoundedBox(0, 0, 0, w, h, C.headerBg)
+                surface.SetDrawColor(borderCol)
+                surface.DrawRect(0, h - 1, w, 1)
+            end
+        end
+    end
+end
+
 local C = CS_TERM_COLORS
 
 local PANEL = {}
