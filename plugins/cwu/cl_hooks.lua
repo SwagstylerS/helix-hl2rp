@@ -34,7 +34,7 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 	if (!tierInfo) then return end
 
 	draw.SimpleText(
-		tierInfo.name .. "  [Tier " .. CWU_LocalTier .. "]",
+		tierInfo.name,
 		"DermaDefault",
 		10,
 		ScrH() - 20,
@@ -83,7 +83,7 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 	surface.DrawRect(panelX + panelW - 2, panelY, 2, panelH)
 
 	draw.SimpleText(
-		"TIER ADVANCEMENT",
+		"UNION STANDING REVISED",
 		"DermaDefault",
 		ScrW() / 2,
 		panelY + 14,
@@ -93,7 +93,7 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 	)
 
 	draw.SimpleText(
-		tierUpData.name .. " [Tier " .. tierUpData.tier .. "]",
+		tierUpData.name,
 		"DermaDefault",
 		ScrW() / 2,
 		panelY + 38,
@@ -199,7 +199,7 @@ function PLUGIN:UpdateCharacterInfo(panel)
 			local tierInfo = PLUGIN.LoyaltyTiers[tier]
 
 			if (tierInfo) then
-				panel.cwuTier:SetText("Loyalty: " .. tierInfo.name)
+				panel.cwuTier:SetText("Union Standing: " .. tierInfo.name)
 				panel.cwuTier:SetTextColor(tierInfo.color)
 				panel.cwuTier:SizeToContents()
 			end

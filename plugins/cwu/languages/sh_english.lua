@@ -44,8 +44,8 @@ LANGUAGE = {
 	cwuOutOfStock = "Item is out of stock.",
 
 	-- Loyalty
-	cwuLoyaltyGained = "Loyalty gained: +%d points.",
-	cwuTierUp = "Loyalty tier increased to %s (Tier %d)!",
+	cwuLoyaltyGained = "Your output has been recorded by the Union.",
+	cwuTierUp = "Union oversight has revised your standing. You are now recognised as %s.",
 
 	-- Work Orders
 	cwuWorkOrderBoard = "CWU WORK ORDERS",
