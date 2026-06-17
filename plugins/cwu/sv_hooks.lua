@@ -1,8 +1,9 @@
 function PLUGIN:PlayerLoadedCharacter(client, character)
-	-- citizenStanding: persistent stub for future citizen activities to write to.
-	-- Read it anywhere as character:GetData("citizenStanding", 0). No UI/tiers/gates yet.
-	if (character:GetData("citizenStanding", nil) == nil) then
-		character:SetData("citizenStanding", 0)
+	local faction = client:Team()
+	if (faction == FACTION_CITIZEN or faction == FACTION_CWU) then
+		if (character:GetData("citizenStanding", nil) == nil) then
+			character:SetData("citizenStanding", 0)
+		end
 	end
 
 	if (client:IsCWU()) then
