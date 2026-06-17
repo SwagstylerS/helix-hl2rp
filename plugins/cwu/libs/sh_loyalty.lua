@@ -53,7 +53,6 @@ if (SERVER) then
 				local tierInfo = self:GetLoyaltyTierInfo(newTier)
 				client:NotifyLocalized("cwuTierUp", tierInfo.name)
 				netstream.Start(client, "CWUTierUpAnnounce", {
-					tier = newTier,
 					name = tierInfo.name,
 					r = tierInfo.color.r,
 					g = tierInfo.color.g,
@@ -65,8 +64,7 @@ if (SERVER) then
 		if (IsValid(client)) then
 			client:NotifyLocalized("cwuLoyaltyGained")
 			netstream.Start(client, "CWULoyaltySync", {
-				tier = character:GetData("loyaltyTier", 0),
-				points = points
+				tier = character:GetData("loyaltyTier", 0)
 			})
 		end
 	end
