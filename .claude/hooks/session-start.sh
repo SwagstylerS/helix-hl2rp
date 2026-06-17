@@ -40,5 +40,5 @@ else
   echo "glualint: not installed (optional). /helix-lint explains the one-time install; /helix-convention-check needs no binary."
 fi
 
-echo "Project skills: helix-convention-check, helix-scaffold, helix-api-reference, helix-sprint-executor, helix-inworld-voice, helix-lint (+ vendored: ponytail, council-review, stop-slop)."
+echo "Project skills: helix-build (council → ponytail gate), helix-convention-check, helix-scaffold, helix-api-reference, helix-sprint-executor, helix-inworld-voice, helix-lint (+ vendored: ponytail, council-review, stop-slop)."
 exit 0
