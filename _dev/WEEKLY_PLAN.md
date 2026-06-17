@@ -58,7 +58,12 @@ Original goals (superseded by the above):
 ---
 
 ## Day 4 — Thu Jun 18 · Model Citizen (Tier 5) Vendor Tax Discount
-**Status:** Pending
+**Status:** ✅ Done
+
+- Added `ix.config.Add("cwuModelCitizenTaxDiscount", 50, ...)` in `sh_plugin.lua` alongside `cwuTaxRate`.
+- In `CWUVendorPurchase`, hoisted owner character lookup to before the tax calculation. If the owner's `loyaltyTier == 5`, the effective tax rate is multiplied by `(1 - discount/100)` — a 50% default reduction (configurable).
+- Eliminated the now-duplicate second `player.GetAll()` loop; reuses the same `ownerChar` for `PLUGIN:AwardLoyalty`. The `sellerID` log field now uses the hoisted `ownerCharID` local instead of a redundant `entity:GetOwnerCharID()` call.
+- Silent economic perk — no new player-facing strings; reflects only in the seller's earnings total and the transaction log's `tax` column.
 
 Goals:
 - `plugins/cwu/sh_plugin.lua` — Near the existing `ix.config.Add("cwuTaxRate", 10, ...)` (~line 20), add `ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Model Citizen) sellers.", nil, {category = "CWU"})`

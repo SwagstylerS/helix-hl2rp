@@ -262,10 +262,30 @@ if (SERVER) then
 			return
 		end
 
+		-- Find owner character before tax computation (may be nil if offline)
+		local ownerCharID = entity:GetOwnerCharID()
+		local ownerChar = nil
+
+		if (ownerCharID > 0) then
+			for _, v in ipairs(player.GetAll()) do
+				local char = v:GetCharacter()
+
+				if (char and char:GetID() == ownerCharID) then
+					ownerChar = char
+					break
+				end
+			end
+		end
+
 		-- Process payment
 		character:TakeMoney(price)
 
 		local taxRate = ix.config.Get("cwuTaxRate", 10) / 100
+
+		if (ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5) then
+			taxRate = taxRate * (1 - ix.config.Get("cwuModelCitizenTaxDiscount", 50) / 100)
+		end
+
 		local taxAmount = math.floor(price * taxRate)
 		local sellerAmount = price - taxAmount
 
@@ -286,7 +306,7 @@ if (SERVER) then
 		-- Log transaction
 		PLUGIN:LogTransaction({
 			seller = entity:GetNWString("OwnerName", "Unknown"),
-			sellerID = entity:GetOwnerCharID(),
+			sellerID = ownerCharID,
 			buyer = character:GetName(),
 			buyerID = character:GetID(),
 			item = entry.uniqueID,
@@ -298,17 +318,8 @@ if (SERVER) then
 		})
 
 		-- Award loyalty to the terminal owner for making a sale
-		local ownerCharID = entity:GetOwnerCharID()
-
-		if (ownerCharID > 0) then
-			for _, v in ipairs(player.GetAll()) do
-				local ownerChar = v:GetCharacter()
-
-				if (ownerChar and ownerChar:GetID() == ownerCharID) then
-					PLUGIN:AwardLoyalty(ownerChar, 1, "sale")
-					break
-				end
-			end
+		if (ownerChar) then
+			PLUGIN:AwardLoyalty(ownerChar, 1, "sale")
 		end
 
 		client:NotifyLocalized("cwuPurchaseComplete")

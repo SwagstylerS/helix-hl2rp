@@ -22,6 +22,11 @@ ix.config.Add("cwuTaxRate", 10, "Percentage tax on vendor terminal sales.", nil,
 	category = "cwu"
 })
 
+ix.config.Add("cwuModelCitizenTaxDiscount", 50, "Percentage reduction to vendor tax for Tier 5 (Model Citizen) sellers.", nil, {
+	data = {min = 0, max = 100},
+	category = "CWU"
+})
+
 ix.config.Add("cwuMaxTransactions", 500, "Maximum transaction log entries stored.", nil, {
 	data = {min = 100, max = 5000},
 	category = "cwu"
