@@ -3,8 +3,10 @@
 
 # Ignore everything under .claude by default...
 .claude/*
-# ...but track committed project skills
+# ...but track committed project skills, shared settings, and hooks
 !.claude/skills/
+!.claude/settings.json
+!.claude/hooks/
 # Keep machine-local + secret config out of git
 .claude/settings.local.json
 .claude/*.local.json
