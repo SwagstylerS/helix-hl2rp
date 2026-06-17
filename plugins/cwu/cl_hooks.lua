@@ -1,7 +1,6 @@
 -- Client-side CWU hooks
 
 CWU_LocalTier = 0
-CWU_LocalPoints = 0
 
 local tierUpData = nil
 local tierUpAt = 0
@@ -11,7 +10,6 @@ local newOrderAt = 0
 
 netstream.Hook("CWULoyaltySync", function(data)
 	CWU_LocalTier = data.tier
-	CWU_LocalPoints = data.points
 end)
 
 netstream.Hook("CWUTierUpAnnounce", function(data)
@@ -42,17 +40,6 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 		TEXT_ALIGN_LEFT,
 		TEXT_ALIGN_BOTTOM
 	)
-
-	local barX = 10
-	local barY = ScrH() - 8
-	local barW = 160
-	local barH = 4
-	local fillRatio = (CWU_LocalPoints % 10) / 10
-
-	surface.SetDrawColor(40, 40, 40)
-	surface.DrawRect(barX, barY, barW, barH)
-	surface.SetDrawColor(100, 175, 100)
-	surface.DrawRect(barX, barY, math.floor(barW * fillRatio), barH)
 
 	if (tierUpData == nil) then return end
 
