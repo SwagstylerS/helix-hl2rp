@@ -284,6 +284,8 @@ if (SERVER) then
 
 		if (ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5) then
 			taxRate = taxRate * (1 - ix.config.Get("cwuModelCitizenTaxDiscount", 50) / 100)
+		elseif (ownerChar and ownerChar:GetData("loyaltyTier", 0) == 4) then
+			taxRate = taxRate * (1 - ix.config.Get("cwuSeniorWorkerTaxDiscount", 25) / 100)
 		end
 
 		local taxAmount = math.floor(price * taxRate)
