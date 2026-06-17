@@ -15,6 +15,7 @@ function PANEL:Init()
 	self:CreateLicenseTab()
 	self:CreateMedicalTrainingTab()
 	self:CreateTreasuryTab()
+	self:CreateVendorStockTab()
 	self:CreateTransactionLogTab()
 end
 
@@ -27,6 +28,7 @@ function PANEL:SetData(data)
 	self:PopulateLicenses()
 	self:PopulateMedicalTraining()
 	self:PopulateTreasury()
+	self:PopulateVendorStock()
 	self:PopulateTransactionLog()
 end
 
@@ -589,6 +591,73 @@ function PANEL:PopulateTreasury()
 			v.itemName or v.item or "Unknown",
 			ix.currency.Get(v.tax or 0)
 		)
+	end
+end
+
+-- Tab: Commerce Inventory Oversight (vendor terminal stock at a glance)
+function PANEL:CreateVendorStockTab()
+	self.vendorPanel = vgui.Create("DPanel", self.tabs)
+	self.vendorPanel:Dock(FILL)
+	self.vendorPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(30, 30, 30)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local label = vgui.Create("DLabel", self.vendorPanel)
+	label:Dock(TOP)
+	label:DockMargin(5, 5, 5, 5)
+	label:SetText("Commerce Inventory Oversight")
+	label:SetFont("DermaDefaultBold")
+	label:SetTextColor(Color(100, 175, 100))
+	label:SizeToContents()
+
+	self.vendorList = vgui.Create("DListView", self.vendorPanel)
+	self.vendorList:Dock(FILL)
+	self.vendorList:DockMargin(5, 0, 5, 5)
+	self.vendorList:AddColumn("Terminal")
+	self.vendorList:AddColumn("Operator")
+	self.vendorList:AddColumn("Stock"):SetFixedWidth(55)
+	self.vendorList:AddColumn("Status"):SetFixedWidth(90)
+	self.vendorList:AddColumn("Earnings"):SetFixedWidth(80)
+	self.vendorList:SetMultiSelect(false)
+
+	self.tabs:AddSheet("Vendors", self.vendorPanel, "icon16/cart.png")
+end
+
+function PANEL:PopulateVendorStock()
+	if (!self.data) then
+		return
+	end
+
+	self.vendorList:Clear()
+
+	for _, v in ipairs(self.data.vendorTerminals or {}) do
+		local count = v.stockCount or 0
+		local status = (count == 0 and "DEPLETED") or (count <= 2 and "LOW") or "STOCKED"
+		local operator = (v.owner and v.owner != "") and v.owner or "Unassigned"
+
+		local line = self.vendorList:AddLine(
+			v.name or "Vendor Terminal",
+			operator,
+			count,
+			status,
+			ix.currency.Get(v.earnings or 0)
+		)
+
+		-- Flag terminals needing a restock so the Director can act on them.
+		local rowColor
+
+		if (count == 0) then
+			rowColor = Color(220, 90, 90)
+		elseif (count <= 2) then
+			rowColor = Color(220, 170, 90)
+		end
+
+		if (rowColor) then
+			for _, column in ipairs(line.Columns or {}) do
+				column:SetTextColor(rowColor)
+			end
+		end
 	end
 end
 

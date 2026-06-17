@@ -117,6 +117,25 @@ if (SERVER) then
 			end
 		end
 
+		-- Gather vendor terminal inventory for commerce oversight
+		local vendorTerminals = {}
+
+		for _, ent in ipairs(ents.FindByClass("ix_vendorterminal")) do
+			if (!IsValid(ent)) then
+				continue
+			end
+
+			local stock = ent:GetNetVar("stock", {})
+
+			vendorTerminals[#vendorTerminals + 1] = {
+				name = ent:GetNWString("TerminalName", "Vendor Terminal"),
+				owner = ent:GetNWString("OwnerName", ""),
+				ownerCharID = ent:GetOwnerCharID(),
+				stockCount = #stock,
+				earnings = ent:GetNetVar("earnings", 0)
+			}
+		end
+
 		netstream.Start(client, "CWUDirectorPCOpen", {
 			cwuMembers = cwuMembers,
 			citizens = citizens,
@@ -124,7 +143,8 @@ if (SERVER) then
 			blueprintRequests = ix.data.Get("cwuBlueprintRequests", {}),
 			treasury = treasury,
 			recentTransactions = recentTransactions,
-			allTransactions = transactions
+			allTransactions = transactions,
+			vendorTerminals = vendorTerminals
 		})
 
 		self:EmitSound("buttons/combine_button1.wav")

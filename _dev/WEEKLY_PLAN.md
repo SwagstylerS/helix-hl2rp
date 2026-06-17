@@ -30,9 +30,26 @@ Goals:
 ---
 
 ## Day 3 — Wed Jun 17 · Vendor Terminal Out-of-Stock Alert to Owner
-**Status:** Pending
+**Status:** ✅ Done
 
-Goals:
+- **Design change from the original goals:** dropped the push HUD banner — a CWU worker
+  shouldn't "magically" receive a screen notification (gamey, and it bypasses the
+  entity/terminal interaction model). Instead, vendor stock is **checkable in-world on the
+  CWU Director PC**, via a new "Commerce Inventory Oversight" tab.
+- `plugins/cwu/entities/ix_cwu_director_pc.lua` — `ENT:Use` now enumerates
+  `ents.FindByClass("ix_vendorterminal")` and includes a `vendorTerminals` list (name, owner,
+  ownerCharID, stockCount, earnings) in the existing `CWUDirectorPCOpen` netstream payload.
+- `plugins/cwu/derma/cl_cwu_director_pc.lua` — added `CreateVendorStockTab()` /
+  `PopulateVendorStock()` (registered in `Init`/`SetData`): a DListView of Terminal /
+  Operator / Stock / Status / Earnings. Status is `DEPLETED` / `LOW` (≤2) / `STOCKED`;
+  depleted rows are tinted red and low rows amber so the Director can spot terminals needing
+  a restock at a glance. Stock counts here are an in-world instrument readout on a faction
+  oversight terminal — not a player-facing score — so it stays within CONVENTIONS.
+- The vendor terminal owner already sees their own stock via the existing `CWUVendorManage`
+  panel (`ENT:Use` on their terminal), so no per-owner notification is needed.
+- `cl_hooks.lua` left untouched (the originally-planned out-of-stock banner was not added).
+
+Original goals (superseded by the above):
 - `plugins/cwu/entities/ix_vendorterminal.lua` — In the `CWUVendorPurchase` netstream handler (~line 242), after `table.remove(stock, stockIndex)` and `entity:SetNetVar("stock", stock)`, check if `#stock == 0`. If so, and `entity:GetOwnerCharID() > 0`, loop `player.GetAll()` to find the owner (same pattern as the loyalty-award loop just below it) and `netstream.Start(ownerPly, "CWUVendorOutOfStock", {terminalName = entity:GetNWString("TerminalName", "Vendor Terminal")})` — only fires while the owner is online
 - `plugins/cwu/cl_hooks.lua` — Near the top with `newOrderData`/`newOrderAt` (~line 9), add `local outOfStockData = nil` and `local outOfStockAt = 0`
 - `plugins/cwu/cl_hooks.lua` — After the `CWUNewWorkOrder` hook (~line 25), add `netstream.Hook("CWUVendorOutOfStock", function(data) outOfStockData = data; outOfStockAt = CurTime() end)`
