@@ -1,3 +1,10 @@
+function PLUGIN:PlayerDeath(client, inflictor, attacker)
+	local character = client:GetCharacter()
+	if (character) then
+		PLUGIN:WipeInjuries(character)
+	end
+end
+
 function PLUGIN:PlayerLoadedCharacter(client, character)
 	local faction = client:Team()
 	if (faction == FACTION_CITIZEN or faction == FACTION_CWU) then
