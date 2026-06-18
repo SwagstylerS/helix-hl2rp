@@ -50,7 +50,8 @@ Prefer these — they encode the rules above:
   DMAD multi-perspective design review), **stop-slop** (strip AI tells from prose).
   See `.claude/skills/THIRD_PARTY.md`.
 
-## Mandatory: ponytail before any code write
-**Run `/ponytail` before writing or editing any Lua file**, including bug fixes, new features,
-and sprint tasks. No exceptions. Ponytail decides the minimal correct change; only write what
-it approves. This applies in both interactive and autonomous (scheduled) sessions.
+## Mandatory: ponytail for any code discussion or change
+**Run `/ponytail` before writing, editing, or discussing any Lua code** — this includes bug
+fixes, sprint tasks, new features, design questions, code review, and "how would I…" questions.
+No exceptions. Ponytail scopes the minimal correct approach first; only proceed with what it
+approves. This applies in both interactive and autonomous (scheduled) sessions.
