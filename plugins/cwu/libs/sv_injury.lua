@@ -93,17 +93,21 @@ timer.Create("CWUBleedTick", BLEED_TICK, 0, function()
 				changed = true
 			end
 
-			-- Drain 3 HP per bleeding wound per tick; floor at BLEED_FLOOR
+			-- Drain HP scaled by severity; floor at BLEED_FLOOR
 			if (w.bleeding and hp > BLEED_FLOOR) then
-				hp = math.max(BLEED_FLOOR, hp - 3)
+				hp = math.max(BLEED_FLOOR, hp - (w.severity * 2))
 			end
 
-			-- Slow natural recovery: reduce severity once per RECOVERY_STEP ticks
+			-- Severity recovery: closed wounds heal to 0 and disappear; open wounds floor at 1
 			if (doRecovery) then
-				w.severity = w.severity - 1
 				changed = true
-				if (w.severity <= 0) then
-					table.remove(wounds, i)
+				if (w.closed) then
+					w.severity = w.severity - 1
+					if (w.severity <= 0) then
+						table.remove(wounds, i)
+					end
+				elseif (w.severity > 1) then
+					w.severity = w.severity - 1
 				end
 			end
 
