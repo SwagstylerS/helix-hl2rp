@@ -1,5 +1,50 @@
 # Weekly Development Plan
-**Week of Jun 15 – Jun 19, 2026**
+**Week of Jun 22 – Jun 26, 2026**
+**Goal:** Wire injury→heat scanner integration (medical fast-follow), complete Tier 4 senior-worker tax discount, and close any remaining Pillar 2 CWU gaps identified by smoke-testing the medical system.
+
+---
+
+## Day 1 — Mon Jun 23 · Injury→Heat Scanner Integration
+**Status:** Pending
+
+When a Combine scanner biometrically scans a citizen who has active bleeding wounds, the scan should raise their heat score — wounded citizens trying to pass through checkpoints unnoticed are a liability. This reuses the existing `AddHeat` plumbing in `combine-terminal/sv_plugin.lua`.
+
+Goals:
+- `plugins/combine-terminal/sv_plugin.lua` — In the `CS_BiometricScan` handler, after building `scanResult`, check whether the scanned player has injuries via `char:GetData("injuries", {})`. If any wound is `bleeding == true`, call `AddHeat(sid, 15)` with a comment "bleeding wound detected by scanner". This mirrors the existing `AddHeat` call pattern in the same handler.
+- `plugins/combine-scanner/sv_plugin.lua` — In the scanner `Use`/scan handler, where a `CS_BiometricScan` net message is sent: no change needed; heat is awarded server-side in the terminal handler.
+- No new player-facing strings. The existing `CS_BiometricAlert` Tier 4 broadcast handles the Combine notification if heat tips over.
+
+---
+
+## Day 2 — Tue Jun 24 · Tier 4 Senior Worker Vendor Tax Discount
+**Status:** Pending
+
+`ix.config.Add("cwuSeniorWorkerTaxDiscount", 25, ...)` was added to `sh_plugin.lua` alongside the Tier 5 config but was never wired into the purchase handler. Tier 4 sellers should receive a 25% tax reduction (vs 50% for Tier 5 Union Exemplar).
+
+Goals:
+- `plugins/cwu/entities/ix_vendorterminal.lua` — In `CWUVendorPurchase`, immediately after the existing Tier 5 discount block (`if ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5`), add an `elseif` for Tier 4: `elseif ownerChar and ownerChar:GetData("loyaltyTier", 0) >= 4`, apply `taxRate = taxRate * (1 - ix.config.Get("cwuSeniorWorkerTaxDiscount", 25) / 100)`. No new strings — silent economic perk same as Tier 5.
+
+---
+
+## Days 3–5 — Wed–Fri Jun 25–26 · Medical System Smoke-Test + Tuning
+**Status:** Pending
+
+After enabling `medicalInjuries 1` on the live server for the first time, observe the injury loop in play:
+- Verify `EntityTakeDamage` hook fires, wounds appear, bleed timer drains HP, vignette shows client-side.
+- Verify leg wound causes limp (`SetWalkSpeed` to 100).
+- Verify bandage stops bleeding and the wound re-bleeds after ~90 seconds.
+- Verify medic workstation surgery fully clears wounds (existing full-HP restore path).
+- Verify `medicalInjuries 0` reverts to vanilla damage with no impact on server stability.
+
+If tuning is needed (WOUND_THRESHOLD, BLEED_FLOOR, REBLEED_DELAY, RECOVERY_STEP), adjust constants in `sv_injury.lua` and commit. No structural changes expected.
+
+---
+
+---
+
+# Completed Weeks
+
+## Week of Jun 15 – Jun 19, 2026 (archived)
 **Goal:** Close remaining Pillar 1 intel/enforcement loops (heat-tier escalation alerts, detainee release lifecycle, curfew checkpoint lockdown) and extend the Commerce/Loyalty loop with vendor stock alerts and a Union Exemplar tax perk.
 
 ---
