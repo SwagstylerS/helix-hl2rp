@@ -8,6 +8,8 @@ local tierUpAt = 0
 local newOrderData = nil
 local newOrderAt = 0
 
+local localWounds = {}
+
 netstream.Hook("CWULoyaltySync", function(data)
 	CWU_LocalTier = data.tier
 end)
@@ -90,6 +92,10 @@ hook.Add("HUDPaint", "CWU_TierBadge", function()
 	)
 end)
 
+netstream.Hook("CWUInjuryUpdate", function(wounds)
+	localWounds = wounds or {}
+end)
+
 netstream.Hook("CWURecreationalEffect", function(duration)
 	PLUGIN.ChemEffectEnd = CurTime() + duration
 end)
@@ -102,6 +108,15 @@ function PLUGIN:HUDPaint()
 			surface.DrawRect(0, 0, ScrW(), ScrH())
 		else
 			PLUGIN.ChemEffectEnd = nil
+		end
+	end
+
+	for _, w in ipairs(localWounds) do
+		if (w.bleeding) then
+			local pulse = (math.sin(CurTime() * 1.5) + 1) * 0.5
+			surface.SetDrawColor(180, 0, 0, math.floor(15 + pulse * 20))
+			surface.DrawRect(0, 0, ScrW(), ScrH())
+			break
 		end
 	end
 

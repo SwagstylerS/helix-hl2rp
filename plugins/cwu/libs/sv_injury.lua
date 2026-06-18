@@ -14,12 +14,144 @@ function PLUGIN:HitgroupToRegion(hitgroup)
 	return self.HitgroupRegions[hitgroup] or "chest"
 end
 
-function PLUGIN:WipeInjuries(character)
-	character:SetData("injuries", {})
+local BLEED_TICK    = 5    -- server timer interval in seconds
+local RECOVERY_STEP = 12   -- ticks between severity reductions (~60s at 5s tick)
+local REBLEED_DELAY = 90   -- seconds after bandage before wound starts leaking again
+local BLEED_FLOOR   = 10   -- HP floor; bleed stops here (prevent insta-kill before Phase 3)
+-- ponytail: DEFAULT_WALK assumes Helix schema default; adjust if schema overrides walk speed
+local DEFAULT_WALK  = 200
+local LIMP_WALK     = 100
+
+local function HasLegWound(wounds)
+	for _, w in ipairs(wounds) do
+		if (w.region == "left_leg" or w.region == "right_leg") then
+			return true
+		end
+	end
+	return false
 end
 
--- Demo self-check: run as admin with an active character.
--- Seed a wound, assert it round-trips through SetData/GetData, then assert wipe clears it.
+function PLUGIN:SetInjuries(character, wounds)
+	character:SetData("injuries", wounds)
+	local ply = character:GetPlayer()
+	if (!IsValid(ply)) then return end
+	ply:SetWalkSpeed(HasLegWound(wounds) and LIMP_WALK or DEFAULT_WALK)
+	netstream.Start(ply, "CWUInjuryUpdate", wounds)
+end
+
+function PLUGIN:WipeInjuries(character)
+	character:SetData("injuries", {})
+	local ply = character:GetPlayer()
+	if (IsValid(ply)) then
+		ply:SetWalkSpeed(DEFAULT_WALK)
+		netstream.Start(ply, "CWUInjuryUpdate", {})
+	end
+end
+
+function PLUGIN:ApplyBandage(character)
+	local wounds = character:GetData("injuries", {})
+	for _, w in ipairs(wounds) do
+		if (w.bleeding) then
+			w.bleeding  = false
+			w.rebleedAt = CurTime() + REBLEED_DELAY
+			PLUGIN:SetInjuries(character, wounds)
+			return true
+		end
+	end
+	return false
+end
+
+local bleedTick = 0
+
+timer.Create("CWUBleedTick", BLEED_TICK, 0, function()
+	bleedTick = bleedTick + 1
+	local doRecovery = (bleedTick % RECOVERY_STEP) == 0
+
+	for _, ply in ipairs(player.GetAll()) do
+		if (!IsValid(ply)) then continue end
+		local char = ply:GetCharacter()
+		if (!char) then continue end
+
+		local wounds = char:GetData("injuries", {})
+		if (#wounds == 0) then continue end
+
+		local changed = false
+		local hp      = ply:Health()
+		local i       = #wounds
+
+		while (i >= 1) do
+			local w = wounds[i]
+
+			-- Re-bleed: bandaged wound starts leaking again after delay
+			if (!w.bleeding and w.rebleedAt and CurTime() >= w.rebleedAt) then
+				w.bleeding  = true
+				w.rebleedAt = nil
+				changed = true
+			end
+
+			-- Drain 3 HP per bleeding wound per tick; floor at BLEED_FLOOR
+			if (w.bleeding and hp > BLEED_FLOOR) then
+				hp = math.max(BLEED_FLOOR, hp - 3)
+			end
+
+			-- Slow natural recovery: reduce severity once per RECOVERY_STEP ticks
+			if (doRecovery) then
+				w.severity = w.severity - 1
+				changed = true
+				if (w.severity <= 0) then
+					table.remove(wounds, i)
+				end
+			end
+
+			i = i - 1
+		end
+
+		if (hp != ply:Health()) then
+			ply:SetHealth(hp)
+		end
+
+		if (changed) then
+			PLUGIN:SetInjuries(char, wounds)
+		end
+	end
+end)
+
+-- Admin: inject a test wound directly, no damage hook needed in Phase 2
+concommand.Add("cwu_inject_wound", function(ply, cmd, args)
+	if (IsValid(ply) and !ply:IsAdmin()) then return end
+
+	local region   = args[1] or "chest"
+	local severity = math.Clamp(math.floor(tonumber(args[2]) or 1), 1, 3)
+	local target   = IsValid(ply) and ply or nil
+
+	if (!target) then
+		for _, p in ipairs(player.GetAll()) do
+			if (p:IsAdmin()) then target = p; break end
+		end
+	end
+
+	if (!target) then MsgN("[cwu_inject_wound] No valid target."); return end
+
+	local validRegions = {
+		head = true, chest = true, abdomen = true,
+		left_arm = true, right_arm = true, left_leg = true, right_leg = true,
+	}
+
+	if (!validRegions[region]) then
+		MsgN("[cwu_inject_wound] Invalid region. Valid: head chest abdomen left_arm right_arm left_leg right_leg")
+		return
+	end
+
+	local char = target:GetCharacter()
+	if (!char) then MsgN("[cwu_inject_wound] Target has no character."); return end
+
+	local wounds = char:GetData("injuries", {})
+	wounds[#wounds + 1] = {region = region, bleeding = true, severity = severity}
+	PLUGIN:SetInjuries(char, wounds)
+	MsgN(string.format("[cwu_inject_wound] Injected %s wound (sev %d) on %s.", region, severity, target:Name()))
+end)
+
+-- Phase 1 demo self-check (kept)
 concommand.Add("cwu_injury_demo", function(ply)
 	if (IsValid(ply) and !ply:IsAdmin()) then return end
 

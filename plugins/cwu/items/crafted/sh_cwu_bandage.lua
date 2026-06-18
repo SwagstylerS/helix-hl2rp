@@ -9,11 +9,17 @@ ITEM.healAmount = 20
 ITEM.functions.Apply = {
 	OnRun = function(itemTable)
 		local client = itemTable.player
+		local character = client:GetCharacter()
 
-		client:SetHealth(math.min(client:Health() + 25, client:GetMaxHealth()))
+		if (!character) then return false end
+
+		if (!PLUGIN:ApplyBandage(character)) then
+			client:Notify("No open wound to dress.")
+			return false
+		end
+
 		client:EmitSound("items/medshot4.wav")
-		client:Notify("You applied a bandage and recovered some health.")
-
-		return false
+		client:Notify("The dressing holds for now. Seek further treatment.")
+		return true  -- true = consume item (Helix convention; false = keep)
 	end
 }
