@@ -74,7 +74,7 @@ Goals:
 ---
 
 ## Day 5 — Fri Jun 19 · Curfew Checkpoint Auto-Lockdown
-**Status:** Pending
+**Status:** ✅ Done
 
 Goals:
 - `plugins/combine-ops/sv_plugin.lua` — In the `curfew` command `OnRun` (~line 131), after toggling `CS.CurfewActive`, iterate `ents.FindByClass("ix_checkpoint")`. When curfew is being **activated** (`CS.CurfewActive == true`), for each valid checkpoint store its current mode in a module table `CS.CheckpointPreCurfewModes[entity:EntIndex()] = entity:GetMode()` (init this table near the other `CS.*` state tables ~line 17-19) and then `entity:SetMode(3)` (mode 3 = RED/"CP-OTA only", per `plugins/checkpoint/entities/entities/ix_checkpoint.lua` `MODE_RED`)

@@ -145,7 +145,7 @@ ix.command.Add("curfew", {
             for _, entity in ipairs(ents.FindByClass("ix_checkpoint")) do
                 if IsValid(entity) then
                     CS.CheckpointPreCurfewModes[entity:EntIndex()] = entity:GetMode()
-                    entity:SetMode(2)
+                    entity:SetMode(3)
                 end
             end
         else
