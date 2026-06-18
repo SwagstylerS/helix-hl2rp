@@ -14,6 +14,6 @@ ITEM.functions.Inject = {
 		client:EmitSound("items/medcharge4.wav")
 		client:Notify("The stimpak floods your system with healing compounds.")
 
-		return false
+		return true
 	end
 }

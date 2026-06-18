@@ -144,8 +144,7 @@ if (SERVER) then
 				target:Notify("CWU medical care has been rendered. Follow any recovery directives issued.")
 			end
 
-			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
-			client:Notify("Care administered. Service record updated.")
+			client:Notify("Care administered.")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 5, function()
@@ -214,7 +213,6 @@ if (SERVER) then
 				target:Notify("Surgical intervention complete. You are cleared for standard duty under the Union programme.")
 			end
 
-			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
 			client:Notify("Surgical intervention logged. Patient cleared for duty.")
 			entity:SetState(0)
 			entity:SetInUse(false)
@@ -332,8 +330,7 @@ if (SERVER) then
 		target:EmitSound("items/medshot4.wav")
 		target:Notify("CWU medical care has been rendered. Follow any recovery directives issued.")
 
-		PLUGIN:AwardLoyalty(character, 2, "treatment")
-		client:Notify("Care administered. Service record updated.")
+		client:Notify("Care administered.")
 	end)
 
 	-- Synthesis: Illicit drugs (combat stim or recreational) - dual use tension
