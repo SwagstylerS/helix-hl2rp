@@ -49,3 +49,8 @@ Prefer these — they encode the rules above:
 - Vendored: **ponytail** (do-less / YAGNI gate), **council-review** (Karpathy LLM-Council /
   DMAD multi-perspective design review), **stop-slop** (strip AI tells from prose).
   See `.claude/skills/THIRD_PARTY.md`.
+
+## Mandatory: ponytail before any code write
+**Run `/ponytail` before writing or editing any Lua file**, including bug fixes, new features,
+and sprint tasks. No exceptions. Ponytail decides the minimal correct change; only write what
+it approves. This applies in both interactive and autonomous (scheduled) sessions.
