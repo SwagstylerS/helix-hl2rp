@@ -52,8 +52,12 @@ function PLUGIN:ApplyBandage(character)
 	local wounds = character:GetData("injuries", {})
 	for _, w in ipairs(wounds) do
 		if (w.bleeding) then
-			w.bleeding  = false
-			w.rebleedAt = CurTime() + REBLEED_DELAY
+			w.bleeding = false
+			if (math.random(100) <= 20) then
+				w.rebleedAt = CurTime() + REBLEED_DELAY
+			else
+				w.closed = true
+			end
 			PLUGIN:SetInjuries(character, wounds)
 			return true
 		end
