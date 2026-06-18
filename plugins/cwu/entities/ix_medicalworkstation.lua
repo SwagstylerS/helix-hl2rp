@@ -129,7 +129,7 @@ if (SERVER) then
 		end
 
 		if (!IsValid(target)) then
-			client:Notify("Patient must be near the workstation.")
+			client:Notify("No eligible patient within workstation range.")
 			return
 		end
 
@@ -141,11 +141,11 @@ if (SERVER) then
 			if (IsValid(target)) then
 				target:SetHealth(math.min(target:Health() + 25, target:GetMaxHealth()))
 				target:EmitSound("items/medshot4.wav")
-				target:Notify("You have been treated by a CWU medic.")
+				target:Notify("CWU medical care has been rendered. Follow any recovery directives issued.")
 			end
 
 			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
-			client:Notify("Treatment complete.")
+			client:Notify("Care administered. Service record updated.")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 5, function()
@@ -192,7 +192,7 @@ if (SERVER) then
 		end
 
 		if (!IsValid(target)) then
-			client:Notify("Patient must be near the workstation.")
+			client:Notify("No eligible patient within workstation range.")
 			return
 		end
 
@@ -211,11 +211,11 @@ if (SERVER) then
 			if (IsValid(target)) then
 				target:SetHealth(target:GetMaxHealth())
 				target:EmitSound("items/medcharge4.wav")
-				target:Notify("You have undergone surgery. Full health restored.")
+				target:Notify("Surgical intervention complete. You are cleared for standard duty under the Union programme.")
 			end
 
 			PLUGIN:AwardLoyalty(client:GetCharacter(), 2, "treatment")
-			client:Notify("Surgery complete.")
+			client:Notify("Surgical intervention logged. Patient cleared for duty.")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 10, function()
@@ -278,7 +278,7 @@ if (SERVER) then
 			end)
 
 			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
-			client:Notify("Synthesis complete: Medical Stimpak produced.")
+			client:Notify("Synthesis complete. Output registered under Union Medical.")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 15, function()
@@ -308,12 +308,12 @@ if (SERVER) then
 		local target = Entity(targetEntIndex)
 
 		if (!IsValid(target) or !target:IsPlayer()) then
-			client:Notify("Invalid patient.")
+			client:Notify("No valid patient registered at this workstation.")
 			return
 		end
 
 		if (target:GetPos():Distance(client:GetPos()) > 200) then
-			client:Notify("Patient must be near you.")
+			client:Notify("Patient must be within immediate proximity for treatment.")
 			return
 		end
 
@@ -321,7 +321,7 @@ if (SERVER) then
 		local item = inventory:GetItems()[itemID]
 
 		if (!item or !item.isHealingItem) then
-			client:Notify("Invalid healing item.")
+			client:Notify("Supplied item is not registered as Union medical equipment.")
 			return
 		end
 
@@ -330,10 +330,10 @@ if (SERVER) then
 
 		target:SetHealth(math.min(target:Health() + healAmount, target:GetMaxHealth()))
 		target:EmitSound("items/medshot4.wav")
-		target:Notify("You have been treated by a CWU medic.")
+		target:Notify("CWU medical care has been rendered. Follow any recovery directives issued.")
 
 		PLUGIN:AwardLoyalty(character, 2, "treatment")
-		client:Notify("Treatment complete.")
+		client:Notify("Care administered. Service record updated.")
 	end)
 
 	-- Synthesis: Illicit drugs (combat stim or recreational) - dual use tension
@@ -399,7 +399,15 @@ if (SERVER) then
 				entity:EmitSound("buttons/combine_button1.wav")
 			end)
 
-			client:Notify("Synthesis complete: Medical compound produced.")
+			client:Notify("Synthesis complete. Output registered under Union Medical.")
+			PLUGIN:LogTransaction({
+				type       = "synthesis",
+				synthesizer   = character:GetName(),
+				synthesizerID = character:GetID(),
+				item       = outputItem,
+				itemName   = "Medical Compound",
+				quantity   = 1,
+			})
 			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
 			entity:SetState(0)
 			entity:SetInUse(false)
@@ -451,10 +459,10 @@ else
 			local stateColor = Color(100, 150, 255)
 
 			if (state == 1) then
-				stateText = "TREATING..."
+				stateText = "PROCEDURE IN PROGRESS"
 				stateColor = Color(255, 200, 100)
 			elseif (state == 2) then
-				stateText = "SYNTHESIZING..."
+				stateText = "SYNTHESIS IN PROGRESS"
 				stateColor = Color(200, 100, 255)
 			end
 

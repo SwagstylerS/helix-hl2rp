@@ -50,7 +50,7 @@ function PANEL:SetData(entIndex, data)
 	basicBtn:Dock(TOP)
 	basicBtn:DockMargin(5, 2, 5, 2)
 	basicBtn:SetTall(28)
-	basicBtn:SetText("Basic Treatment (Bandaging - heals 25 HP)")
+	basicBtn:SetText("Administer First Aid")
 	basicBtn.DoClick = function()
 		local _, steamID = self.patientCombo:GetSelected()
 
@@ -68,7 +68,7 @@ function PANEL:SetData(entIndex, data)
 	surgeryBtn:Dock(TOP)
 	surgeryBtn:DockMargin(5, 0, 5, 2)
 	surgeryBtn:SetTall(28)
-	surgeryBtn:SetText("Surgery (Full heal - requires training + stimpak)")
+	surgeryBtn:SetText("Perform Surgical Intervention")
 	surgeryBtn:SetEnabled(data.hasMedicalTraining and data.hasStimpak)
 	surgeryBtn.DoClick = function()
 		local _, steamID = self.patientCombo:GetSelected()
@@ -140,7 +140,7 @@ function PANEL:SetData(entIndex, data)
 	local note = vgui.Create("DLabel", self)
 	note:Dock(BOTTOM)
 	note:DockMargin(5, 2, 5, 5)
-	note:SetText("All synthesis outputs are logged as 'Medical Compound'.")
+	note:SetText("All synthesised outputs are registered under Union Medical protocols.")
 	note:SetTextColor(Color(150, 150, 150))
 	note:SizeToContents()
 end
@@ -162,8 +162,6 @@ function TREAT_PANEL:SetData(targetEntIndex, healingItems)
 
 	local target = Entity(targetEntIndex)
 	local targetName = IsValid(target) and target:GetCharacter() and target:GetCharacter():GetName() or "Unknown"
-	local targetHealth = IsValid(target) and target:Health() or 0
-	local targetMaxHealth = IsValid(target) and target:GetMaxHealth() or 100
 
 	local headerLabel = vgui.Create("DLabel", self)
 	headerLabel:Dock(TOP)
@@ -176,7 +174,7 @@ function TREAT_PANEL:SetData(targetEntIndex, healingItems)
 	local patientLabel = vgui.Create("DLabel", self)
 	patientLabel:Dock(TOP)
 	patientLabel:DockMargin(5, 2, 5, 4)
-	patientLabel:SetText(string.format("Patient: %s  |  Health: %d / %d", targetName, targetHealth, targetMaxHealth))
+	patientLabel:SetText(string.format("Patient: %s", targetName))
 	patientLabel:SetTextColor(Color(200, 200, 200))
 	patientLabel:SizeToContents()
 
@@ -203,10 +201,9 @@ function TREAT_PANEL:SetData(targetEntIndex, healingItems)
 	list:Dock(FILL)
 	list:DockMargin(5, 0, 5, 5)
 	list:AddColumn("Item")
-	list:AddColumn("Heals")
 
 	for _, itemData in ipairs(healingItems) do
-		local row = list:AddLine(itemData.name, "+" .. itemData.healAmount .. " HP")
+		local row = list:AddLine(itemData.name)
 		row.itemID = itemData.id
 	end
 
