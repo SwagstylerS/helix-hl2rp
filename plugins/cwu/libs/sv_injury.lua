@@ -24,7 +24,7 @@ local LIMP_WALK     = 100
 
 local function HasLegWound(wounds)
 	for _, w in ipairs(wounds) do
-		if (w.region == "left_leg" or w.region == "right_leg") then
+		if ((w.region == "left_leg" or w.region == "right_leg") and w.bleeding) then
 			return true
 		end
 	end
