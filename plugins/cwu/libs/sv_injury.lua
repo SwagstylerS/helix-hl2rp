@@ -151,6 +151,33 @@ concommand.Add("cwu_inject_wound", function(ply, cmd, args)
 	MsgN(string.format("[cwu_inject_wound] Injected %s wound (sev %d) on %s.", region, severity, target:Name()))
 end)
 
+-- ponytail: hardcoded wound threshold; add config after smoke-test if tuning needed
+local WOUND_THRESHOLD = 15
+
+hook.Add("EntityTakeDamage", "CWUMedicalInjury", function(entity, dmginfo)
+	if (!entity:IsPlayer()) then return end
+	if (!ix.config.Get("medicalInjuries", false)) then return end
+
+	local ok, err = pcall(function()
+		if (dmginfo:GetDamage() < WOUND_THRESHOLD) then return end
+
+		local char = entity:GetCharacter()
+		if (!char) then return end
+
+		local wounds = char:GetData("injuries", {})
+		wounds[#wounds + 1] = {
+			region   = PLUGIN:HitgroupToRegion(dmginfo:GetHitGroup()),
+			bleeding = true,
+			severity = 1,
+		}
+		PLUGIN:SetInjuries(char, wounds)
+	end)
+
+	if (!ok) then
+		MsgN("[CWUMedicalInjury] hook error (fail-open): " .. tostring(err))
+	end
+end)
+
 -- Phase 1 demo self-check (kept)
 concommand.Add("cwu_injury_demo", function(ply)
 	if (IsValid(ply) and !ply:IsAdmin()) then return end

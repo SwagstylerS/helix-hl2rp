@@ -18,6 +18,8 @@ ix.config.Add("cwuDegradationInterval", 300, "Seconds between infrastructure deg
 	category = "cwu"
 })
 
+ix.config.Add("medicalInjuries", false, "Enable per-limb injury system. Default OFF — enable only after smoke test.", nil, {category = "CWU"})
+
 ix.config.Add("cwuTaxRate", 10, "Percentage tax on vendor terminal sales.", nil, {
 	data = {min = 0, max = 50},
 	category = "cwu"
