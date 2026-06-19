@@ -9,8 +9,6 @@ ENT.PhysgunDisable = true
 ENT.bNoPersist = true
 ENT.AutomaticFrameAdvance = true
 
-ENT.MaxRenderDistance = math.pow(256, 2)
-
 -- ponytail: random citizen skin re-rolled each spawn; persist a saved model in SaveVendorTerminals if a vendor needs a fixed face
 local CITIZEN_MODELS = {
 	"models/humans/group01/male_01.mdl",
@@ -35,23 +33,51 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool", 0, "Licensed")
 end
 
+-- mirrors the framework ix_vendor: idle by sequence name, robust across models
+function ENT:SetAnim()
+	for k, v in ipairs(self:GetSequenceList()) do
+		if (v:lower():find("idle") and v != "idlenoise") then
+			return self:ResetSequence(k)
+		end
+	end
+
+	if (self:GetSequenceCount() > 1) then
+		self:ResetSequence(4)
+	end
+end
+
+function ENT:GetAxisAlignedBoundingBox()
+	local mins, maxs = self:GetModelBounds()
+	mins = Vector(mins.x, mins.y, 0)
+	mins, maxs = self:GetRotatedAABB(mins, maxs)
+
+	return mins, maxs
+end
+
+function ENT:InitPhysObj()
+	local mins, maxs = self:GetAxisAlignedBoundingBox()
+	local bPhysObjCreated = self:PhysicsInitBox(mins, maxs)
+
+	if (bPhysObjCreated) then
+		local physObj = self:GetPhysicsObject()
+		physObj:EnableMotion(false)
+		physObj:Sleep()
+	end
+end
+
 if (SERVER) then
 	function ENT:Initialize()
 		self:SetModel(table.Random(CITIZEN_MODELS))
-		self:PhysicsInit(SOLID_BBOX)
-		self:SetSolid(SOLID_BBOX)
-		self:SetMoveType(MOVETYPE_NONE)
 		self:SetUseType(SIMPLE_USE)
+		self:SetMoveType(MOVETYPE_NONE)
+		self:DrawShadow(true)
+		self:InitPhysObj()
 
-		local idle = self:SelectWeightedSequence(ACT_IDLE)
-		self:ResetSequence(idle >= 0 and idle or 0)
+		self:AddCallback("OnAngleChange", function(entity)
+			local mins, maxs = entity:GetAxisAlignedBoundingBox()
 
-		local physics = self:GetPhysicsObject()
-
-		if (IsValid(physics)) then
-			physics:EnableMotion(false)
-			physics:Sleep()
-		end
+			entity:SetCollisionBounds(mins, maxs)
+		end)
 
 		self.nextUseTime = 0
 		self:SetOwnerCharID(0)
@@ -60,6 +86,12 @@ if (SERVER) then
 		self:SetNWString("TerminalName", "Vendor Terminal")
 		self:SetNetVar("stock", {})
 		self:SetNetVar("earnings", 0)
+
+		timer.Simple(1, function()
+			if (IsValid(self)) then
+				self:SetAnim()
+			end
+		end)
 	end
 
 	function ENT:SpawnFunction(client, trace)
@@ -349,56 +381,25 @@ if (SERVER) then
 		PLUGIN:SaveVendorTerminals()
 	end)
 else
-	surface.CreateFont("ixVendorTerminal", {
-		font = "Default",
-		size = 16,
-		weight = 800,
-		antialias = false
-	})
+	-- framework-style look-at info panel instead of a 3D2D nameplate
+	function ENT:OnPopulateEntityInfo(tooltip)
+		local name = tooltip:AddRow("name")
+		name:SetImportant()
+		name:SetText(self:GetNWString("TerminalName", "Vendor"))
+		name:SizeToContents()
 
-	surface.CreateFont("ixVendorTerminalSmall", {
-		font = "Default",
-		size = 11,
-		weight = 600,
-		antialias = false
-	})
+		local owner = self:GetNWString("OwnerName", "")
 
-	function ENT:Draw()
-		self:DrawModel()
-
-		local position = self:GetPos() + Vector(0, 0, 78)
-
-		if (LocalPlayer():GetPos():DistToSqr(position) > self.MaxRenderDistance) then
-			return
+		if (owner != "") then
+			local ownerRow = tooltip:AddRow("owner")
+			ownerRow:SetText(owner)
+			ownerRow:SizeToContents()
 		end
 
-		-- billboard the nameplate to always face the viewer
-		local angles = EyeAngles()
-		angles:RotateAroundAxis(angles:Forward(), 90)
-		angles:RotateAroundAxis(angles:Right(), 90)
-
-		cam.Start3D2D(position, angles, 0.1)
-			surface.SetDrawColor(20, 20, 20, 200)
-			surface.DrawRect(-90, -34, 180, 56)
-
-			surface.SetDrawColor(60, 60, 60, 220)
-			surface.DrawOutlinedRect(-90, -34, 180, 56)
-
-			local name = self:GetNWString("TerminalName", "Vendor")
-			draw.SimpleText(name, "ixVendorTerminal", 0, -18, Color(100, 200, 100), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
-			local owner = self:GetNWString("OwnerName", "")
-
-			if (owner != "") then
-				draw.SimpleText(owner, "ixVendorTerminalSmall", 0, -2, Color(200, 200, 200), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-			end
-
-			local stock = self:GetNetVar("stock", {})
-			local stockCount = #stock
-			local statusText = stockCount > 0 and "OPEN - " .. stockCount .. " items" or "CLOSED"
-			local statusColor = stockCount > 0 and Color(100, 255, 100) or Color(255, 100, 100)
-
-			draw.SimpleText(statusText, "ixVendorTerminalSmall", 0, 12, statusColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		cam.End3D2D()
+		local stockCount = #self:GetNetVar("stock", {})
+		local status = tooltip:AddRow("status")
+		status:SetBackgroundColor(stockCount > 0 and Color(70, 120, 70) or Color(120, 70, 70))
+		status:SetText(stockCount > 0 and "OPEN - " .. stockCount .. " items" or "CLOSED")
+		status:SizeToContents()
 	end
 end
