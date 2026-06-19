@@ -1,14 +1,34 @@
 AddCSLuaFile()
 
 ENT.Type = "anim"
-ENT.PrintName = "CWU Vendor Terminal"
+ENT.PrintName = "CWU Vendor"
 ENT.Category = "HL2 RP"
 ENT.Spawnable = true
 ENT.AdminOnly = true
 ENT.PhysgunDisable = true
 ENT.bNoPersist = true
+ENT.AutomaticFrameAdvance = true
 
 ENT.MaxRenderDistance = math.pow(256, 2)
+
+-- ponytail: random citizen skin re-rolled each spawn; persist a saved model in SaveVendorTerminals if a vendor needs a fixed face
+local CITIZEN_MODELS = {
+	"models/humans/group01/male_01.mdl",
+	"models/humans/group01/male_02.mdl",
+	"models/humans/group01/male_03.mdl",
+	"models/humans/group01/male_04.mdl",
+	"models/humans/group01/male_05.mdl",
+	"models/humans/group01/male_06.mdl",
+	"models/humans/group01/male_07.mdl",
+	"models/humans/group01/male_08.mdl",
+	"models/humans/group01/male_09.mdl",
+	"models/humans/group01/female_01.mdl",
+	"models/humans/group01/female_02.mdl",
+	"models/humans/group01/female_03.mdl",
+	"models/humans/group01/female_04.mdl",
+	"models/humans/group01/female_06.mdl",
+	"models/humans/group01/female_07.mdl"
+}
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Int", 0, "OwnerCharID")
@@ -17,10 +37,14 @@ end
 
 if (SERVER) then
 	function ENT:Initialize()
-		self:SetModel("models/props_lab/monitor01a.mdl")
-		self:PhysicsInit(SOLID_VPHYSICS)
-		self:SetSolid(SOLID_VPHYSICS)
+		self:SetModel(table.Random(CITIZEN_MODELS))
+		self:PhysicsInit(SOLID_BBOX)
+		self:SetSolid(SOLID_BBOX)
+		self:SetMoveType(MOVETYPE_NONE)
 		self:SetUseType(SIMPLE_USE)
+
+		local idle = self:SelectWeightedSequence(ACT_IDLE)
+		self:ResetSequence(idle >= 0 and idle or 0)
 
 		local physics = self:GetPhysicsObject()
 
@@ -41,7 +65,7 @@ if (SERVER) then
 	function ENT:SpawnFunction(client, trace)
 		local entity = ents.Create("ix_vendorterminal")
 
-		entity:SetPos(trace.HitPos + Vector(0, 0, 8))
+		entity:SetPos(trace.HitPos)
 		entity:SetAngles(Angle(0, (entity:GetPos() - client:GetPos()):Angle().y - 180, 0))
 		entity:Spawn()
 		entity:Activate()
@@ -319,11 +343,6 @@ if (SERVER) then
 			terminal = entity:GetNWString("TerminalName", "Vendor Terminal")
 		})
 
-		-- Award loyalty to the terminal owner for making a sale
-		if (ownerChar) then
-			PLUGIN:AwardLoyalty(ownerChar, 1, "sale")
-		end
-
 		client:NotifyLocalized("cwuPurchaseComplete")
 		entity:EmitSound("buttons/button4.wav", 60)
 
@@ -347,28 +366,25 @@ else
 	function ENT:Draw()
 		self:DrawModel()
 
-		local position = self:GetPos()
+		local position = self:GetPos() + Vector(0, 0, 78)
 
 		if (LocalPlayer():GetPos():DistToSqr(position) > self.MaxRenderDistance) then
 			return
 		end
 
-		local angles = self:GetAngles()
-
-		angles:RotateAroundAxis(angles:Up(), 90)
+		-- billboard the nameplate to always face the viewer
+		local angles = EyeAngles()
 		angles:RotateAroundAxis(angles:Forward(), 90)
+		angles:RotateAroundAxis(angles:Right(), 90)
 
-		cam.Start3D2D(position + self:GetForward() * 5.5 + self:GetUp() * 14, angles, 0.05)
-			render.PushFilterMin(TEXFILTER.NONE)
-			render.PushFilterMag(TEXFILTER.NONE)
+		cam.Start3D2D(position, angles, 0.1)
+			surface.SetDrawColor(20, 20, 20, 200)
+			surface.DrawRect(-90, -34, 180, 56)
 
-			surface.SetDrawColor(20, 20, 20)
-			surface.DrawRect(-90, -35, 180, 70)
+			surface.SetDrawColor(60, 60, 60, 220)
+			surface.DrawOutlinedRect(-90, -34, 180, 56)
 
-			surface.SetDrawColor(60, 60, 60)
-			surface.DrawOutlinedRect(-90, -35, 180, 70)
-
-			local name = self:GetNWString("TerminalName", "Vendor Terminal")
+			local name = self:GetNWString("TerminalName", "Vendor")
 			draw.SimpleText(name, "ixVendorTerminal", 0, -18, Color(100, 200, 100), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
 			local owner = self:GetNWString("OwnerName", "")
@@ -382,10 +398,7 @@ else
 			local statusText = stockCount > 0 and "OPEN - " .. stockCount .. " items" or "CLOSED"
 			local statusColor = stockCount > 0 and Color(100, 255, 100) or Color(255, 100, 100)
 
-			draw.SimpleText(statusText, "ixVendorTerminalSmall", 0, 14, statusColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
-			render.PopFilterMin()
-			render.PopFilterMag()
+			draw.SimpleText(statusText, "ixVendorTerminalSmall", 0, 12, statusColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		cam.End3D2D()
 	end
 end
