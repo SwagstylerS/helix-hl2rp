@@ -5,7 +5,7 @@
 ---
 
 ## Day 1 — Mon Jun 23 · Injury→Heat Scanner Integration
-**Status:** Pending
+**Status:** ✅ Done
 
 When a Combine scanner biometrically scans a citizen who has active bleeding wounds, the scan should raise their heat score — wounded citizens trying to pass through checkpoints unnoticed are a liability. This reuses the existing `AddHeat` plumbing in `combine-terminal/sv_plugin.lua`.
 
@@ -14,15 +14,19 @@ Goals:
 - `plugins/combine-scanner/sv_plugin.lua` — In the scanner `Use`/scan handler, where a `CS_BiometricScan` net message is sent: no change needed; heat is awarded server-side in the terminal handler.
 - No new player-facing strings. The existing `CS_BiometricAlert` Tier 4 broadcast handles the Combine notification if heat tips over.
 
+Implementation note: Scan logic lives in `scansubject` command in `combine-scanner/sv_plugin.lua` (no separate `CS_BiometricScan` net handler exists). Wound check inserted before `GetHeatTier` so the scan result reflects the raised score.
+
 ---
 
 ## Day 2 — Tue Jun 24 · Tier 4 Senior Worker Vendor Tax Discount
-**Status:** Pending
+**Status:** ✅ Done
 
 `ix.config.Add("cwuSeniorWorkerTaxDiscount", 25, ...)` was added to `sh_plugin.lua` alongside the Tier 5 config but was never wired into the purchase handler. Tier 4 sellers should receive a 25% tax reduction (vs 50% for Tier 5 Union Exemplar).
 
 Goals:
 - `plugins/cwu/entities/ix_vendorterminal.lua` — In `CWUVendorPurchase`, immediately after the existing Tier 5 discount block (`if ownerChar and ownerChar:GetData("loyaltyTier", 0) == 5`), add an `elseif` for Tier 4: `elseif ownerChar and ownerChar:GetData("loyaltyTier", 0) >= 4`, apply `taxRate = taxRate * (1 - ix.config.Get("cwuSeniorWorkerTaxDiscount", 25) / 100)`. No new strings — silent economic perk same as Tier 5.
+
+Implementation note: Both the config (`sh_plugin.lua`) and the `elseif` wiring (`ix_vendorterminal.lua`) were already in place — implemented alongside Day 4 of the prior week when Tier 5 discount was added. Plan updated to reflect reality.
 
 ---
 

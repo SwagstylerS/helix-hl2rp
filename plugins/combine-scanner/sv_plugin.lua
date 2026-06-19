@@ -414,6 +414,17 @@ ix.command.Add("scansubject", {
         local cid         = char and char:GetID() or 0
         local warrants    = ix.data.Get("cs_warrants",  {})
         local warrant     = warrants[sid]
+
+        if char then
+            local wounds = char:GetData("injuries", {})
+            for _, wound in ipairs(wounds) do
+                if wound.bleeding then
+                    AddHeat(sid, 15)
+                    break
+                end
+            end
+        end
+
         local heatTier    = GetHeatTier(sid)
         local illicit, suspicious = GetRestrictedItems(target)
         local hasIllicit  = #illicit > 0
