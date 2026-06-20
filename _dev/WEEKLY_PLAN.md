@@ -30,6 +30,13 @@ Implementation note: Both the config (`sh_plugin.lua`) and the `elseif` wiring (
 
 ---
 
+## Weekend Jun 20 — Pre-Smoke-Test Code Review (automated session)
+Static analysis of `sv_injury.lua` and `ix_medicalworkstation.lua` before the live smoke test.
+One bug found and fixed: `CWUMedicalSurgery` was restoring full HP without calling `PLUGIN:WipeInjuries`, so leg-wound limps and bleeding vignettes would persist after surgery. Fixed in `ix_medicalworkstation.lua`.
+All other systems (bleed tick, severity recovery, re-bleed timer, bandage 80/20 logic, walk-speed restore) reviewed and appear correct.
+
+---
+
 ## Days 3–5 — Wed–Fri Jun 25–26 · Medical System Smoke-Test + Tuning
 **Status:** Pending
 

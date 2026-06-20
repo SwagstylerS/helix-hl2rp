@@ -208,6 +208,10 @@ if (SERVER) then
 			end
 
 			if (IsValid(target)) then
+				local targetChar = target:GetCharacter()
+				if (targetChar) then
+					PLUGIN:WipeInjuries(targetChar)
+				end
 				target:SetHealth(target:GetMaxHealth())
 				target:EmitSound("items/medcharge4.wav")
 				target:Notify("Surgical intervention complete. You are cleared for standard duty under the Union programme.")
