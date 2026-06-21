@@ -35,6 +35,9 @@ Static analysis of `sv_injury.lua` and `ix_medicalworkstation.lua` before the li
 One bug found and fixed: `CWUMedicalSurgery` was restoring full HP without calling `PLUGIN:WipeInjuries`, so leg-wound limps and bleeding vignettes would persist after surgery. Fixed in `ix_medicalworkstation.lua`.
 All other systems (bleed tick, severity recovery, re-bleed timer, bandage 80/20 logic, walk-speed restore) reviewed and appear correct.
 
+## Sunday Jun 21 — Pre-Sprint Rest Day (automated session)
+No tasks scheduled. Days 1 and 2 (scanner heat integration + Tier 4 vendor discount) were completed ahead of schedule on Jun 20. The Jun 20 static analysis found and fixed the surgery wipe bug. Days 3–5 smoke-test is pending live server access starting Wed Jun 25.
+
 ---
 
 ## Days 3–5 — Wed–Fri Jun 25–26 · Medical System Smoke-Test + Tuning
