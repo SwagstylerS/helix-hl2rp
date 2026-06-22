@@ -5,6 +5,7 @@ ITEM.description = "A can of chicory-and-grain brew marketed as coffee. Warm and
 ITEM.category = "Consumables"
 ITEM.width = 1
 ITEM.height = 1
+ITEM.nutrition = 5
 
 ITEM.functions.Drink = {
 	OnRun = function(itemTable)
@@ -12,6 +13,7 @@ ITEM.functions.Drink = {
 
 		client:RestoreStamina(50)
 		client:EmitSound("npc/barnacle/barnacle_gulp2.wav", 75, 90, 0.35)
+		hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)
 	end,
 	OnCanRun = function(itemTable)
 		return !itemTable.player:IsCombine()

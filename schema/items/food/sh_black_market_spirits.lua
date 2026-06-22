@@ -5,6 +5,7 @@ ITEM.description = "A plastic bottle of rough-distilled spirits. Provenance unkn
 ITEM.category = "Consumables"
 ITEM.width = 1
 ITEM.height = 1
+ITEM.nutrition = 8
 
 ITEM.functions.Drink = {
 	OnRun = function(itemTable)
@@ -13,6 +14,7 @@ ITEM.functions.Drink = {
 		client:RestoreStamina(75)
 		client:SetHealth(math.Clamp(client:Health() + 10, 0, client:GetMaxHealth()))
 		client:EmitSound("npc/barnacle/barnacle_gulp2.wav", 75, 75, 0.5)
+		hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)
 	end,
 	OnCanRun = function(itemTable)
 		return !itemTable.player:IsCombine()

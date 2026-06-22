@@ -5,6 +5,7 @@ ITEM.description = "A small tin of genuine roasted coffee. Its scarcity makes it
 ITEM.category = "Consumables"
 ITEM.width = 1
 ITEM.height = 1
+ITEM.nutrition = 5
 
 ITEM.functions.Drink = {
 	OnRun = function(itemTable)
@@ -12,6 +13,7 @@ ITEM.functions.Drink = {
 
 		client:RestoreStamina(100)
 		client:EmitSound("npc/barnacle/barnacle_gulp2.wav", 75, 85, 0.4)
+		hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)
 	end,
 	OnCanRun = function(itemTable)
 		return !itemTable.player:IsCombine()
