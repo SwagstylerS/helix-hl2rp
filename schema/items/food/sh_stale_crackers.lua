@@ -5,6 +5,7 @@ ITEM.description = "A battered packet of pressed-grain crackers. Stale, but calo
 ITEM.category = "Consumables"
 ITEM.width = 1
 ITEM.height = 1
+ITEM.nutrition = 5
 
 ITEM.functions.Eat = {
 	OnRun = function(itemTable)
@@ -12,6 +13,7 @@ ITEM.functions.Eat = {
 
 		client:SetHealth(math.Clamp(client:Health() + 5, 0, client:GetMaxHealth()))
 		client:EmitSound("npc/antlion_grub/squashed.wav", 75, 150, 0.15)
+		hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)
 	end,
 	OnCanRun = function(itemTable)
 		return !itemTable.player:IsCombine()

@@ -5,6 +5,7 @@ ITEM.description = "A vacuum-sealed block of compressed grain and dried protein.
 ITEM.category = "Consumables"
 ITEM.width = 1
 ITEM.height = 1
+ITEM.nutrition = 20
 
 ITEM.functions.Eat = {
 	OnRun = function(itemTable)
@@ -13,6 +14,7 @@ ITEM.functions.Eat = {
 		client:RestoreStamina(50)
 		client:SetHealth(math.Clamp(client:Health() + 12, 0, client:GetMaxHealth()))
 		client:EmitSound("npc/antlion_grub/squashed.wav", 75, 110, 0.3)
+		hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)
 	end,
 	OnCanRun = function(itemTable)
 		return !itemTable.player:IsCombine()
