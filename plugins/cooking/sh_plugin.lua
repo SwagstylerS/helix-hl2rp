@@ -2,6 +2,7 @@ PLUGIN.name = "Cooking & Hunger"
 PLUGIN.description = "Hunger system and cooking stations for City 17 citizens."
 PLUGIN.author = "HL2RP"
 
+ix.util.Include("libs/sh_recipes.lua")
 ix.util.Include("libs/sv_hunger.lua")
 ix.util.Include("sv_plugin.lua")
 ix.util.Include("cl_plugin.lua")

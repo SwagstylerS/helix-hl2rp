@@ -1,4 +1,5 @@
 -- Client hooks for cooking plugin.
+ix.util.Include("derma/cl_cooking.lua")
 
 local localHunger = 0
 
