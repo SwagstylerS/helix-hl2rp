@@ -459,6 +459,18 @@ local function BuildCWURequests()
     return list
 end
 
+local function BuildOnlineCitizens()
+    local out = {}
+    for _, ply in ipairs(player.GetAll()) do
+        if !IsValid(ply) then continue end
+        if IsCombine(ply) then continue end
+        local char = ply:GetCharacter()
+        if !char then continue end
+        out[#out + 1] = {name = ply:Name(), sid = ply:SteamID()}
+    end
+    return out
+end
+
 local function BuildFullPayload()
     return {
         records          = BuildTerminalRecords(),
@@ -471,6 +483,7 @@ local function BuildFullPayload()
         detainees        = ix.data.Get("cs_detainees",       {}),
         clearanceHistory = ix.data.Get("cs_clearanceHistory", {}),
         eliminations     = ix.data.Get("cs_eliminations",    {}),
+        onlineCitizens   = BuildOnlineCitizens(),
     }
 end
 
@@ -562,6 +575,56 @@ net.Receive("CS_TerminalAction", function(len, ply)
     elseif action == "denyClearance" then
         local target = FindPlayerBySteamID(data.sid)
         DoDenyClearance(ply, target)
+    elseif action == "detainCitizen" then
+        local sid = tostring(data.sid or "")
+        if sid != "" then
+            local targetPly = FindPlayerBySteamID(sid)
+            local name = IsValid(targetPly) and targetPly:Name() or tostring(data.name or "Unknown")
+            local cid  = 0
+            if IsValid(targetPly) then
+                local char = targetPly:GetCharacter()
+                if char then cid = char:GetID() end
+            end
+            local log = ix.data.Get("cs_detainees", {})
+            log[#log + 1] = {name=name, sid=sid, cid=cid, officer=ply:Name(), time=os.time(), status="DETAINED"}
+            while #log > 100 do table.remove(log, 1) end
+            ix.data.Set("cs_detainees", log)
+            local msg = string.format("DISPATCH: Subject %s — 10-97, custody transfer in progress. Processing unit: %s.", name, ply:Name())
+            net.Start("CS_BiometricAlert")
+                net.WriteString(msg)
+                net.WriteUInt(0, 4)
+            net.Send(GetCombinePlayers())
+            for _, cp in ipairs(GetCombinePlayers()) do cp:ChatPrint(msg) end
+        end
+    elseif action == "releaseCitizen" then
+        local sid = tostring(data.sid or "")
+        if sid != "" then
+            local log = ix.data.Get("cs_detainees", {})
+            local found   = false
+            local relName = "Unknown"
+            for i = #log, 1, -1 do
+                local entry = log[i]
+                if entry.sid == sid and entry.status == "DETAINED" then
+                    entry.status      = "RELEASED"
+                    entry.releasedBy  = ply:Name()
+                    entry.releaseTime = os.time()
+                    relName           = entry.name or "Unknown"
+                    found             = true
+                    break
+                end
+            end
+            if found then
+                ix.data.Set("cs_detainees", log)
+                local msg = string.format("DISPATCH: Subject %s — 10-22, stand down. Released on authority of %s.", relName, ply:Name())
+                net.Start("CS_BiometricAlert")
+                    net.WriteString(msg)
+                    net.WriteUInt(0, 4)
+                net.Send(GetCombinePlayers())
+                for _, cp in ipairs(GetCombinePlayers()) do cp:ChatPrint(msg) end
+            else
+                ply:Notify("No active detention record found for this subject.")
+            end
+        end
     end
 
     local refresh = BuildFullPayload()

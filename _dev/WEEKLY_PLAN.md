@@ -5,7 +5,7 @@
 ---
 
 ## Day 1 — Mon Jun 23 · Detain/Release Actions on Combine Terminal
-**Status:** Pending
+**Status:** ✅ Done
 
 The `/transferdetainee` and `/releasedetainee` commands are CONVENTIONS.md debt. The combine terminal already has a Detainees tab showing the detention log. Add action buttons to that tab so Combine officers can log detentions and releases through the terminal entity, then deprecate the chat commands.
 
