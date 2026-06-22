@@ -137,21 +137,21 @@ A full citizen survival loop: persistent hunger that drains over time, in-world 
 - `plugins/cooking/languages/sh_english.lua` — `cookingHungry` / `cookingStarving` in-world cue strings.
 - `schema/items/food/*.lua` (12 files) — add `ITEM.nutrition` and `hook.Run("PlayerAteFood", client, itemTable.nutrition or 10)` to each Eat/Drink OnRun.
 
-**Phase 2 — Ingredients, cooked foods, recipe registry** (pending):
+**Phase 2 — Ingredients, cooked foods, recipe registry** (complete):
 - `plugins/cooking/libs/sh_recipes.lua` — `PLUGIN.Recipes` table `{id, name, cookType, ingredients={uniqueID=count}, output, time, interactions={...}}`.
-- `plugins/cooking/items/base/sh_ingredient.lua` + `items/ingredients/` — raw_meat, vegetables, flour, eggs, oil.
-- `plugins/cooking/items/base/sh_cooked.lua` + `items/cooked/` — cooked_meat, charred_meat (burnt variant), stew, bread. Eat → heal + `hook.Run("PlayerAteFood", ...)`.
+- `plugins/cooking/items/ingredients/` — raw_meat, vegetables, flour, eggs, oil.
+- `plugins/cooking/items/cooked/` — cooked_meat, charred_food (burnt variant), stew, bread. Eat → heal + `hook.Run("PlayerAteFood", ...)`.
 
-**Phase 3 — Cooking stations** (pending):
+**Phase 3 — Cooking stations** (complete):
 - `plugins/cooking/entities/ix_cookingfireplace.lua` + `ix_cookingstove.lua` — `ENT.Category = "HL2 RP"`, `SetupDataTables` (State/CookEnd/CookDuration/CookName), 3D2D billboard, `SpawnFunction`. Both usable by any non-Combine player.
 - `plugins/cooking/sv_plugin.lua` — `netstream.Hook("CookingStart")`: validate distance + ingredients + cookType match → consume ingredients → set State=1 + timer → State=2 on completion. Collect (Use on State=2) → `ix.item.Spawn`.
 
-**Phase 4 — Derma cooking minigame + quality** (pending):
-- `plugins/cooking/derma/cl_cooking.lua` — recipe-picker `DFrame` opened by `netstream.Hook("CookingOpen")`; choosing a recipe sends `CookingStart` and opens the minigame panel. Six interaction types: **stir** (click-drag spoon in circle), **flip** (timing hit on rising sizzle bar), **season** (three rapid button presses in sequence), **skim** (drag cursor L→R over foam), **poke/probe** (click-hold ~1.5s for doneness), **turn** (drag handle to green arc zone). Each recipe's `interactions={}` array specifies which subset applies in order. Successful cues accumulate quality 0..1; client sends `netstream.Start("CookingResult", entIndex, quality)` on completion; server selects output item (cooked vs charred) based on quality.
+**Phase 4 — Derma cooking minigame + quality** (complete):
+- `plugins/cooking/derma/cl_cooking.lua` — recipe-picker `DFrame` opened by `netstream.Hook("CookingOpen")`; choosing a recipe sends `CookingStart` and opens the minigame panel. Six interaction types: **stir** (click-drag spoon in circle), **flip** (timing hit on rising sizzle bar), **season** (three rapid button presses in sequence), **skim** (drag cursor L→R over foam), **poke/probe** (click-hold ~1.5s for doneness), **turn** (drag handle to green arc zone). Each recipe's `interactions={}` array specifies which subset applies in order. Successful cues accumulate quality 0..1; client sends `CookingQuality` netstream on completion; server selects output item (cooked vs charred) based on quality.
 
-**Phase 5 — Polish** (pending):
-- Fill `plugins/cooking/languages/sh_english.lua` with all remaining strings (station names, "missing ingredients", minigame labels).
-- Run `/helix-convention-check`, `/helix-lint` before final commit.
+**Phase 5 — Polish** (complete):
+- `plugins/cooking/languages/sh_english.lua` — all strings filled (cookingBusy, cookingNoRecipes, cookingMissingIngredients, cookingDone, cookingBurnt, cookingHungry, cookingStarving).
+- Convention check passed: 0 blockers, 0 warnings.
 
 ---
 
