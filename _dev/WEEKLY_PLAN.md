@@ -18,7 +18,7 @@ Goals:
 ---
 
 ## Day 2 — Tue Jun 24 · Curfew Toggle on Combine Terminal
-**Status:** Pending
+**Status:** ✅ Done
 
 The `/curfew` command is CONVENTIONS.md debt. It should be a switch or terminal action for senior Combine. The combine terminal already knows `curfewActive` in `BuildFullPayload()` — add a CURFEW CONTROL button to the terminal UI and implement the toggle logic as a `CS_TerminalAction` case.
 

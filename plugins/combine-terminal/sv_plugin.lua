@@ -40,7 +40,8 @@ CS.CWURequests        = CS.CWURequests        or {}
 CS.CurfewActive       = CS.CurfewActive       or false
 CS.ZoneHeatCooldowns  = CS.ZoneHeatCooldowns  or {}
 CS.Sterilized         = CS.Sterilized         or {}
-CS.HeatBleedCooldowns = CS.HeatBleedCooldowns or {}
+CS.HeatBleedCooldowns       = CS.HeatBleedCooldowns       or {}
+CS.CheckpointPreCurfewModes = CS.CheckpointPreCurfewModes or {}
 
 hook.Add("InitPostEntity", "CS_Heat_Load", function()
     CS.HeatScores  = ix.data.Get("cs_heatScores",  {})
@@ -623,6 +624,37 @@ net.Receive("CS_TerminalAction", function(len, ply)
                 for _, cp in ipairs(GetCombinePlayers()) do cp:ChatPrint(msg) end
             else
                 ply:Notify("No active detention record found for this subject.")
+            end
+        end
+    elseif action == "toggleCurfew" then
+        if !IsSenior(ply) then
+            ply:Notify("Unauthorized.")
+        else
+            CS.CurfewActive = !CS.CurfewActive
+            net.Start("CS_CurfewToggle")
+                net.WriteBool(CS.CurfewActive)
+                net.WriteString(ply:Name())
+            net.Send(player.GetAll())
+            if CS.CurfewActive then
+                for _, entity in ipairs(ents.FindByClass("ix_checkpoint")) do
+                    if IsValid(entity) then
+                        CS.CheckpointPreCurfewModes[entity:EntIndex()] = entity:GetMode()
+                        entity:SetMode(3)
+                    end
+                end
+            else
+                for _, entity in ipairs(ents.FindByClass("ix_checkpoint")) do
+                    if IsValid(entity) then
+                        entity:SetMode(CS.CheckpointPreCurfewModes[entity:EntIndex()] or 1)
+                    end
+                end
+                CS.CheckpointPreCurfewModes = {}
+            end
+            local dispatch = CS.CurfewActive
+                and "DISPATCH // CURFEW PROTOCOL — 10-4 all units, civilian transit suspended citywide. Checkpoints to restricted access."
+                or  "DISPATCH // 10-22 curfew protocol — all units, checkpoints revert to standard procedure."
+            for _, cp in ipairs(GetCombinePlayers()) do
+                cp:ChatPrint(dispatch)
             end
         end
     end

@@ -3,6 +3,12 @@
 --  CS_TabUnits — Active Combine Units tab
 -- ============================================================
 
+local function SendAction(action, data)
+    net.Start("CS_TerminalAction")
+        net.WriteString(action)
+        net.WriteString(util.TableToJSON(data))
+    net.SendToServer()
+end
 
 local PANEL = {}
 
@@ -29,6 +35,40 @@ function PANEL:Init()
         )
         surface.SetDrawColor(C.borderDim)
         surface.DrawRect(0, h - 1, w, 1)
+    end
+
+    -- Curfew control bar — docked BOTTOM before FILL so layout is correct
+    self.curfewBar = vgui.Create("DPanel", self)
+    self.curfewBar:Dock(BOTTOM)
+    self.curfewBar:SetTall(38)
+    self.curfewBar:DockMargin(0, 4, 0, 0)
+    self.curfewBar:SetVisible(false)
+    self.curfewBar.Paint = function(s2, w, h)
+        local C = CS_TERM_COLORS
+        surface.SetDrawColor(C.borderDim)
+        surface.DrawRect(0, 0, w, 1)
+        draw.SimpleText("CURFEW CONTROL", "CS_Small", 6, h/2, C.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    self.btnCurfew = vgui.Create("DButton", self.curfewBar)
+    self.btnCurfew:Dock(RIGHT)
+    self.btnCurfew:SetWide(180)
+    self.btnCurfew:DockMargin(0, 6, 0, 6)
+    self.btnCurfew:SetText("")
+    self.btnCurfew.m_Label    = "ACTIVATE CURFEW"
+    self.btnCurfew.m_IsActive = false
+    self.btnCurfew.DoClick = function()
+        surface.PlaySound("buttons/button15.wav")
+        SendAction("toggleCurfew", {})
+    end
+    self.btnCurfew.Paint = function(s2, w, h)
+        local C   = CS_TERM_COLORS
+        local col = s2.m_IsActive and C.good or C.yellow
+        local bg  = s2:IsHovered() and Color(col.r, col.g, col.b, 40) or C.bgDark
+        draw.RoundedBox(0, 0, 0, w, h, bg)
+        surface.SetDrawColor(col)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        draw.SimpleText(s2.m_Label, "CS_BodyBold", w/2, h/2, col, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
     self.list = vgui.Create("DListView", self)
@@ -90,6 +130,13 @@ function PANEL:Populate(data)
     self.summary.m_Total = #units
     self.summary.m_Alive = alive
     self.summary.m_KIA   = kia
+
+    if self.m_bSenior then
+        self.curfewBar:SetVisible(true)
+        local active = data and data.curfewActive or false
+        self.btnCurfew.m_Label    = active and "LIFT CURFEW" or "ACTIVATE CURFEW"
+        self.btnCurfew.m_IsActive = active
+    end
 end
 
 function PANEL:Paint(w, h) end

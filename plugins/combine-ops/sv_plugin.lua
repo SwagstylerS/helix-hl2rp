@@ -129,40 +129,10 @@ ix.command.Add("alert", {
     end,
 })
 
--- TODO: world interaction debt; rework as dispatch terminal action
 ix.command.Add("curfew", {
     description = "Toggle curfew — passively increases heat for all civilians while active.",
     OnRun = function(self, client)
-        if !IsSenior(client) then return client:Notify("Unauthorized.") end
-        CS.CurfewActive = !CS.CurfewActive
-        net.Start("CS_CurfewToggle")
-            net.WriteBool(CS.CurfewActive)
-            net.WriteString(client:Name())
-        net.Send(player.GetAll())
-        client:Notify("Curfew " .. (CS.CurfewActive and "ACTIVATED." or "LIFTED."))
-
-        if CS.CurfewActive then
-            for _, entity in ipairs(ents.FindByClass("ix_checkpoint")) do
-                if IsValid(entity) then
-                    CS.CheckpointPreCurfewModes[entity:EntIndex()] = entity:GetMode()
-                    entity:SetMode(3)
-                end
-            end
-        else
-            for _, entity in ipairs(ents.FindByClass("ix_checkpoint")) do
-                if IsValid(entity) then
-                    entity:SetMode(CS.CheckpointPreCurfewModes[entity:EntIndex()] or 1)
-                end
-            end
-            CS.CheckpointPreCurfewModes = {}
-        end
-
-        local dispatch = CS.CurfewActive
-            and "DISPATCH // CURFEW PROTOCOL — 10-4 all units, civilian transit suspended citywide. Checkpoints to restricted access."
-            or  "DISPATCH // 10-22 curfew protocol — all units, checkpoints revert to standard procedure."
-        for _, ply in ipairs(GetAllCombine()) do
-            ply:ChatPrint(dispatch)
-        end
+        client:Notify("Toggle curfew at the operations terminal.")
     end,
 })
 
