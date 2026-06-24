@@ -61,8 +61,8 @@ Two small correctness fixes caught during research: (1) the scanner's `CFG.Flagg
 Goals:
 - `plugins/combine-scanner/sv_plugin.lua` — In `CFG.FlaggedItems` (~line 22), change `"radio"` to `"pirate_radio"` (matching a future contraband radio item uniqueID). Add a comment: `-- match exact item uniqueIDs; "cwu_radio" is authorized and must not be caught`. The broader scanning logic is unchanged.
 - `plugins/combine-terminal/sv_plugin.lua` — Same fix in `CFG.FlaggedItems` (~line 31): change `"radio"` to `"pirate_radio"` so the terminal's item search is consistent.
-- `plugins/cwu/items/crafted/sh_medical_stimpak.lua` — In `ITEM.functions.Inject.OnRun`, change `client:Notify("The stimpak floods your system with healing compounds.")` to `client:Notify("The compound takes effect. You feel steadier.")` — environmental cue, no mechanic label.
 - Run a convention check (`/helix-convention-check`) on all diffs from Days 1–4 before committing Day 5.
+- Note: `sh_medical_stimpak.lua` notify text (`"The stimpak floods your system with healing compounds."`) is intentional flavor text — no change needed. CONVENTIONS.md updated to reflect this distinction.
 
 ---
 

@@ -27,3 +27,5 @@ Any message shown to players must read as something that exists in the world, no
 - Good: `"DISPATCH: 10-103M — John flagged for flagrant malcompliance. Designate for observation and detainment."`
 
 Use Combine dispatch radio language (10-codes, "subject", "unit", "malcompliant", "processing") for CP/OTA-facing messages. CWU-facing messages should use bureaucratic Union language. Citizens receive nothing mechanical — environmental cues only.
+
+**Flavor text that names an in-world object is acceptable.** The rule targets mechanical exposure (numbers, tier labels, cooldown timers), not immersive description. `"The stimpak floods your system with healing compounds."` is fine — it names the item and evokes a physical sensation without revealing any stat. Show-don't-tell is the ideal, but descriptive flavor text is always preferable to a bare mechanic readout.
