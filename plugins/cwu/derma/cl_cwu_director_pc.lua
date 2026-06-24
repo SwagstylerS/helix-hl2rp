@@ -10,6 +10,7 @@ function PANEL:Init()
 	self.tabs:Dock(FILL)
 
 	self:CreatePersonnelTab()
+	self:CreatePayrollTab()
 	self:CreateBlueprintTab()
 	self:CreateBlueprintRequestsTab()
 	self:CreateLicenseTab()
@@ -23,6 +24,7 @@ function PANEL:SetData(data)
 	self.data = data
 
 	self:PopulatePersonnel()
+	self:PopulatePayroll()
 	self:PopulateBlueprints()
 	self:PopulateBlueprintRequests()
 	self:PopulateLicenses()
@@ -107,6 +109,7 @@ function PANEL:CreatePersonnelTab()
 	local removeBtn = vgui.Create("DButton", buttonBar)
 	removeBtn:Dock(LEFT)
 	removeBtn:SetWide(120)
+	removeBtn:DockMargin(0, 0, 5, 0)
 	removeBtn:SetText("Remove from CWU")
 	removeBtn.DoClick = function()
 		local lineID = self.personnelList:GetSelectedLine()
@@ -119,6 +122,24 @@ function PANEL:CreatePersonnelTab()
 
 		if (line and line.charID) then
 			netstream.Start("CWUDirectorRemove", line.charID)
+		end
+	end
+
+	local commendBtn = vgui.Create("DButton", buttonBar)
+	commendBtn:Dock(LEFT)
+	commendBtn:SetWide(160)
+	commendBtn:SetText("Forward for Recognition")
+	commendBtn.DoClick = function()
+		local lineID = self.personnelList:GetSelectedLine()
+
+		if (!lineID) then
+			return
+		end
+
+		local line = self.personnelList:GetLine(lineID)
+
+		if (line and line.charID) then
+			netstream.Start("CWUDirectorCommend", line.charID, line:GetColumnText(1))
 		end
 	end
 
@@ -182,6 +203,106 @@ function PANEL:PopulatePersonnel()
 	for _, v in ipairs(self.data.citizens or {}) do
 		local line = self.personnelList:AddLine(v.name, "Citizen", (PLUGIN.LoyaltyTiers[v.tier] or PLUGIN.LoyaltyTiers[0]).name)
 		line.charID = v.charID
+	end
+end
+
+-- Tab: Payroll
+function PANEL:CreatePayrollTab()
+	self.payrollPanel = vgui.Create("DPanel", self.tabs)
+	self.payrollPanel:Dock(FILL)
+	self.payrollPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(30, 30, 30)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local label = vgui.Create("DLabel", self.payrollPanel)
+	label:Dock(TOP)
+	label:DockMargin(5, 5, 5, 5)
+	label:SetText("Worker Payroll — Logged Service Records")
+	label:SetFont("DermaDefaultBold")
+	label:SetTextColor(Color(100, 175, 100))
+	label:SizeToContents()
+
+	-- Bottom disburse bar
+	local disburseBar = vgui.Create("DPanel", self.payrollPanel)
+	disburseBar:Dock(BOTTOM)
+	disburseBar:SetTall(35)
+	disburseBar:DockMargin(5, 0, 5, 5)
+	disburseBar.Paint = nil
+
+	local rateLabel = vgui.Create("DLabel", disburseBar)
+	rateLabel:Dock(LEFT)
+	rateLabel:DockMargin(0, 0, 5, 0)
+	rateLabel:SetText("Allocation:")
+	rateLabel:SetTextColor(Color(200, 200, 200))
+	rateLabel:SizeToContents()
+
+	self.payrollAmount = vgui.Create("DTextEntry", disburseBar)
+	self.payrollAmount:Dock(LEFT)
+	self.payrollAmount:SetWide(80)
+	self.payrollAmount:DockMargin(0, 0, 5, 0)
+	self.payrollAmount:SetNumeric(true)
+	self.payrollAmount:SetPlaceholderText("Amount")
+
+	local disburseBtn = vgui.Create("DButton", disburseBar)
+	disburseBtn:Dock(LEFT)
+	disburseBtn:SetWide(130)
+	disburseBtn:SetText("Disburse Wages")
+	disburseBtn.DoClick = function()
+		local lineID = self.payrollList:GetSelectedLine()
+
+		if (!lineID) then
+			return
+		end
+
+		local line = self.payrollList:GetLine(lineID)
+
+		if (!line or !line.charID) then
+			return
+		end
+
+		local amount = tonumber(self.payrollAmount:GetValue())
+
+		if (!amount or amount <= 0) then
+			return
+		end
+
+		netstream.Start("CWUDirectorPayWorkLog", line.charID, amount)
+		self.payrollList:RemoveLine(lineID)
+	end
+
+	-- Worker list
+	self.payrollList = vgui.Create("DListView", self.payrollPanel)
+	self.payrollList:Dock(FILL)
+	self.payrollList:DockMargin(5, 0, 5, 5)
+	self.payrollList:AddColumn("Worker")
+	self.payrollList:AddColumn("Orders")
+	self.payrollList:AddColumn("Std. Pay")
+	self.payrollList:SetMultiSelect(false)
+	self.payrollList.OnRowSelected = function(_, lineID, line)
+		if (line and line.standardPay) then
+			self.payrollAmount:SetValue(tostring(line.standardPay))
+		end
+	end
+
+	self.tabs:AddSheet("Payroll", self.payrollPanel, "icon16/coins.png")
+end
+
+function PANEL:PopulatePayroll()
+	if (!self.data) then
+		return
+	end
+
+	self.payrollList:Clear()
+
+	for _, worker in ipairs(self.data.payrollData or {}) do
+		local line = self.payrollList:AddLine(
+			worker.charName,
+			tostring(#worker.entries),
+			ix.currency.Get(worker.standardPay or 0)
+		)
+		line.charID = worker.charID
+		line.standardPay = worker.standardPay or 0
 	end
 end
 

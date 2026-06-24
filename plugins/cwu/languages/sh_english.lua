@@ -54,7 +54,9 @@ LANGUAGE = {
 	cwuWorkOrderClaimed = "Work order claimed.",
 	cwuWorkOrderAlreadyClaimed = "This work order is already claimed.",
 	cwuWorkOrderCompleted = "Work order marked complete.",
-	cwuOrderReimbursed = "Requisition processed. Standard allocation disbursed.",
+	cwuCommendSubmitted = "Commendation request filed for oversight review.",
+	cwuCommendApproved = "Union commendation acknowledged. Your service record has been updated.",
+	cwuWagesDisburse = "Wage allocation processed. Compensation credited to your account.",
 
 	-- Director PC
 	cwuDirectorTerminal = "CWU DIRECTOR TERMINAL",

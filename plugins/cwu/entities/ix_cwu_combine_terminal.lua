@@ -85,12 +85,14 @@ if (SERVER) then
 
 		local transactions = PLUGIN:GetTransactions()
 		local workOrders = PLUGIN:GetWorkOrders()
+		local pendingCommendations = ix.data.Get("cwuPendingCommendations", {})
 
 		netstream.Start(client, "CWUCombineTerminalOpen", {
 			roster = roster,
 			infrastructure = infrastructure,
 			transactions = transactions,
-			workOrders = workOrders
+			workOrders = workOrders,
+			pendingCommendations = pendingCommendations
 		})
 
 		self:EmitSound("buttons/combine_button1.wav")
@@ -101,6 +103,53 @@ if (SERVER) then
 			PLUGIN:SaveCombineTerminals()
 		end
 	end
+
+	netstream.Hook("CWUCombineApproveCommendation", function(client, data)
+		if (!IsValid(client) or !client:IsPlayer() or !client:IsCombine()) then
+			return
+		end
+
+		if (type(data) != "table") then return end
+
+		local commendID = tonumber(data.id)
+		local approved = data.approved == true
+		local amount = math.Clamp(math.floor(tonumber(data.amount) or 1), 1, 5)
+
+		if (!commendID) then return end
+
+		local pending = ix.data.Get("cwuPendingCommendations", {})
+		local commend, commendIdx
+
+		for i, v in ipairs(pending) do
+			if (v.id == commendID) then
+				commend = v
+				commendIdx = i
+				break
+			end
+		end
+
+		if (!commend) then return end
+
+		table.remove(pending, commendIdx)
+		ix.data.Set("cwuPendingCommendations", pending)
+
+		if (approved) then
+			for _, v in ipairs(player.GetAll()) do
+				local character = v:GetCharacter()
+
+				if (character and character:GetID() == commend.charID) then
+					PLUGIN:AwardLoyalty(character, amount, "director_commendation")
+					v:NotifyLocalized("cwuCommendApproved")
+					client:Notify("Commendation approved for " .. commend.charName .. ".")
+					return
+				end
+			end
+
+			client:Notify("Commendation approved but " .. commend.charName .. " is not on-site.")
+		else
+			client:Notify("Commendation request for " .. commend.charName .. " rejected.")
+		end
+	end)
 
 	-- Netstream handler for submitting work orders via Combine terminal
 	netstream.Hook("CWUCombineSubmitWorkOrder", function(client, description, location, priority)

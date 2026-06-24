@@ -81,11 +81,14 @@ end
 
 function PLUGIN:CompleteWorkOrder(entityIndex, character)
 	local orders = self:GetWorkOrders()
+	local orderType, orderLocation = "infrastructure", "Unknown"
 
 	for _, order in ipairs(orders) do
 		if (order.entityIndex == entityIndex and !order.completed) then
 			order.completed = true
 			order.completedTime = os.time()
+			orderType = order.type or "infrastructure"
+			orderLocation = order.location or "Unknown"
 		end
 	end
 
@@ -93,13 +96,7 @@ function PLUGIN:CompleteWorkOrder(entityIndex, character)
 	self:RefreshWorkOrderBoards()
 
 	if (character) then
-		local pay = ix.config.Get("cwuWorkOrderPay", 5)
-		character:GiveMoney(pay)
-
-		local client = character:GetPlayer()
-		if (IsValid(client)) then
-			client:NotifyLocalized("cwuOrderReimbursed")
-		end
+		self:LogWorkEntry(character, orderType, orderLocation)
 	end
 end
 
@@ -152,11 +149,14 @@ end
 
 function PLUGIN:ManualCompleteWorkOrder(orderID, character)
 	local orders = self:GetWorkOrders()
+	local orderType, orderLocation = "manual", "Unknown"
 
 	for _, order in ipairs(orders) do
 		if (order.id == orderID and !order.completed) then
 			order.completed = true
 			order.completedTime = os.time()
+			orderType = order.type or "manual"
+			orderLocation = order.location or "Unknown"
 			break
 		end
 	end
@@ -165,14 +165,25 @@ function PLUGIN:ManualCompleteWorkOrder(orderID, character)
 	self:RefreshWorkOrderBoards()
 
 	if (character) then
-		local pay = ix.config.Get("cwuWorkOrderPay", 5)
-		character:GiveMoney(pay)
-
-		local client = character:GetPlayer()
-		if (IsValid(client)) then
-			client:NotifyLocalized("cwuOrderReimbursed")
-		end
+		self:LogWorkEntry(character, orderType, orderLocation)
 	end
+end
+
+function PLUGIN:LogWorkEntry(character, orderType, orderLocation)
+	local log = ix.data.Get("cwuWorkLog", {})
+	local charIDStr = tostring(character:GetID())
+
+	log[charIDStr] = log[charIDStr] or {}
+	log[charIDStr][#log[charIDStr] + 1] = {
+		charID = character:GetID(),
+		charName = character:GetName(),
+		type = orderType,
+		location = orderLocation,
+		time = os.time(),
+		paid = false
+	}
+
+	ix.data.Set("cwuWorkLog", log)
 end
 
 function PLUGIN:RefreshWorkOrderBoards()

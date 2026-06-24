@@ -136,6 +136,29 @@ if (SERVER) then
 			}
 		end
 
+		-- Build payroll data from unpaid work log entries
+		local rawLog = ix.data.Get("cwuWorkLog", {})
+		local payrollData = {}
+
+		for charIDStr, entries in pairs(rawLog) do
+			local unpaid = {}
+
+			for _, entry in ipairs(entries) do
+				if (!entry.paid) then
+					unpaid[#unpaid + 1] = entry
+				end
+			end
+
+			if (#unpaid > 0) then
+				payrollData[#payrollData + 1] = {
+					charID = tonumber(charIDStr),
+					charName = unpaid[1].charName or charIDStr,
+					entries = unpaid,
+					standardPay = #unpaid * ix.config.Get("cwuWorkOrderPay", 5)
+				}
+			end
+		end
+
 		netstream.Start(client, "CWUDirectorPCOpen", {
 			cwuMembers = cwuMembers,
 			citizens = citizens,
@@ -144,7 +167,8 @@ if (SERVER) then
 			treasury = treasury,
 			recentTransactions = recentTransactions,
 			allTransactions = transactions,
-			vendorTerminals = vendorTerminals
+			vendorTerminals = vendorTerminals,
+			payrollData = payrollData
 		})
 
 		self:EmitSound("buttons/combine_button1.wav")
@@ -388,6 +412,86 @@ if (SERVER) then
 		ix.data.Set("cwuBlueprintRequests", requests)
 
 		client:NotifyLocalized("cwuBlueprintApproved", charName)
+	end)
+
+	netstream.Hook("CWUDirectorPayWorkLog", function(client, charID, amount)
+		if (!client:IsCWUDirector()) then return end
+
+		amount = math.Clamp(math.floor(tonumber(amount) or 0), 1, 10000)
+
+		if (!PLUGIN:WithdrawTreasury(amount)) then
+			client:NotifyLocalized("cwuInsufficientTreasury")
+			return
+		end
+
+		-- Mark all unpaid entries for this worker as paid
+		local log = ix.data.Get("cwuWorkLog", {})
+		local charIDStr = tostring(charID)
+
+		if (log[charIDStr]) then
+			for _, entry in ipairs(log[charIDStr]) do
+				entry.paid = true
+			end
+
+			ix.data.Set("cwuWorkLog", log)
+		end
+
+		-- Pay the worker if online; hold funds if offline
+		for _, v in ipairs(player.GetAll()) do
+			local character = v:GetCharacter()
+
+			if (character and character:GetID() == charID) then
+				character:GiveMoney(amount)
+				PLUGIN:LogTransaction({
+					type = "wage",
+					seller = "CWU Treasury",
+					buyer = character:GetName(),
+					buyerID = charID,
+					item = "wage",
+					itemName = "CWU Wage",
+					quantity = 1,
+					price = amount,
+					tax = 0,
+					terminal = "Director Payroll"
+				})
+				client:NotifyLocalized("cwuWorkerPaid", character:GetName(), ix.currency.Get(amount))
+				v:NotifyLocalized("cwuWagesDisburse")
+				return
+			end
+		end
+
+		-- Not online — refund treasury, entries stay paid so they aren't double-counted
+		PLUGIN:AddTreasury(amount)
+		client:Notify("Worker is not currently on-site. Allocation held pending return.")
+	end)
+
+	netstream.Hook("CWUDirectorCommend", function(client, charID, charName)
+		if (!client:IsCWUDirector()) then return end
+
+		local pending = ix.data.Get("cwuPendingCommendations", {})
+
+		for _, v in ipairs(pending) do
+			if (v.charID == charID) then
+				client:Notify("A commendation request for this worker is already pending oversight review.")
+				return
+			end
+		end
+
+		local maxID = 0
+		for _, v in ipairs(pending) do
+			if (v.id and v.id > maxID) then maxID = v.id end
+		end
+
+		pending[#pending + 1] = {
+			id = maxID + 1,
+			charID = charID,
+			charName = string.sub(tostring(charName), 1, 100),
+			requestedBy = client:GetCharacter():GetName(),
+			time = os.time()
+		}
+
+		ix.data.Set("cwuPendingCommendations", pending)
+		client:NotifyLocalized("cwuCommendSubmitted")
 	end)
 
 	netstream.Hook("CWUBlueprintRevoke", function(client, charID, blueprintID)

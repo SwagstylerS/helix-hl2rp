@@ -13,6 +13,7 @@ function PANEL:Init()
 	self:CreateWorkOrderTab()
 	self:CreateRosterTab()
 	self:CreateInfrastructureTab()
+	self:CreateCommendationsTab()
 end
 
 function PANEL:SetData(data)
@@ -22,6 +23,7 @@ function PANEL:SetData(data)
 	self:PopulateWorkOrders()
 	self:PopulateRoster()
 	self:PopulateInfrastructure()
+	self:PopulateCommendations()
 end
 
 -- Tab 1: Transaction Audit
@@ -367,6 +369,109 @@ function PANEL:PopulateInfrastructure()
 		)
 
 		line:GetChild(2):SetTextColor(statusColor)
+	end
+end
+
+-- Tab 5: Director-forwarded Commendations
+function PANEL:CreateCommendationsTab()
+	self.commendPanel = vgui.Create("DPanel", self.tabs)
+	self.commendPanel:Dock(FILL)
+	self.commendPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(20, 20, 30)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local label = vgui.Create("DLabel", self.commendPanel)
+	label:Dock(TOP)
+	label:DockMargin(5, 5, 5, 5)
+	label:SetText("Pending Commendation Requests")
+	label:SetFont("DermaDefaultBold")
+	label:SetTextColor(Color(100, 150, 255))
+	label:SizeToContents()
+
+	self.commendList = vgui.Create("DListView", self.commendPanel)
+	self.commendList:Dock(FILL)
+	self.commendList:DockMargin(5, 0, 5, 5)
+	self.commendList:AddColumn("Worker")
+	self.commendList:AddColumn("Forwarded By")
+	self.commendList:AddColumn("Time"):SetFixedWidth(80)
+	self.commendList:SetMultiSelect(false)
+
+	local actionPanel = vgui.Create("DPanel", self.commendPanel)
+	actionPanel:Dock(BOTTOM)
+	actionPanel:SetTall(35)
+	actionPanel:DockMargin(5, 0, 5, 5)
+	actionPanel.Paint = function(pnl, w, h)
+		surface.SetDrawColor(30, 30, 40)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	local amountLabel = vgui.Create("DLabel", actionPanel)
+	amountLabel:Dock(LEFT)
+	amountLabel:DockMargin(5, 0, 2, 0)
+	amountLabel:SetText("Points:")
+	amountLabel:SetTextColor(Color(150, 150, 200))
+	amountLabel:SizeToContents()
+
+	self.commendPoints = vgui.Create("DNumberWang", actionPanel)
+	self.commendPoints:Dock(LEFT)
+	self.commendPoints:SetWide(40)
+	self.commendPoints:DockMargin(0, 2, 5, 2)
+	self.commendPoints:SetMin(1)
+	self.commendPoints:SetMax(5)
+	self.commendPoints:SetValue(1)
+
+	local approveBtn = vgui.Create("DButton", actionPanel)
+	approveBtn:Dock(LEFT)
+	approveBtn:SetWide(100)
+	approveBtn:DockMargin(0, 2, 2, 2)
+	approveBtn:SetText("Approve")
+	approveBtn.DoClick = function()
+		local lineID = self.commendList:GetSelectedLine()
+		if (!lineID) then return end
+		local line = self.commendList:GetLine(lineID)
+		if (!line or !line.commendID) then return end
+		netstream.Start("CWUCombineApproveCommendation", {
+			id = line.commendID,
+			approved = true,
+			amount = self.commendPoints:GetValue()
+		})
+		self.commendList:RemoveLine(lineID)
+	end
+
+	local rejectBtn = vgui.Create("DButton", actionPanel)
+	rejectBtn:Dock(LEFT)
+	rejectBtn:SetWide(100)
+	rejectBtn:DockMargin(0, 2, 2, 2)
+	rejectBtn:SetText("Reject")
+	rejectBtn.DoClick = function()
+		local lineID = self.commendList:GetSelectedLine()
+		if (!lineID) then return end
+		local line = self.commendList:GetLine(lineID)
+		if (!line or !line.commendID) then return end
+		netstream.Start("CWUCombineApproveCommendation", {
+			id = line.commendID,
+			approved = false,
+			amount = 0
+		})
+		self.commendList:RemoveLine(lineID)
+	end
+
+	self.tabs:AddSheet("Commendations", self.commendPanel, "icon16/star.png")
+end
+
+function PANEL:PopulateCommendations()
+	if (!self.data) then return end
+
+	self.commendList:Clear()
+
+	for _, v in ipairs(self.data.pendingCommendations or {}) do
+		local line = self.commendList:AddLine(
+			v.charName or "Unknown",
+			v.requestedBy or "Unknown",
+			os.date("%m/%d %H:%M", v.time or 0)
+		)
+		line.commendID = v.id
 	end
 end
 
