@@ -10,6 +10,11 @@ Run any question, plan, or code through 5 independent advisors who use **distinc
 
 This skill implements the **Diverse Multi-Agent Debate (DMAD)** pattern. It is collaborative, not adversarial: agents seek truth through diversity of reasoning, not by arguing opposing positions.
 
+> **EXECUTION MODEL — non-negotiable.**
+> Every advisor, reviewer, devil's advocate, and chairman is a **real Agent tool call** — a separate subagent with its own isolated context. **Do not roleplay, simulate, or inline any of these roles yourself.** A single model pretending to be five advisors shares the same priors, the same context window, and the same biases; earlier "responses" contaminate later ones and the independence the DMAD pattern requires is fake. If the Agent tool is unavailable, say so and stop — do not fall back to inline roleplay.
+>
+> Concretely: Steps 2, 3, 3.7, and 4 each require one or more `Agent` tool calls. Call the Agent tool with `subagent_type: "claude"`, the advisor/reviewer/chairman prompt as `prompt`, and `model: "haiku"` for volume steps, omit `model` for the devil's advocate and chairman (they inherit the session model). All parallel sets must be sent in **a single message** so they run concurrently.
+
 ## Why This Works (Research Backing)
 
 - **Method diversity beats single-method debate.** DMAD (ICLR 2025) shows that agents using distinct reasoning methods reliably outperform homogeneous councils — diverse medium-capacity models can beat GPT-4 on GSM-8K (91% vs 82%) when each agent applies a different reasoning approach.
@@ -110,9 +115,9 @@ Don't add your own opinion. Don't steer toward an answer. If too vague, ask ONE 
 
 ### Step 2: Convene the Council (5 agents in parallel)
 
-Launch all 5 advisors **simultaneously** using the Agent tool. Each advisor runs in parallel. Use a lightweight model (`haiku`) for advisors — they're doing focused analysis, not complex reasoning.
+**Use the Agent tool.** Call it 5 times in a single message — one call per advisor. Do not write the advisor responses yourself. Each call gets `subagent_type: "claude"` and `model: "haiku"`. The agents run concurrently; you wait for all 5 results before proceeding.
 
-**CRITICAL: Launch all 5 in a single message with 5 Agent tool calls.** Sequential execution lets earlier responses bleed into later ones and defeats the purpose.
+**CRITICAL: All 5 Agent calls must go in one message.** Sequential calls let earlier results bleed into later ones. One message → 5 tool calls → wait → collect all results.
 
 Each advisor gets this prompt:
 
@@ -173,7 +178,7 @@ This catches "five advisors said yes" when actually one prompt-priming pattern d
 
 ### Step 3: Anonymous Peer Review (5 agents in parallel)
 
-Collect all 5 advisor responses. **Randomize the mapping** — Advisor 1 should NOT always be Response A. Then launch 5 reviewer agents in parallel (use `haiku`).
+Collect all 5 advisor responses. **Randomize the mapping** — Advisor 1 should NOT always be Response A. Then make 5 Agent tool calls in a single message (`model: "haiku"` for each). Do not write the reviews yourself.
 
 Each reviewer sees all 5 anonymized responses:
 
@@ -225,7 +230,7 @@ When fixed-mode is used (no `--adaptive`), proceed directly to Step 3 peer revie
 This is the single highest-leverage V2 addition. The evidence is unambiguous: soft contrarian framing at the *start* (the Contrarian advisor) is statistically indistinguishable from baseline at inducing real disagreement — only a dedicated devil's advocate attacking the *emerging* answer works, and it measurably raises decision accuracy.
 
 1. From the advisor responses + peer review, identify the **emerging consensus answer** in one sentence (what is the council drifting toward recommending?). If there is genuinely no emerging answer yet, note that and skip to Step 4.
-2. Spawn **one** Devil's Advocate agent. Use a **strong model** (not `haiku`) — this agent must be sharp. Its prompt:
+2. Make **one** Agent tool call. Omit the `model` parameter so it inherits the session model (strong, not haiku) — this agent must be sharp. Its prompt:
 
    ```
    The council is converging on this answer:
@@ -251,11 +256,11 @@ This is the single highest-leverage V2 addition. The evidence is unambiguous: so
 
 ### Step 4: Chairman Synthesis
 
-One agent gets everything: the original question, all 5 advisor responses (de-anonymized with names and reasoning methods), all 5 peer reviews, **the Devil's Advocate's attack on the consensus (V2)**, the diversity score (if `--measure-diversity`), and confidence ratings (if `--confidence`). Use the best available model for this (default — do not specify a lightweight model).
+Make **one Agent tool call** (omit `model` — inherits session model, the best available). Pass the following as the prompt: the original question, all 5 advisor responses (de-anonymized with names and reasoning methods), all 5 peer reviews, the Devil's Advocate's attack and any rebuttal context, the diversity score (if `--measure-diversity`), and confidence ratings (if `--confidence`). Do not write the synthesis yourself.
 
 **(V2) Mediating Assessments first.** Before writing the recommendation, the chairman names 3–5 **independent** key attributes the decision turns on (e.g. for an architecture call: reversibility, blast radius, time-to-first-value, team familiarity) and scores each *separately* against the evidence — without yet forming the overall verdict. Only after the independent assessments does the chairman synthesize the holistic call. This fights coherence bias (locking onto an early answer and bending every attribute to fit it). Kahneman/Lovallo/Sibony, Mediating Assessments Protocol (2019).
 
-**(V2) `--jury`:** instead of one chairman, run **3** chairmen — ideally across different model families — each performing the full synthesis independently (including Mediating Assessments). Then a short reconciliation pass surfaces where the three judges agree (high-confidence verdict) and where they diverge (flag as a genuine close call). Use for high-stakes or close-call decisions where single-judge reliability isn't enough.
+**(V2) `--jury`:** instead of one chairman, make **3 Agent tool calls in a single message** — ideally with different `model` values across model families — each performing the full synthesis independently (including Mediating Assessments). Then make one more Agent tool call for a reconciliation pass that surfaces where the three judges agree (high-confidence verdict) and where they diverge (genuine close call). Use for high-stakes or close-call decisions where single-judge reliability isn't enough.
 
 **Default synthesis (majority-aware):** the chairman weighs convergence across advisors and peer-review signals, and must explicitly rebut or concede the Devil's Advocate's strongest point.
 
@@ -318,10 +323,10 @@ Show the chairman's verdict directly in chat. Then provide the full transcript i
 
 When `--quick` is passed, run a streamlined council:
 
-1. **3 advisors only:** Contrarian, Executor, Outsider (the three most action-oriented perspectives)
+1. **3 advisors only:** Contrarian, Executor, Outsider — 3 Agent tool calls in one message (`model: "haiku"`)
 2. **No peer review** — skip Step 3 entirely
-3. **Devil's Advocate (V2) still runs** — Step 3.7 is the one cheap step `--quick` must not skip
-4. **Chairman synthesis** from 3 responses + the Devil's Advocate attack
+3. **Devil's Advocate (V2) still runs** — 1 Agent tool call (session model, not haiku); Step 3.7 is the one step `--quick` must not skip
+4. **Chairman synthesis** — 1 Agent tool call (session model) from 3 responses + the Devil's Advocate attack
 5. **Same output format** but faster (5 agent calls instead of 12)
 6. **Compatible with `--confidence` and `--measure-diversity`** but not with `--adaptive` (multi-round costs more than the savings).
 
