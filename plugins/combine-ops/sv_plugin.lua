@@ -48,40 +48,54 @@ local function GetAllCombine()
 end
 
 -- ============================================================
---  COMMANDS — PANIC
+--  PANIC BUTTON PERSISTENCE
+-- ============================================================
+function PLUGIN:SavePanicButtons()
+    local buttons = {}
+    for _, ent in ipairs(ents.FindByClass("ix_panic_button")) do
+        if IsValid(ent) then
+            local p = ent:GetPos()
+            local a = ent:GetAngles()
+            buttons[#buttons + 1] = {
+                pos = {x = p.x, y = p.y, z = p.z},
+                ang = {p = a.p, y = a.y, r = a.r},
+            }
+        end
+    end
+    ix.data.Set("cs_panicButtons", buttons)
+end
+
+function PLUGIN:LoadPanicButtons()
+    local buttons = ix.data.Get("cs_panicButtons", {})
+    for _, data in ipairs(buttons) do
+        local pos = Vector(data.pos.x, data.pos.y, data.pos.z)
+        local ang = Angle(data.ang.p, data.ang.y, data.ang.r)
+        local ent = ents.Create("ix_panic_button")
+        ent:SetPos(pos)
+        ent:SetAngles(ang)
+        ent:Spawn()
+        ent:Activate()
+    end
+end
+
+hook.Add("InitPostEntity", "CS_LoadPanicButtons", function()
+    PLUGIN:LoadPanicButtons()
+end)
+
+-- ============================================================
+--  COMMANDS — PANIC (deprecated — use the ix_panic_button entity)
 -- ============================================================
 ix.command.Add("panicbutton", {
     description = "Send a panic signal to all Combine units.",
     OnRun = function(self, client)
-        if !IsCombine(client) then return client:Notify("Unauthorized.") end
-        local now = CurTime()
-        local sid = client:SteamID()
-        if CS.PanicTimers[sid] and now < CS.PanicTimers[sid] + CFG.PanicCooldown then
-            local rem = math.ceil(CS.PanicTimers[sid] + CFG.PanicCooldown - now)
-            return client:Notify(string.format("Panic on cooldown: %ds remaining.", rem))
-        end
-        CS.PanicTimers[sid]  = now
-        CS.ActivePanics[sid] = {name=client:Name(), pos=client:GetPos(), time=now}
-        local combineAll = GetAllCombine()
-        net.Start("CS_PanicAlert")
-            net.WriteString(sid)
-            net.WriteString(client:Name())
-            net.WriteVector(client:GetPos())
-        net.Send(combineAll)
+        client:Notify("Use the mounted panic alarm.")
     end,
 })
 
 ix.command.Add("panicclear", {
     description = "Cancel your active panic signal.",
     OnRun = function(self, client)
-        local sid = client:SteamID()
-        if !CS.ActivePanics[sid] then return client:Notify("No active panic signal.") end
-        CS.ActivePanics[sid] = nil
-        local combineAll = GetAllCombine()
-        net.Start("CS_PanicClear")
-            net.WriteString(sid)
-        net.Send(combineAll)
-        client:Notify("Panic signal cancelled.")
+        client:Notify("Use the mounted panic alarm.")
     end,
 })
 
@@ -96,6 +110,12 @@ timer.Create("CS_PanicExpiry", 30, 0, function()
                 net.Start("CS_PanicClear")
                     net.WriteString(sid)
                 net.Send(combineAll)
+            end
+            for _, ent in ipairs(ents.FindByClass("ix_panic_button")) do
+                if IsValid(ent) and ent:GetOwnerSID() == sid then
+                    ent:SetActive(false)
+                    ent:SetOwnerSID("")
+                end
             end
         end
     end

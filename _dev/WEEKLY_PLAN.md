@@ -30,7 +30,7 @@ Goals:
 ---
 
 ## Day 3 — Wed Jun 25 · Panic Button Wall Entity
-**Status:** Pending
+**Status:** ✅ Done
 
 The `/panicbutton` and `/panicclear` commands are CONVENTIONS.md debt. The fix is a wall-mounted `ix_panic_button` entity that Combine officers activate by pressing E, replicating the panic signal flow through a world object rather than a chat command.
 
