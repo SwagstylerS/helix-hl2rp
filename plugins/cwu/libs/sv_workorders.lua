@@ -7,9 +7,17 @@ end
 function PLUGIN:SaveWorkOrders(orders)
 	ix.data.Set("cwuWorkOrders", orders)
 
-	if (#orders > ix.config.Get("cwuMaxTransactions", 500)) then
+	if (#orders > ix.config.Get("cwuMaxWorkOrders", 200)) then
 		self:CleanCompletedWorkOrders()
 	end
+end
+
+local function NextOrderID(orders)
+	local maxID = 0
+	for _, o in ipairs(orders) do
+		if (o.id and o.id > maxID) then maxID = o.id end
+	end
+	return maxID + 1
 end
 
 function PLUGIN:GenerateWorkOrder(entity)
@@ -29,7 +37,7 @@ function PLUGIN:GenerateWorkOrder(entity)
 
 	local ePos = entity:GetPos()
 	orders[#orders + 1] = {
-		id = #orders + 1,
+		id = NextOrderID(orders),
 		entityIndex = entity:EntIndex(),
 		entityClass = entity:GetClass(),
 		type = breakableInfo.type,
@@ -54,7 +62,7 @@ function PLUGIN:SubmitManualWorkOrder(description, location, priority, submitter
 	local orders = self:GetWorkOrders()
 
 	orders[#orders + 1] = {
-		id = #orders + 1,
+		id = NextOrderID(orders),
 		entityIndex = nil,
 		entityClass = nil,
 		type = "manual",
@@ -83,11 +91,21 @@ function PLUGIN:CompleteWorkOrder(entityIndex, character)
 
 	self:SaveWorkOrders(orders)
 	self:RefreshWorkOrderBoards()
+
+	if (character) then
+		local pay = ix.config.Get("cwuWorkOrderPay", 5)
+		character:GiveMoney(pay)
+
+		local client = character:GetPlayer()
+		if (IsValid(client)) then
+			client:NotifyLocalized("cwuOrderReimbursed")
+		end
+	end
 end
 
 function PLUGIN:CleanCompletedWorkOrders()
 	local orders = self:GetWorkOrders()
-	local maxOrders = ix.config.Get("cwuMaxTransactions", 500)
+	local maxOrders = ix.config.Get("cwuMaxWorkOrders", 200)
 
 	if (#orders <= maxOrders) then return end
 
@@ -145,6 +163,16 @@ function PLUGIN:ManualCompleteWorkOrder(orderID, character)
 
 	self:SaveWorkOrders(orders)
 	self:RefreshWorkOrderBoards()
+
+	if (character) then
+		local pay = ix.config.Get("cwuWorkOrderPay", 5)
+		character:GiveMoney(pay)
+
+		local client = character:GetPlayer()
+		if (IsValid(client)) then
+			client:NotifyLocalized("cwuOrderReimbursed")
+		end
+	end
 end
 
 function PLUGIN:RefreshWorkOrderBoards()

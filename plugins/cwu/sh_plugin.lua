@@ -37,6 +37,16 @@ ix.config.Add("cwuMaxTransactions", 500, "Maximum transaction log entries stored
 	category = "cwu"
 })
 
+ix.config.Add("cwuMaxWorkOrders", 200, "Maximum work order log entries stored.", nil, {
+	data = {min = 50, max = 2000},
+	category = "cwu"
+})
+
+ix.config.Add("cwuWorkOrderPay", 5, "Tokens paid to a worker upon work order completion.", nil, {
+	data = {min = 0, max = 100},
+	category = "cwu"
+})
+
 ix.config.Add("cwuDefaultCraftTime", 10, "Default crafting time in seconds.", nil, {
 	data = {min = 1, max = 120},
 	category = "cwu"

@@ -6,13 +6,6 @@ function PLUGIN:PlayerDeath(client, inflictor, attacker)
 end
 
 function PLUGIN:PlayerLoadedCharacter(client, character)
-	local faction = client:Team()
-	if (faction == FACTION_CITIZEN or faction == FACTION_CWU) then
-		if (character:GetData("citizenStanding", nil) == nil) then
-			character:SetData("citizenStanding", 0)
-		end
-	end
-
 	if (client:IsCWU()) then
 		netstream.Start(client, "CWULoyaltySync", {
 			tier = character:GetData("loyaltyTier", 0),

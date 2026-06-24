@@ -54,6 +54,7 @@ LANGUAGE = {
 	cwuWorkOrderClaimed = "Work order claimed.",
 	cwuWorkOrderAlreadyClaimed = "This work order is already claimed.",
 	cwuWorkOrderCompleted = "Work order marked complete.",
+	cwuOrderReimbursed = "Requisition processed. Standard allocation disbursed.",
 
 	-- Director PC
 	cwuDirectorTerminal = "CWU DIRECTOR TERMINAL",
