@@ -94,10 +94,12 @@ local function BuildFields(scanData)
     local function F(lbl, vk, resolve, forceAlert, forceWarn)
         fields[#fields + 1] = {lbl=lbl, vk=vk, resolve=resolve, forceAlert=forceAlert or false, forceWarn=forceWarn or false}
     end
+    if scanData.sterilized then
+        F("OVERWATCH", "ovw_flag", 0.04, true)
+    end
     if scanData.hasWarrant then
         F("WARRANT",   "warrant_flag", 0.05, true)
         F("REASON",    "wReason",      0.08, true)
-        F("ISSUED BY", "wIssuedBy",    0.10)
     end
     if scanData.bsApproved then
         F("STATUS", "bs_status", 0.05, true)
@@ -107,6 +109,9 @@ local function BuildFields(scanData)
     if scanData.cwuPending then F("CLEARANCE", "cwu_flag", 0.12, false, true) end
     F("SUBJECT",    "name",       0.15)
     F("CID",        "cid",        0.25)
+    if scanData.designation then
+        F("DESIGNATION", "designation", 0.20)
+    end
     F("UNIT CODE",  "unitCode",   0.35)
     F("LOYALTY",    "loyalty",    0.45)
     F("THREAT LVL", "threatLvl",  0.55)
@@ -174,6 +179,8 @@ net.Receive("CS_ScanStart", function()
     local hasContra  = net.ReadBool()
     local contraStr  = net.ReadString()
     local isNPC      = net.ReadBool()
+    local sterilized  = net.ReadBool()
+    local designation = net.ReadString()
 
     local fake = isNPC
         and MakeFakeNPC(IsValid(target) and target:EntIndex() or 0)
@@ -194,7 +201,7 @@ net.Receive("CS_ScanStart", function()
         bio          = fake.bio        or "???",
         lastRation   = fake.lastRation or "???",
         hasWarrant   = hasWarrant,
-        warrant_flag = hasWarrant and "ACTIVE" or nil,
+        warrant_flag = hasWarrant and "DETAIN ON SIGHT" or nil,
         wReason      = wReason,
         wIssuedBy    = wIssuedBy,
         bsApproved   = bsApproved,
@@ -205,6 +212,11 @@ net.Receive("CS_ScanStart", function()
         hasContra    = hasContra,
         contraband   = hasContra and contraStr or nil,
         heatTier     = heatTier,
+        sterilized   = sterilized and !isNPC or false,
+        ovw_flag     = (sterilized and !isNPC) and
+                         (LocalPlayer():Team() == FACTION_OTA and "STERILIZE ON SIGHT" or "REFER TO OVERWATCH")
+                       or nil,
+        designation  = (!isNPC and designation != "") and designation or nil,
     }
 
     local duration = cv_duration:GetFloat()
@@ -356,7 +368,12 @@ local function DrawScanPanel()
         local rawVal   = tostring(activeScan.data[field.vk] or "???")
         local val      = resolved and rawVal or RS(math.max(3, #rawVal))
         local vc       = resolved and ValColor(c, field, activeScan.data) or c.label
-        draw.SimpleText(field.lbl .. ":", "CS_Mono", dataX,           fy, c.label, TEXT_ALIGN_LEFT,  TEXT_ALIGN_TOP)
+        if resolved and field.vk == "ovw_flag" then
+            local pulse = math.abs(math.sin(CurTime() * 4))
+            vc = ColorAlpha(c.alert, 150 + math.floor(105 * pulse))
+        end
+        local lc = (resolved and field.vk == "ovw_flag") and vc or c.label
+        draw.SimpleText(field.lbl .. ":", "CS_Mono", dataX,           fy, lc,      TEXT_ALIGN_LEFT,  TEXT_ALIGN_TOP)
         draw.SimpleText(val,              "CS_Mono", dataX+dataW-2,   fy, vc,      TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
     end
 

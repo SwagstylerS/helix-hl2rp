@@ -398,6 +398,8 @@ ix.command.Add("scansubject", {
                 net.WriteBool(npcContra)
                 net.WriteString(contraStr)
                 net.WriteBool(true)
+                net.WriteBool(false)
+                net.WriteString("")
             net.Send(client)
             return
         end
@@ -471,6 +473,11 @@ ix.command.Add("scansubject", {
 
         local cwuPending = (CS.CWURequests or {})[sid] != nil
 
+        local sterilized = CS.IsSterilized and CS.IsSterilized(sid) or (CS.Sterilized and CS.Sterilized[sid] == true) or false
+        local divMap = {production="CWU: PRODUCTION", maintenance="CWU: MAINTENANCE",
+                        medical="CWU: MEDICAL", commerce="CWU: COMMERCE", director="CWU: DIRECTORATE"}
+        local designation = target:Team() == FACTION_CWU and (divMap[target:GetCWUDivision()] or "CWU") or "CITIZEN"
+
         -- Biometric alert to seniors at high tier
         if heatTier >= CFG.BiometricAlertTier then
             net.Start("CS_BiometricAlert")
@@ -504,6 +511,8 @@ ix.command.Add("scansubject", {
             net.WriteBool(hasContra)
             net.WriteString(contraStr)
             net.WriteBool(false)
+            net.WriteBool(sterilized)
+            net.WriteString(designation)
         net.Send(client)
     end,
 })
