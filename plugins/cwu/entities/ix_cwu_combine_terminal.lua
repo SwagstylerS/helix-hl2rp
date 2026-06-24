@@ -165,6 +165,10 @@ if (SERVER) then
 		elseif (action == "unflag") then
 			targetChar:SetData("combineFlag", false)
 			client:Notify("Combine flag cleared for " .. charName .. ".")
+		elseif (action == "loyalty") then
+			local amount = math.Clamp(math.floor(tonumber(data.amount) or 1), 1, 5)
+			PLUGIN:AwardLoyalty(targetChar, amount, "commendation")
+			client:Notify("Commendation issued to " .. charName .. ".")
 		end
 	end)
 else

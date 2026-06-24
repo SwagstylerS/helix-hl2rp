@@ -42,14 +42,17 @@ Goals:
 
 ---
 
-## Day 4 — Thu Jun 26 · Commerce Loyalty for Vendor Restocking
-**Status:** Pending
+## Day 4 — Thu Jun 26 · Loyalty Redesign (Combine-dispensed only)
+**Status:** ✅ Done
 
-Commerce division workers currently have no path to earn loyalty through their work — vendor sale loyalty was removed in an earlier refactor. The natural earn event is restocking: when a Commerce owner adds an item to their vendor terminal's stock, award 1 loyalty point. This closes the Commerce loyalty loop without reintroducing the removed sale-based loyalty.
+Design changed: loyalty must never be awarded by mechanics — only Combine officers can grant it manually through the Combine terminal. The previous plan (Commerce loyalty for vendor restocking) was cancelled because it would have re-introduced mechanical loyalty-earning, which contradicts the new rule. All automatic `AwardLoyalty` calls in the CWU plugin have been removed; a new manual path was added to the Combine terminal instead.
 
-Goals:
-- `plugins/cwu/entities/ix_vendorterminal.lua` — In `CWUVendorAddStock` netstream handler (~line 193), after `entity:SetNetVar("stock", stock)` and before `PLUGIN:SaveVendorTerminals()`, add: `local char = client:GetCharacter(); if char then PLUGIN:AwardLoyalty(char, 1, "restock") end`. The `client` is already validated as the owner by `entity:IsOwner(client)` at the start of the handler. No new strings needed — the existing `cwuLoyaltyGained` localized notification fires from `AwardLoyalty`.
-- `plugins/cwu/languages/sh_english.lua` — No change required; existing loyalty strings cover this event.
+Changes made:
+- `plugins/cwu/libs/sv_workorders.lua` — Removed `AwardLoyalty` from `CompleteWorkOrder` and `ManualCompleteWorkOrder`.
+- `plugins/cwu/entities/ix_productiontable.lua` — Removed `AwardLoyalty` from craft-completion timer callback.
+- `plugins/cwu/entities/ix_medicalworkstation.lua` — Removed `AwardLoyalty` from both synthesis completion callbacks (stimpak and drug synthesis).
+- `plugins/cwu/entities/ix_cwu_combine_terminal.lua` — Added `loyalty` action to `CWUCombineTerminalAction` handler: looks up online character by name, calls `AwardLoyalty(char, amount, "commendation")` with amount clamped 1–5.
+- `plugins/cwu/derma/cl_cwu_combine_terminal.lua` — Added "Issue Commendation" button and point amount spinner (1–5) to the Roster tab action panel. Officer selects a CWU member from the list, sets amount, and clicks to send `CWUCombineTerminalAction` with `action="loyalty"`.
 
 ---
 

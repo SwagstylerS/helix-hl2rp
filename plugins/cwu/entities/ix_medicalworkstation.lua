@@ -279,7 +279,6 @@ if (SERVER) then
 				entity:EmitSound("buttons/combine_button1.wav")
 			end)
 
-			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
 			client:Notify("Synthesis complete. Output registered under Union Medical.")
 			entity:SetState(0)
 			entity:SetInUse(false)
@@ -409,7 +408,6 @@ if (SERVER) then
 				itemName   = "Medical Compound",
 				quantity   = 1,
 			})
-			PLUGIN:AwardLoyalty(client:GetCharacter(), 1, "synthesis")
 			entity:SetState(0)
 			entity:SetInUse(false)
 		end, 20, function()

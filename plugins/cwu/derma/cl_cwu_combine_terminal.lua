@@ -253,6 +253,29 @@ function PANEL:CreateRosterTab()
 		netstream.Start("CWUCombineTerminalAction", {action = "unflag", charName = selected[1].cwuCharName})
 	end
 
+	self.commendAmount = vgui.Create("DNumberWang", actionPanel)
+	self.commendAmount:Dock(LEFT)
+	self.commendAmount:SetWide(40)
+	self.commendAmount:DockMargin(0, 2, 2, 2)
+	self.commendAmount:SetMin(1)
+	self.commendAmount:SetMax(5)
+	self.commendAmount:SetValue(1)
+
+	local commendBtn = vgui.Create("DButton", actionPanel)
+	commendBtn:Dock(LEFT)
+	commendBtn:SetWide(140)
+	commendBtn:DockMargin(0, 2, 2, 2)
+	commendBtn:SetText("Issue Commendation")
+	commendBtn.DoClick = function()
+		local selected = self.rosterList:GetSelected()
+		if (!selected or !selected[1]) then return end
+		netstream.Start("CWUCombineTerminalAction", {
+			action = "loyalty",
+			charName = selected[1].cwuCharName,
+			amount = self.commendAmount:GetValue()
+		})
+	end
+
 	self.rosterList = vgui.Create("DListView", self.rosterPanel)
 	self.rosterList:Dock(FILL)
 	self.rosterList:DockMargin(5, 0, 5, 5)

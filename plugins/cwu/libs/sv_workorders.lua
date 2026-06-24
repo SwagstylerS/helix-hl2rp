@@ -81,10 +81,6 @@ function PLUGIN:CompleteWorkOrder(entityIndex, character)
 		end
 	end
 
-	if (character) then
-		self:AwardLoyalty(character, 2, "repair")
-	end
-
 	self:SaveWorkOrders(orders)
 	self:RefreshWorkOrderBoards()
 end
@@ -147,7 +143,6 @@ function PLUGIN:ManualCompleteWorkOrder(orderID, character)
 		end
 	end
 
-	self:AwardLoyalty(character, 2, "repair")
 	self:SaveWorkOrders(orders)
 	self:RefreshWorkOrderBoards()
 end
