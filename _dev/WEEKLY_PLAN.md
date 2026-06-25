@@ -57,7 +57,7 @@ Changes made:
 ---
 
 ## Day 5 — Fri Jun 27 · Scanner False-Positive Fix + Stimpak Voice Fix
-**Status:** Pending
+**Status:** ✅ Done
 
 Two small correctness fixes caught during research: (1) the scanner's `CFG.FlaggedItems` list contains `"radio"` as a plain substring match, which causes `cwu_radio` (a CWU-issued, Combine-authorized item) to be flagged as suspicious on every scan of a CWU worker — this is incorrect and will undermine the Commerce/CWU loop; (2) the stimpak's `OnRun` notification exposes gamey mechanic text.
 
