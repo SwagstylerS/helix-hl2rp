@@ -69,6 +69,11 @@ Goals:
 
 ---
 
+## Automated session — Fri Jun 26
+All five days confirmed ✅ Done. Sprint closed. No pending code tasks remain this week. Next sprint planning needed before Mon Jun 30.
+
+---
+
 ## Note: Medical Smoke-Test (Carried Forward)
 Days 3–5 of the prior week (medical injury smoke-test) remain pending live server access. When `medicalInjuries 1` is enabled on a live server, verify: `EntityTakeDamage` creates wounds, bleed tick drains HP, leg wound causes limp, bandage seals wound (80%)/rebleeds (20%), surgery via `ix_medicalworkstation` clears all wounds. Tune constants in `sv_injury.lua` (WOUND_THRESHOLD, BLEED_FLOOR, REBLEED_DELAY, RECOVERY_STEP) if needed after observation. No code session work required — this is a live-server QA item.
 
