@@ -14,6 +14,16 @@ echo "  1) No chat commands for world interaction — use entities/terminals/men
 echo "  2) No gamey text — in-world voice only (dispatch / Union / environmental cues)."
 echo "Read first: _dev/DIRECTION.md (vision), _dev/CONVENTIONS.md (rules), _dev/WEEKLY_PLAN.md (sprint)."
 
+# Surface untested feature count.
+untested="_dev/UNTESTED.md"
+if [ -f "$untested" ]; then
+  # Count data rows (lines with a leading pipe that aren't the header or separator)
+  untested_count="$(grep -cE '^\| (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9]' "$untested" 2>/dev/null || echo 0)"
+  if [ "${untested_count:-0}" -gt 0 ]; then
+    echo "Untested features: ${untested_count} pending live-server verification (see _dev/UNTESTED.md)."
+  fi
+fi
+
 # Surface the next Pending sprint day, if the plan exists.
 plan="_dev/WEEKLY_PLAN.md"
 if [ -f "$plan" ]; then

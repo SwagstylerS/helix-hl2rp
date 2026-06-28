@@ -17,6 +17,16 @@ mechanical systems (Combine surveillance, CWU economy, loyalty, infrastructure d
    CWU bureaucratic language, citizens get environmental cues only. Never expose raw scores,
    tier numbers, cooldowns, percentages, or mechanic labels.
 
+## Process rules
+3. **Council decides the sprint.** Before writing a new `# Weekly Development Plan` block into
+   `_dev/WEEKLY_PLAN.md`, run `/council-review` on the proposed sprint goal and day list.
+   Capture the verdict and any modifications in the plan header. If the council flags a blocker,
+   revise the plan to address it before finalising. No sprint ships without a council pass.
+4. **Mark untested code.** Every feature or fix committed in an automated session must get an
+   entry in `_dev/UNTESTED.md` (date · feature · files · specific in-server test). Entries are
+   removed only after live-server verification. Check this file at session start — if any entry
+   is for a system you are about to extend, note the gap before proceeding.
+
 ## Layout & conventions cheat-sheet
 - **Realms:** `sh_` shared · `sv_` server · `cl_` client. GMod Lua style uses `!`, `!=`, `&&`, `||`.
 - **Plugin layouts vary and are all valid:** `cwu`/`writing` use `sh_plugin.lua` +
@@ -37,6 +47,10 @@ mechanical systems (Combine surveillance, CWU economy, loyalty, infrastructure d
 ## Git
 Work is committed **directly to `master`** for this effort (per the owner). Commit style:
 lowercase, `feat:`/`fix:`/`chore:`/`plan:`, emoji-free, descriptive.
+
+After committing new code, append to `_dev/UNTESTED.md` and include it in the same commit.
+Do not commit features without an UNTESTED entry — the entry is the contract that someone
+will verify the code before it is extended further.
 
 ## Project skills (in `.claude/skills/`)
 Prefer these — they encode the rules above:

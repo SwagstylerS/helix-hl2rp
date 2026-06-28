@@ -29,3 +29,19 @@ Any message shown to players must read as something that exists in the world, no
 Use Combine dispatch radio language (10-codes, "subject", "unit", "malcompliant", "processing") for CP/OTA-facing messages. CWU-facing messages should use bureaucratic Union language. Citizens receive nothing mechanical — environmental cues only.
 
 **Flavor text that names an in-world object is acceptable.** The rule targets mechanical exposure (numbers, tier labels, cooldown timers), not immersive description. `"The stimpak floods your system with healing compounds."` is fine — it names the item and evokes a physical sensation without revealing any stat. Show-don't-tell is the ideal, but descriptive flavor text is always preferable to a bare mechanic readout.
+
+---
+
+## Development Process
+
+**Council gate for sprint planning.**
+A new sprint may not be written into `_dev/WEEKLY_PLAN.md` until `/council-review` has been run
+on the proposed goal and day list. The council verdict and any plan changes it caused are recorded
+in the sprint header. If the council raises a blocker, the plan must address it before the sprint
+is finalised.
+
+**Untested code tracking.**
+Every feature or fix committed in an automated session gets an entry in `_dev/UNTESTED.md`:
+date, feature name, key files, and a concrete in-server test. The entry stays until a live-server
+session verifies the behaviour and removes it. Before extending a system, check whether it has an
+open UNTESTED entry — building on unverified code compounds the risk.
