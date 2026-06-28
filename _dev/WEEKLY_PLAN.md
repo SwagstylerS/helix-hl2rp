@@ -75,6 +75,83 @@ All five days confirmed ✅ Done. Sprint closed. No pending code tasks remain th
 ## Automated session — Sat Jun 27
 Weekend. No pending tasks. Sprint Week of Jun 23–27 fully closed. All three CONVENTIONS.md debt items resolved (panic button, detain/release terminal, curfew toggle). Next sprint starts Mon Jun 30.
 
+## Automated session — Sun Jun 28
+Weekend. No pending tasks. Audited codebase for next sprint gaps: (1) `pirate_radio` and `lockpick` are in `CFG.FlaggedItems` but no items exist — Pillar 5 loop is broken. (2) `/requestclearance` is a citizen chat command that should be an entity; approval/denial is already wired in the terminal CWU tab. (3) `/addcheckpoint`, `/removecheckpoint`, `/addrestrictedzone`, `/removerestrictedzone` are admin chat commands for world state — all should move to the terminal zones tab. Next sprint plan written below.
+
+---
+
+# Weekly Development Plan
+**Week of Jun 30 – Jul 4, 2026**
+**Goal:** Close four remaining command-debt items (requestclearance citizen kiosk, terminal zone/checkpoint CRUD); create the `pirate_radio` and `lockpick` contraband items that the scanner already references; and add a black-market stash entity so citizens can acquire contraband in-world without admin intervention.
+
+---
+
+## Day 1 — Mon Jun 30 · Pirate Radio + Lockpick Contraband Items
+**Status:** Pending
+
+The scanner's `CFG.FlaggedItems` table lists `"pirate_radio"` and `"lockpick"` but neither item exists. Scanning a citizen who possesses a non-existent item always returns clean — Pillar 5 dual-use tension cannot trigger. Both items need to exist before any contraband RP loop is possible.
+
+Goals:
+- `schema/items/contraband/sh_pirate_radio.lua` — New item. `ITEM.uniqueID = "pirate_radio"`, `ITEM.name = "Pirate Radio"`, model `models/props_lab/radio_on.mdl`. Two item functions: `"Toggle"` (server `OnRun`: flips `itemTable:GetData("active", false)`; notify via `NotifyLocalized`; return false) and `"Broadcast"` (server `OnRun`: if not active, `NotifyLocalized("pirateRadioOff")`; else `netstream.Start(client, "PirateRadioBroadcastPrompt", {})` so client can submit text; return false). `ITEM.cost = 0` — obtained via RP, not bought.
+- `schema/cl_plugin.lua` (or equivalent schema client file) — `netstream.Hook("PirateRadioBroadcastPrompt", function() ... end)`: open `Derma_StringRequest` titled `"UNAUTHORIZED FREQUENCY"`, on confirm call `netstream.Start("PirateRadioBroadcast", text)`.
+- `schema/sv_plugin.lua` (or equivalent server file) — `netstream.Hook("PirateRadioBroadcast", function(client, msg) ... end)`: validate `IsValid(client)` + `client:HasItem("pirate_radio")` + `client:GetItemByUniqueID("pirate_radio"):GetData("active")` + `#msg <= 200`; then `ix.chat.Send(client, "pirate_broadcast", msg)`.
+- Register `"pirate_broadcast"` chat type near the other schema chat types in `schema/sh_chatclasses.lua` or `schema/sh_plugin.lua`: format `"[UNAUTHORIZED SIGNAL] %s"`, color `Color(80, 200, 80)`, range 600 units, `CanSay` returns true for all factions (anyone can hear it, no one is identified — sender name is suppressed). Showing it to Combine but hiding the sender creates search pressure.
+- `schema/items/contraband/sh_lockpick.lua` — Passive contraband item. `ITEM.uniqueID = "lockpick"`, `ITEM.name = "Lock Pick Set"`, model `models/props_junk/PopCan01a.mdl` (placeholder). No functions this sprint — exists only so the scanner flag resolves. `ITEM.cost = 0`.
+- `schema/languages/sh_english.lua` — Add `pirateRadioOff = "The unit is not transmitting."` and `pirateRadioOn = "Transmission active."`.
+
+---
+
+## Day 2 — Tue Jul 1 · Citizen Clearance Kiosk Entity
+**Status:** Pending
+
+`/requestclearance` is a citizen-facing world-interaction chat command. The Combine terminal already handles approval/denial via `CS_TerminalAction` (`approveClearance`/`denyClearance`) and shows pending requests in the CWU tab. The only missing piece is the citizen-side entity that replaces the command.
+
+Goals:
+- `plugins/combine-terminal/entities/entities/ix_clearance_kiosk.lua` — New entity. `ENT.Category = "HL2 RP"`, `ENT.PrintName = "Citizen Processing Terminal"`, `AdminOnly = true`. Model: `models/props_combine/combine_interface001.mdl`. `ENT:Use(client)`: gate — if `client:IsCombine()` return. Gate cooldown 30 s per SID (`CS.KioskCooldowns[sid]`). Check if request already pending: if `CS.CWURequests[sid]` exists, `client:NotifyLocalized("clearanceAlreadyPending")` and return. Otherwise add to `CS.CWURequests` and broadcast `CS_ClearanceNotify` to Combine exactly as the deprecated command did. Notify citizen `"clearanceSubmitted"`. Client `Draw`: 3D2D `"CITIZEN PROCESSING TERMINAL"` header; show `"REQUEST PENDING"` in yellow if `CS.CWURequests[client:SteamID()] != nil` on a `ClientsideHook`, else `"PRESENT CID FOR PROCESSING"` in white; draw only within 200 units.
+- `plugins/combine-terminal/sv_plugin.lua` — Add `CS.KioskCooldowns = CS.KioskCooldowns or {}`. No other server changes needed — `CS.CWURequests`, `CS_ClearanceNotify`, `DoApproveClearance/DoDenyClearance` are already wired.
+- `plugins/combine-terminal/sv_plugin.lua` — Deprecate `/requestclearance`: replace `OnRun` body with `client:Notify("Present your CID at the nearest processing terminal.")` and return.
+- `plugins/combine-terminal/languages/sh_english.lua` (or create it) — Add `clearanceSubmitted = "CID submitted for processing."`, `clearanceAlreadyPending = "A request is already pending for your CID."`.
+
+---
+
+## Day 3 — Wed Jul 2 · Zone & Checkpoint Management via Terminal
+**Status:** Pending
+
+`/addrestrictedzone`, `/removerestrictedzone`, `/addcheckpoint`, `/removecheckpoint` are admin chat commands that create persistent world state. The terminal already shows zones and checkpoints in the Zones tab with a hint "managed via admin commands." Adding CRUD actions to the terminal moves these into the Combine intelligence workflow where they belong; senior Combine can define sectors without console access.
+
+Goals:
+- `plugins/combine-terminal/sv_plugin.lua` — In `CS_TerminalAction`, add four new cases gated by `IsSenior(ply)`:
+  - `"addZone"`: reads `data.name` (string, max 32 chars), `data.radius` (number, clamped 64–2048); appends to `cs_zones` using `ply:GetPos()` as origin; `client:Notify()` confirmation. Broadcasts `CS_TerminalRefresh` to all Combine.
+  - `"removeZone"`: reads `data.name`; removes matching entry from `cs_zones`; `client:Notify()`. Broadcasts refresh.
+  - `"addCheckpoint"`: reads `data.name`, `data.radius`; appends to `cs_checkpoints`. Broadcasts refresh.
+  - `"removeCheckpoint"`: reads `data.name`; removes matching. Broadcasts refresh.
+- `plugins/combine-terminal/derma/cl_tab_zones.lua` — Below the existing zone list, add a "ZONE MANAGEMENT" section (only rendered when `self.m_bSenior` is true): two `DTextEntry` inputs (Name, Radius), an "ADD ZONE" button (`SendAction("addZone", {name=..., radius=...})`), and a "REMOVE SELECTED" button that reads the selected zone name from the list above and fires `SendAction("removeZone", {name=...})`. Add equivalent "CHECKPOINT MANAGEMENT" section for checkpoints. After receiving `CS_TerminalRefresh`, call `self:Populate(data)` to re-render the updated lists.
+- `plugins/combine-terminal/sv_plugin.lua` — Deprecate `/addrestrictedzone`, `/removerestrictedzone`, `/addcheckpoint`, `/removecheckpoint`: replace `OnRun` bodies with `client:Notify("Manage sectors at the operations terminal.")` and return. Keep stubs so existing binds don't error.
+
+---
+
+## Day 4 — Thu Jul 3 · Black Market Stash Entity
+**Status:** Pending
+
+Contraband items (pirate radio, lockpick) are now defined but have no in-world acquisition path. Without a way to get them, the scan loop can only be triggered by admin-spawned items. A hidden, admin-placed stash entity gives citizens an in-world source at a heat cost — creating the risk/reward that makes dual-use tension real without requiring an admin to be present.
+
+Goals:
+- `schema/entities/entities/ix_black_market_stash.lua` — New entity. `ENT.Category = "HL2 RP"`, `ENT.PrintName = "Black Market Stash"`, `AdminOnly = true`, `PhysgunDisable = true`, `bNoPersist = true`. Model: `models/props_junk/garbage_bag001a.mdl`. Server `Initialize`: `SetUseType(SIMPLE_USE)`. `ENT:Use(client)`: gate Combine (`IsCombine(client)` → play locked sound, return). Gate distance 96 units. Per-player cooldown 120 s (`ENT.Cooldowns[sid]`). Check if citizen, has character. Give one `"pirate_radio"` and one `"lockpick"` to character inventory (`ix.item.Spawn` inside inventory via `ix.item.New` pattern, or `character:GetInventory():Add("pirate_radio")`). Add +15 heat (`AddHeat(sid, 15)` — referencing the existing `CS.HeatScores` table directly, or call via the netstream/hook pattern already used). `client:NotifyLocalized("stashAccessed")`. Client `Draw`: 3D2D label `"CONTRABAND"` in dark red within 128 units, pulsing alpha.
+- `schema/languages/sh_english.lua` — Add `stashAccessed = "You find something useful tucked away."`.
+- Note: `AddHeat` is a local function in `combine-terminal/sv_plugin.lua`. Expose it as `CS.AddHeat = AddHeat` after the local declaration so the stash entity (running in a different Lua state context on server) can call `CS.AddHeat(sid, amount)`.
+
+---
+
+## Day 5 — Fri Jul 4 · Convention Check + Sprint Wrap
+**Status:** Pending
+
+Goals:
+- Run `/helix-convention-check` on diffs from Days 1–4.
+- Verify all player-facing strings are in-world voice (no numbers, no mechanic labels).
+- Verify `"pirate_broadcast"` chat type sender is suppressed (citizens receive broadcast, Combine receive broadcast, neither sees the sender's character name — only `"[UNAUTHORIZED SIGNAL]"`).
+- Confirm the black market stash `AddHeat` exposure is clean: `CS.AddHeat` set in `combine-terminal/sv_plugin.lua`, referenced defensively with `if CS and CS.AddHeat then CS.AddHeat(...) end` in the stash entity.
+- If anything flagged, fix and re-check.
+
 ---
 
 ## Note: Medical Smoke-Test (Carried Forward)
