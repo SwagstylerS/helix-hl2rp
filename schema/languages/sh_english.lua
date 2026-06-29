@@ -45,5 +45,8 @@ LANGUAGE = {
 	cLosingContact = "Downloading lost radio contact information...",
 	cLostContact = "WARNING! Radio contact lost for unit at unknown location...",
 
-	voices = "Voices"
+	voices = "Voices",
+
+	pirateRadioOn = "Carrier signal acquired.",
+	pirateRadioOff = "No carrier signal."
 }

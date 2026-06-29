@@ -241,6 +241,16 @@ function Schema:CreateScanner(client, class)
 	return entity
 end
 
+netstream.Hook("PirateRadioBroadcast", function(client, msg)
+	if (!IsValid(client)) then return end
+	local char = client:GetCharacter()
+	if (!char) then return end
+	local radio = char:GetInventory():HasItem("pirate_radio")
+	if (!radio or !radio:GetData("active", false)) then return end
+	if (type(msg) != "string" or #msg < 1 or #msg > 200) then return end
+	ix.chat.Send(client, "pirate_broadcast", msg)
+end)
+
 function Schema:SearchPlayer(client, target)
 	if (!target:GetCharacter() or !target:GetCharacter():GetInventory()) then
 		return false

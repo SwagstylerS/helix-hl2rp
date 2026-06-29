@@ -175,3 +175,20 @@ do
 
 	ix.chat.Register("broadcast", CLASS)
 end
+
+do
+	local CLASS = {}
+	CLASS.color = Color(80, 200, 80)
+	CLASS.format = "~~ %s ~~"
+
+	function CLASS:CanHear(speaker, listener)
+		local range = 600
+		return (speaker:GetPos() - listener:GetPos()):LengthSqr() <= (range * range)
+	end
+
+	function CLASS:OnChatAdd(speaker, text)
+		chat.AddText(self.color, string.format(self.format, text))
+	end
+
+	ix.chat.Register("pirate_broadcast", CLASS)
+end
