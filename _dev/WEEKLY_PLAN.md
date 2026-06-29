@@ -84,20 +84,27 @@ Weekend. No pending tasks. Audited codebase for next sprint gaps: (1) `pirate_ra
 **Week of Jun 30 – Jul 4, 2026**
 **Goal:** Close four remaining command-debt items (requestclearance citizen kiosk, terminal zone/checkpoint CRUD); create the `pirate_radio` and `lockpick` contraband items that the scanner already references; and add a black-market stash entity so citizens can acquire contraband in-world without admin intervention.
 
+**Council verdict (Jun 29):** Approved with modifications. Three pre-conditions must be met before Day 1 code is written: (1) run `/helix-inworld-voice` on the pirate_radio broadcast text and replace the gamey `"[UNAUTHORIZED SIGNAL]"` prefix with in-world signal language — this is a hard Rule 2 violation and cannot be left for Day 5; (2) open `_dev/UNTESTED.md` and confirm whether scanner item-flagging and heat-tier-alerts have unverified entries — if they do, those two must be live-verified or explicitly blocked before contraband items are created on top of them; (3) before writing Day 4 code, confirm `CS.AddHeat` is callable from an external entity by reviewing `combine-terminal/sv_plugin.lua` and documenting the call path or adding a pcall fallback. Day 4 is conditional: if pre-condition 3 cannot be satisfied, replace Day 4 with UNTESTED paydown. Day 5 convention gate moves to Day 1 start; Day 5 becomes UNTESTED paydown regardless. The pirate_radio broadcast architecture (item OnRun → netstream → Derma dialog → ix.chat.Send) is compliant with both conventions — the broadcast IS the communication mechanic and is exempt from Rule 1; only the prefix text violates Rule 2.
+
 ---
 
 ## Day 1 — Mon Jun 30 · Pirate Radio + Lockpick Contraband Items
 **Status:** Pending
 
+**Pre-conditions before writing any code:**
+- Run `/helix-inworld-voice` to determine the correct in-world signal flavor for the pirate_radio broadcast chat type. The `"[UNAUTHORIZED SIGNAL]"` prefix is a gamey UI tag (Rule 2 violation) and must be replaced with in-world language (e.g. an atmospheric signal marker consistent with Combine interception lore) before the chat type is registered.
+- Run `/helix-convention-check` on the planned Day 1 diff before committing.
+- Check `_dev/UNTESTED.md` for entries covering scanner item-flagging and heat-tier-alerts. If either is unverified, note the gap in this day's entry and proceed only with the understanding that live-server testing is required before Day 4.
+
 The scanner's `CFG.FlaggedItems` table lists `"pirate_radio"` and `"lockpick"` but neither item exists. Scanning a citizen who possesses a non-existent item always returns clean — Pillar 5 dual-use tension cannot trigger. Both items need to exist before any contraband RP loop is possible.
 
 Goals:
 - `schema/items/contraband/sh_pirate_radio.lua` — New item. `ITEM.uniqueID = "pirate_radio"`, `ITEM.name = "Pirate Radio"`, model `models/props_lab/radio_on.mdl`. Two item functions: `"Toggle"` (server `OnRun`: flips `itemTable:GetData("active", false)`; notify via `NotifyLocalized`; return false) and `"Broadcast"` (server `OnRun`: if not active, `NotifyLocalized("pirateRadioOff")`; else `netstream.Start(client, "PirateRadioBroadcastPrompt", {})` so client can submit text; return false). `ITEM.cost = 0` — obtained via RP, not bought.
-- `schema/cl_plugin.lua` (or equivalent schema client file) — `netstream.Hook("PirateRadioBroadcastPrompt", function() ... end)`: open `Derma_StringRequest` titled `"UNAUTHORIZED FREQUENCY"`, on confirm call `netstream.Start("PirateRadioBroadcast", text)`.
-- `schema/sv_plugin.lua` (or equivalent server file) — `netstream.Hook("PirateRadioBroadcast", function(client, msg) ... end)`: validate `IsValid(client)` + `client:HasItem("pirate_radio")` + `client:GetItemByUniqueID("pirate_radio"):GetData("active")` + `#msg <= 200`; then `ix.chat.Send(client, "pirate_broadcast", msg)`.
-- Register `"pirate_broadcast"` chat type near the other schema chat types in `schema/sh_chatclasses.lua` or `schema/sh_plugin.lua`: format `"[UNAUTHORIZED SIGNAL] %s"`, color `Color(80, 200, 80)`, range 600 units, `CanSay` returns true for all factions (anyone can hear it, no one is identified — sender name is suppressed). Showing it to Combine but hiding the sender creates search pressure.
+- `schema/cl_plugin.lua` (or equivalent schema client file) — `netstream.Hook("PirateRadioBroadcastPrompt", function() ... end)`: open `Derma_StringRequest` titled `"OPEN FREQUENCY"`, on confirm call `netstream.Start("PirateRadioBroadcast", text)`. (Title is placeholder pending helix-inworld-voice output.)
+- `schema/sv_plugin.lua` (or equivalent server file) — `netstream.Hook("PirateRadioBroadcast", function(client, msg) ... end)`: validate `IsValid(client)` + `client:HasItem("pirate_radio")` + `client:GetItemByUniqueID("pirate_radio"):GetData("active")` + `#msg <= 200`; then `ix.chat.Send(client, "pirate_broadcast", msg)`. Confirm no `ix.command.Add` is registered for this — the item OnRun path is the only entry point.
+- Register `"pirate_broadcast"` chat type in `schema/sh_plugin.lua`: format string determined by helix-inworld-voice pre-condition (in-world signal flavor, sender name suppressed). Color `Color(80, 200, 80)`, range 600 units, `CanSay` returns true for all factions. Showing it to Combine but hiding the sender creates search pressure.
 - `schema/items/contraband/sh_lockpick.lua` — Passive contraband item. `ITEM.uniqueID = "lockpick"`, `ITEM.name = "Lock Pick Set"`, model `models/props_junk/PopCan01a.mdl` (placeholder). No functions this sprint — exists only so the scanner flag resolves. `ITEM.cost = 0`.
-- `schema/languages/sh_english.lua` — Add `pirateRadioOff = "The unit is not transmitting."` and `pirateRadioOn = "Transmission active."`.
+- `schema/languages/sh_english.lua` — Add `pirateRadioOff` and `pirateRadioOn` in-world flavor strings (exact text from helix-inworld-voice pass).
 
 ---
 
@@ -130,27 +137,33 @@ Goals:
 
 ---
 
-## Day 4 — Thu Jul 3 · Black Market Stash Entity
+## Day 4 — Thu Jul 3 · Black Market Stash Entity (conditional)
 **Status:** Pending
+
+**Pre-condition before writing any code:** Review `plugins/combine-terminal/sv_plugin.lua` and confirm `AddHeat` is exposed as `CS.AddHeat` (or expose it now). If this cannot be verified or the heat system has open UNTESTED entries that are unresolvable without live-server access, replace Day 4 with UNTESTED paydown: write specific in-server test procedures for the five highest-risk backlog entries (scanner flagging, heat-tier-alerts, curfew toggle, panic button, loyalty commendation) and commit them to `_dev/UNTESTED.md` as updated test notes.
+
+If pre-condition passes — proceed with the stash:
 
 Contraband items (pirate radio, lockpick) are now defined but have no in-world acquisition path. Without a way to get them, the scan loop can only be triggered by admin-spawned items. A hidden, admin-placed stash entity gives citizens an in-world source at a heat cost — creating the risk/reward that makes dual-use tension real without requiring an admin to be present.
 
 Goals:
-- `schema/entities/entities/ix_black_market_stash.lua` — New entity. `ENT.Category = "HL2 RP"`, `ENT.PrintName = "Black Market Stash"`, `AdminOnly = true`, `PhysgunDisable = true`, `bNoPersist = true`. Model: `models/props_junk/garbage_bag001a.mdl`. Server `Initialize`: `SetUseType(SIMPLE_USE)`. `ENT:Use(client)`: gate Combine (`IsCombine(client)` → play locked sound, return). Gate distance 96 units. Per-player cooldown 120 s (`ENT.Cooldowns[sid]`). Check if citizen, has character. Give one `"pirate_radio"` and one `"lockpick"` to character inventory (`ix.item.Spawn` inside inventory via `ix.item.New` pattern, or `character:GetInventory():Add("pirate_radio")`). Add +15 heat (`AddHeat(sid, 15)` — referencing the existing `CS.HeatScores` table directly, or call via the netstream/hook pattern already used). `client:NotifyLocalized("stashAccessed")`. Client `Draw`: 3D2D label `"CONTRABAND"` in dark red within 128 units, pulsing alpha.
+- `schema/entities/entities/ix_black_market_stash.lua` — New entity. `ENT.Category = "HL2 RP"`, `ENT.PrintName = "Black Market Stash"`, `AdminOnly = true`, `PhysgunDisable = true`, `bNoPersist = true`. Model: `models/props_junk/garbage_bag001a.mdl`. Server `Initialize`: `SetUseType(SIMPLE_USE)`. `ENT:Use(client)`: gate Combine (`IsCombine(client)` → play locked sound, return). Gate distance 96 units. Per-player cooldown 120 s (`ENT.Cooldowns[sid]`). Check if citizen, has character. Give one `"pirate_radio"` and one `"lockpick"` to character inventory. Add heat via `if CS and CS.AddHeat then CS.AddHeat(sid, 15) end` (defensive call — if CS.AddHeat is nil, stash still functions but heat is not added; this guards against cross-context nil errors). `client:NotifyLocalized("stashAccessed")`. Client `Draw`: 3D2D label in dark red within 128 units, pulsing alpha — exact text from helix-inworld-voice (not "CONTRABAND").
 - `schema/languages/sh_english.lua` — Add `stashAccessed = "You find something useful tucked away."`.
-- Note: `AddHeat` is a local function in `combine-terminal/sv_plugin.lua`. Expose it as `CS.AddHeat = AddHeat` after the local declaration so the stash entity (running in a different Lua state context on server) can call `CS.AddHeat(sid, amount)`.
+- `plugins/combine-terminal/sv_plugin.lua` — After the local declaration of `AddHeat`, add `CS.AddHeat = AddHeat` so external entities can call it across Lua contexts.
 
 ---
 
-## Day 5 — Fri Jul 4 · Convention Check + Sprint Wrap
+## Day 5 — Fri Jul 4 · UNTESTED Paydown + Convention Gate
 **Status:** Pending
 
+Convention check moves to Day 1 start (run `/helix-convention-check` before committing each day). Day 5 is dedicated to reducing the UNTESTED.md backlog, which grows with each sprint and must not continue unchecked.
+
 Goals:
-- Run `/helix-convention-check` on diffs from Days 1–4.
-- Verify all player-facing strings are in-world voice (no numbers, no mechanic labels).
-- Verify `"pirate_broadcast"` chat type sender is suppressed (citizens receive broadcast, Combine receive broadcast, neither sees the sender's character name — only `"[UNAUTHORIZED SIGNAL]"`).
-- Confirm the black market stash `AddHeat` exposure is clean: `CS.AddHeat` set in `combine-terminal/sv_plugin.lua`, referenced defensively with `if CS and CS.AddHeat then CS.AddHeat(...) end` in the stash entity.
-- If anything flagged, fix and re-check.
+- For each of the five new entries added this sprint (pirate_radio item, lockpick item, clearance kiosk, zone/checkpoint terminal CRUD, black market stash if built), write specific in-server test procedures in `_dev/UNTESTED.md`.
+- Review the existing 18 backlog entries. Identify which are verifiable in an automated session via code review (no live server needed): confirm `combine-terminal/sv_plugin.lua` `AddHeat` wiring, scanner `CFG.FlaggedItems` lookup logic. For any that can be statically confirmed, add a note to the entry.
+- Confirm `"pirate_broadcast"` chat type sender is suppressed (citizens receive broadcast, Combine receive broadcast, neither sees the sender character name).
+- Verify all player-facing strings added this sprint are in-world voice (no numbers, no mechanic labels, no UI-tag prefixes).
+- If Day 4 was replaced by paydown work, document that substitution here so the black market stash defers cleanly to next sprint.
 
 ---
 
