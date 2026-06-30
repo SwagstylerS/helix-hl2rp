@@ -108,7 +108,7 @@ Goals:
 ---
 
 ## Day 2 — Tue Jul 1 · Citizen Clearance Kiosk Entity
-**Status:** Pending
+**Status:** ✅ Done
 
 `/requestclearance` is a citizen-facing world-interaction chat command. The Combine terminal already handles approval/denial via `CS_TerminalAction` (`approveClearance`/`denyClearance`) and shows pending requests in the CWU tab. The only missing piece is the citizen-side entity that replaces the command.
 

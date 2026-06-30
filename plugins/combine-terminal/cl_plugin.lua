@@ -3,9 +3,15 @@ local PLUGIN = PLUGIN
 
 local localClearanceExpires = 0
 
+KIOSK_PENDING = false
+
 -- ============================================================
 --  NET RECEIVERS
 -- ============================================================
+net.Receive("CS_KioskPending", function()
+    KIOSK_PENDING = net.ReadBool()
+end)
+
 net.Receive("CS_TerminalOpen", function()
     local json     = net.ReadString()
     local isSenior = net.ReadBool()

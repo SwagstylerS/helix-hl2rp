@@ -14,6 +14,7 @@ if SERVER then
     util.AddNetworkString("CS_ClearanceSync")
     util.AddNetworkString("CS_SterilizeOrder")
     util.AddNetworkString("CS_EliminationConfirm")
+    util.AddNetworkString("CS_KioskPending")
 end
 
 if CLIENT then

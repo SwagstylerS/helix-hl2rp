@@ -43,6 +43,7 @@ CS.ZoneHeatCooldowns  = CS.ZoneHeatCooldowns  or {}
 CS.Sterilized         = CS.Sterilized         or {}
 CS.HeatBleedCooldowns       = CS.HeatBleedCooldowns       or {}
 CS.CheckpointPreCurfewModes = CS.CheckpointPreCurfewModes or {}
+CS.KioskCooldowns           = CS.KioskCooldowns           or {}
 
 hook.Add("InitPostEntity", "CS_Heat_Load", function()
     CS.HeatScores  = ix.data.Get("cs_heatScores",  {})
@@ -281,6 +282,7 @@ local function DoApproveClearance(ply, targetPly)
     local sid = targetPly:SteamID()
     if !CS.CWURequests[sid] then ply:Notify("No pending clearance request."); return false end
     CS.CWURequests[sid] = nil
+    net.Start("CS_KioskPending"); net.WriteBool(false); net.Send(targetPly)
     local char = targetPly:GetCharacter()
     if char then
         local expires = os.time() + CFG.ClearanceExpiry
@@ -310,6 +312,7 @@ local function DoDenyClearance(ply, targetPly)
     local sid = targetPly:SteamID()
     if !CS.CWURequests[sid] then ply:Notify("No pending clearance request."); return false end
     CS.CWURequests[sid] = nil
+    net.Start("CS_KioskPending"); net.WriteBool(false); net.Send(targetPly)
     AddHeat(sid, CFG.ClearanceDenyHeat)
     local char = targetPly:GetCharacter()
     if char then
@@ -537,11 +540,12 @@ end
 -- ============================================================
 --  EXPOSED FUNCTIONS (used by ix_combine_terminal entity)
 -- ============================================================
-CS.BuildFullPayload = BuildFullPayload
-CS.IsCombine        = IsCombine
-CS.IsSenior         = IsSenior
-CS.GetHeatTier      = GetHeatTier
-CS.IsSterilized     = function(sid) return CS.Sterilized[sid] == true end
+CS.BuildFullPayload  = BuildFullPayload
+CS.IsCombine         = IsCombine
+CS.IsSenior          = IsSenior
+CS.GetHeatTier       = GetHeatTier
+CS.IsSterilized      = function(sid) return CS.Sterilized[sid] == true end
+CS.GetCombinePlayers = GetCombinePlayers
 
 -- ============================================================
 --  NET RECEIVERS — TERMINAL ACTIONS
@@ -771,15 +775,7 @@ ix.command.Add("removecheckpoint", {
 ix.command.Add("requestclearance", {
     description = "Request clearance from Combine as a citizen.",
     OnRun = function(self, client)
-        if client:Team() != FACTION_CITIZEN and client:Team() != FACTION_CWU then
-            return client:Notify("Only citizens may request clearance.")
-        end
-        local sid = client:SteamID()
-        CS.CWURequests[sid] = {name=client:Name(), ply=client, time=CurTime()}
-        net.Start("CS_ClearanceNotify")
-            net.WriteString(client:Name())
-            net.WriteString(sid)
-        net.Send(GetCombinePlayers())
+        return client:Notify("Present your CID at the nearest processing terminal.")
     end,
 })
 
