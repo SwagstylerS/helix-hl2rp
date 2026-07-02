@@ -150,6 +150,7 @@ function PANEL:Populate()
         {"UNITS",        "CS_TabUnits"},
         {"SCANS",        "CS_TabScans"},
         {"WARRANTS",     "CS_TabWarrants"},
+        {"ZONES",        "CS_TabZones"},
         {"CLEARANCE",    "CS_TabCWU"},
         {"DETAINEES",    "CS_TabDetainees"},
         {"ELIMINATIONS", "CS_TabEliminations"},

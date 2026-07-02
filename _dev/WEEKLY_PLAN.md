@@ -121,7 +121,7 @@ Goals:
 ---
 
 ## Day 3 — Wed Jul 2 · Zone & Checkpoint Management via Terminal
-**Status:** Pending
+**Status:** ✅ Done
 
 `/addrestrictedzone`, `/removerestrictedzone`, `/addcheckpoint`, `/removecheckpoint` are admin chat commands that create persistent world state. The terminal already shows zones and checkpoints in the Zones tab with a hint "managed via admin commands." Adding CRUD actions to the terminal moves these into the Combine intelligence workflow where they belong; senior Combine can define sectors without console access.
 

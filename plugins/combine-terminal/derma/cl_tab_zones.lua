@@ -3,12 +3,47 @@
 --  CS_TabZones — Zones & Checkpoints tab
 -- ============================================================
 
+local function SendAction(action, data)
+    net.Start("CS_TerminalAction")
+        net.WriteString(action)
+        net.WriteString(util.TableToJSON(data))
+    net.SendToServer()
+end
 
 local function GetGridFromPos(pos)
     if type(pos) == "table" then
         return string.format("%d,%d", math.floor((pos.x or 0) / 512), math.floor((pos.y or 0) / 512))
     end
     return "N/A"
+end
+
+local function PaintEntry(s2, w, h)
+    local C = CS_TERM_COLORS
+    draw.RoundedBox(0, 0, 0, w, h, C.bg)
+    surface.SetDrawColor(C.borderDim)
+    surface.DrawOutlinedRect(0, 0, w, h, 1)
+    s2:DrawTextEntryText(C.text, C.highlight, C.textBright)
+end
+
+local function MakeManageBtn(parent, label, wide, doClick)
+    local btn = vgui.Create("DButton", parent)
+    btn:Dock(LEFT)
+    btn:SetWide(wide)
+    btn:DockMargin(0, 4, 4, 4)
+    btn:SetText("")
+    btn.DoClick = function()
+        surface.PlaySound("buttons/button15.wav")
+        doClick()
+    end
+    btn.Paint = function(s2, w, h)
+        local C = CS_TERM_COLORS
+        local bg = s2:IsHovered() and C.highlight or C.bgDark
+        draw.RoundedBox(0, 0, 0, w, h, bg)
+        surface.SetDrawColor(C.borderDim)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        draw.SimpleText(label, "CS_Small", w/2, h/2, C.text, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+    return btn
 end
 
 local PANEL = {}
@@ -20,8 +55,10 @@ function PANEL:Init() end
 
 function PANEL:Populate(data)
     self:Clear()
+    self.m_ZoneList       = nil
+    self.m_CheckpointList = nil
     local C = CS_TERM_COLORS
-    local zoneData = data and data.zones or {}
+    local zoneData    = data and data.zones or {}
     local zones       = zoneData.zones or {}
     local checkpoints = zoneData.checkpoints or {}
 
@@ -58,6 +95,7 @@ function PANEL:Populate(data)
                 GetGridFromPos(zone.pos),
                 tostring(zone.radius or 0) .. " units"
             )
+            row.m_Name = zone.name or "Unnamed"
             for _, col in pairs(row.Columns or {}) do col:SetTextColor(C.red); col:SetContentAlignment(5) end
             row.Paint = function(self2, w, h)
                 local C = CS_TERM_COLORS
@@ -67,6 +105,7 @@ function PANEL:Populate(data)
                 end
             end
         end
+        self.m_ZoneList = zList
     else
         local noZones = vgui.Create("DPanel", self)
         noZones:Dock(TOP)
@@ -75,6 +114,51 @@ function PANEL:Populate(data)
             local C = CS_TERM_COLORS
             draw.SimpleText("No restricted zones defined.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
+    end
+
+    -- Zone management (senior only)
+    if self.m_bSenior then
+        local zmRow = vgui.Create("DPanel", self)
+        zmRow:Dock(TOP)
+        zmRow:SetTall(32)
+        zmRow:DockMargin(0, 2, 0, 0)
+        zmRow.Paint = function(s2, w, h)
+            local C = CS_TERM_COLORS
+            draw.RoundedBox(0, 0, 0, w, h, C.bgDark)
+            draw.SimpleText("ZONE MGMT", "CS_Small", 6, h/2, C.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+
+        local zmName = vgui.Create("DTextEntry", zmRow)
+        zmName:Dock(LEFT)
+        zmName:SetWide(175)
+        zmName:DockMargin(80, 4, 4, 4)
+        zmName:SetFont("CS_Small")
+        zmName:SetPlaceholderText("ZONE NAME")
+        zmName.Paint = PaintEntry
+
+        local zmRad = vgui.Create("DTextEntry", zmRow)
+        zmRad:Dock(LEFT)
+        zmRad:SetWide(55)
+        zmRad:DockMargin(0, 4, 4, 4)
+        zmRad:SetFont("CS_Small")
+        zmRad:SetPlaceholderText("RADIUS")
+        zmRad.Paint = PaintEntry
+
+        MakeManageBtn(zmRow, "ADD ZONE", 90, function()
+            local name = string.Trim(zmName:GetValue())
+            local rad  = tonumber(zmRad:GetValue()) or 256
+            if name == "" then return end
+            SendAction("addZone", {name = name, radius = rad})
+        end)
+        MakeManageBtn(zmRow, "REMOVE SELECTED", 140, function()
+            if !self.m_ZoneList or !IsValid(self.m_ZoneList) then return end
+            local sel = self.m_ZoneList:GetSelected()
+            if !sel or #sel == 0 then return end
+            local row = sel[1]
+            if row and row.m_Name then
+                SendAction("removeZone", {name = row.m_Name})
+            end
+        end)
     end
 
     -- Spacer
@@ -116,6 +200,7 @@ function PANEL:Populate(data)
                 GetGridFromPos(cp.pos),
                 tostring(cp.radius or 0) .. " units"
             )
+            row.m_Name = cp.name or "Unnamed"
             for _, col in pairs(row.Columns or {}) do col:SetTextColor(C.border); col:SetContentAlignment(5) end
             row.Paint = function(self2, w, h)
                 local C = CS_TERM_COLORS
@@ -125,6 +210,7 @@ function PANEL:Populate(data)
                 end
             end
         end
+        self.m_CheckpointList = cpList
     else
         local noCP = vgui.Create("DPanel", self)
         noCP:Dock(TOP)
@@ -133,6 +219,51 @@ function PANEL:Populate(data)
             local C = CS_TERM_COLORS
             draw.SimpleText("No checkpoints defined.", "CS_Body", w/2, h/2, C.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
+    end
+
+    -- Checkpoint management (senior only)
+    if self.m_bSenior then
+        local cpMRow = vgui.Create("DPanel", self)
+        cpMRow:Dock(TOP)
+        cpMRow:SetTall(32)
+        cpMRow:DockMargin(0, 2, 0, 0)
+        cpMRow.Paint = function(s2, w, h)
+            local C = CS_TERM_COLORS
+            draw.RoundedBox(0, 0, 0, w, h, C.bgDark)
+            draw.SimpleText("CHECKPOINT MGMT", "CS_Small", 6, h/2, C.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+
+        local cpName = vgui.Create("DTextEntry", cpMRow)
+        cpName:Dock(LEFT)
+        cpName:SetWide(175)
+        cpName:DockMargin(110, 4, 4, 4)
+        cpName:SetFont("CS_Small")
+        cpName:SetPlaceholderText("CHECKPOINT NAME")
+        cpName.Paint = PaintEntry
+
+        local cpRad = vgui.Create("DTextEntry", cpMRow)
+        cpRad:Dock(LEFT)
+        cpRad:SetWide(55)
+        cpRad:DockMargin(0, 4, 4, 4)
+        cpRad:SetFont("CS_Small")
+        cpRad:SetPlaceholderText("RADIUS")
+        cpRad.Paint = PaintEntry
+
+        MakeManageBtn(cpMRow, "ADD CHECKPOINT", 115, function()
+            local name = string.Trim(cpName:GetValue())
+            local rad  = tonumber(cpRad:GetValue()) or 256
+            if name == "" then return end
+            SendAction("addCheckpoint", {name = name, radius = rad})
+        end)
+        MakeManageBtn(cpMRow, "REMOVE SELECTED", 140, function()
+            if !self.m_CheckpointList or !IsValid(self.m_CheckpointList) then return end
+            local sel = self.m_CheckpointList:GetSelected()
+            if !sel or #sel == 0 then return end
+            local row = sel[1]
+            if row and row.m_Name then
+                SendAction("removeCheckpoint", {name = row.m_Name})
+            end
+        end)
     end
 
     -- Spacer
@@ -206,13 +337,14 @@ function PANEL:Populate(data)
         end
     end
 
-    -- Admin hint
-    local hint = vgui.Create("DPanel", self)
-    hint:Dock(BOTTOM)
-    hint:SetTall(16)
-    hint.Paint = function(self2, w, h)
-        local C = CS_TERM_COLORS
-        draw.SimpleText("Zones and checkpoints are managed via admin commands.", "CS_Small", 4, h/2, C.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    if !self.m_bSenior then
+        local hint = vgui.Create("DPanel", self)
+        hint:Dock(BOTTOM)
+        hint:SetTall(16)
+        hint.Paint = function(self2, w, h)
+            local C = CS_TERM_COLORS
+            draw.SimpleText("Sector management is restricted to senior Combine officers.", "CS_Small", 4, h/2, C.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
     end
 end
 

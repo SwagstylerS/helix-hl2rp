@@ -662,6 +662,80 @@ net.Receive("CS_TerminalAction", function(len, ply)
                 cp:ChatPrint(dispatch)
             end
         end
+    elseif action == "addZone" then
+        if !IsSenior(ply) then
+            ply:Notify("Unauthorized.")
+        else
+            local name   = string.sub(tostring(data.name or ""), 1, 32)
+            local radius = math.Clamp(tonumber(data.radius) or 256, 64, 2048)
+            if name == "" then
+                ply:Notify("Zone name required.")
+            else
+                local zones = ix.data.Get("cs_zones", {})
+                local pos   = ply:GetPos()
+                zones[#zones + 1] = {pos = {x = pos.x, y = pos.y, z = pos.z}, radius = radius, name = name}
+                ix.data.Set("cs_zones", zones)
+                ply:Notify(string.format("Zone '%s' designated.", name))
+            end
+        end
+    elseif action == "removeZone" then
+        if !IsSenior(ply) then
+            ply:Notify("Unauthorized.")
+        else
+            local name  = tostring(data.name or "")
+            local zones = ix.data.Get("cs_zones", {})
+            local found = false
+            for i = #zones, 1, -1 do
+                if zones[i].name == name then
+                    table.remove(zones, i)
+                    found = true
+                    break
+                end
+            end
+            if found then
+                ix.data.Set("cs_zones", zones)
+                ply:Notify(string.format("Zone '%s' cleared.", name))
+            else
+                ply:Notify("Sector not found.")
+            end
+        end
+    elseif action == "addCheckpoint" then
+        if !IsSenior(ply) then
+            ply:Notify("Unauthorized.")
+        else
+            local name   = string.sub(tostring(data.name or ""), 1, 32)
+            local radius = math.Clamp(tonumber(data.radius) or 256, 64, 2048)
+            if name == "" then
+                ply:Notify("Checkpoint name required.")
+            else
+                local checkpoints = ix.data.Get("cs_checkpoints", {})
+                local pos = ply:GetPos()
+                checkpoints[#checkpoints + 1] = {pos = {x = pos.x, y = pos.y, z = pos.z}, radius = radius, name = name}
+                ix.data.Set("cs_checkpoints", checkpoints)
+                ply:Notify(string.format("Checkpoint '%s' established.", name))
+            end
+        end
+    elseif action == "removeCheckpoint" then
+        if !IsSenior(ply) then
+            ply:Notify("Unauthorized.")
+        else
+            local name = tostring(data.name or "")
+            local checkpoints = ix.data.Get("cs_checkpoints", {})
+            local found = false
+            for i = #checkpoints, 1, -1 do
+                if checkpoints[i].name == name then
+                    table.remove(checkpoints, i)
+                    found = true
+                    break
+                end
+            end
+            if found then
+                ix.data.Set("cs_checkpoints", checkpoints)
+                ply:Notify(string.format("Checkpoint '%s' cleared.", name))
+            else
+                ply:Notify("Checkpoint not found.")
+            end
+        end
     end
 
     local refresh = BuildFullPayload()
@@ -710,11 +784,7 @@ ix.command.Add("addrestrictedzone", {
     adminOnly   = true,
     arguments   = {ix.type.number, ix.type.string},
     OnRun = function(self, client, radius, name)
-        local zones = ix.data.Get("cs_zones", {})
-        local pos   = client:GetPos()
-        zones[#zones + 1] = {pos={x=pos.x, y=pos.y, z=pos.z}, radius=radius, name=name}
-        ix.data.Set("cs_zones", zones)
-        client:Notify(string.format("Zone '%s' added (radius %d).", name, radius))
+        return client:Notify("Manage sectors at the operations terminal.")
     end,
 })
 
@@ -722,18 +792,7 @@ ix.command.Add("removerestrictedzone", {
     description = "Remove the nearest restricted zone.",
     adminOnly   = true,
     OnRun = function(self, client)
-        local zones = ix.data.Get("cs_zones", {})
-        if #zones == 0 then return client:Notify("No zones defined.") end
-        local pos = client:GetPos()
-        local closestDist, closestIdx = math.huge, nil
-        for i, zone in ipairs(zones) do
-            local zpos = zone.pos
-            if type(zpos) == "table" then zpos = Vector(zpos.x or 0, zpos.y or 0, zpos.z or 0) end
-            local d = (pos - zpos):Length()
-            if d < closestDist then closestDist = d; closestIdx = i end
-        end
-        if closestIdx then table.remove(zones, closestIdx); ix.data.Set("cs_zones", zones) end
-        client:Notify("Nearest zone removed.")
+        return client:Notify("Manage sectors at the operations terminal.")
     end,
 })
 
@@ -742,11 +801,7 @@ ix.command.Add("addcheckpoint", {
     adminOnly   = true,
     arguments   = {ix.type.number, ix.type.string},
     OnRun = function(self, client, radius, name)
-        local checkpoints = ix.data.Get("cs_checkpoints", {})
-        local pos = client:GetPos()
-        checkpoints[#checkpoints + 1] = {pos={x=pos.x, y=pos.y, z=pos.z}, radius=radius, name=name}
-        ix.data.Set("cs_checkpoints", checkpoints)
-        client:Notify(string.format("Checkpoint '%s' added (radius %d).", name, radius))
+        return client:Notify("Manage sectors at the operations terminal.")
     end,
 })
 
@@ -754,18 +809,7 @@ ix.command.Add("removecheckpoint", {
     description = "Remove the nearest movement checkpoint.",
     adminOnly   = true,
     OnRun = function(self, client)
-        local checkpoints = ix.data.Get("cs_checkpoints", {})
-        if #checkpoints == 0 then return client:Notify("No checkpoints defined.") end
-        local pos = client:GetPos()
-        local closestDist, closestIdx = math.huge, nil
-        for i, cp in ipairs(checkpoints) do
-            local cpos = cp.pos
-            if type(cpos) == "table" then cpos = Vector(cpos.x or 0, cpos.y or 0, cpos.z or 0) end
-            local d = (pos - cpos):Length()
-            if d < closestDist then closestDist = d; closestIdx = i end
-        end
-        if closestIdx then table.remove(checkpoints, closestIdx); ix.data.Set("cs_checkpoints", checkpoints) end
-        client:Notify("Nearest checkpoint removed.")
+        return client:Notify("Manage sectors at the operations terminal.")
     end,
 })
 
