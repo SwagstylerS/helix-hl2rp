@@ -48,5 +48,7 @@ LANGUAGE = {
 	voices = "Voices",
 
 	pirateRadioOn = "Carrier signal acquired.",
-	pirateRadioOff = "No carrier signal."
+	pirateRadioOff = "No carrier signal.",
+
+	stashAccessed = "You find something useful tucked away."
 }

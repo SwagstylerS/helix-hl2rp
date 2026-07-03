@@ -181,6 +181,8 @@ local function AddHeat(sid, amount)
     end
 end
 
+CS.AddHeat = AddHeat
+
 local function GetRestrictedItems(client)
     local char = client:GetCharacter()
     if !char then return {} end

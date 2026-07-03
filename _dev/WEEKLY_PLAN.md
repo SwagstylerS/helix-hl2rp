@@ -137,7 +137,7 @@ Goals:
 ---
 
 ## Day 4 — Thu Jul 3 · Black Market Stash Entity (conditional)
-**Status:** Pending
+**Status:** ✅ Done
 
 **Pre-condition before writing any code:** Review `plugins/combine-terminal/sv_plugin.lua` and confirm `AddHeat` is exposed as `CS.AddHeat` (or expose it now). If this cannot be verified or the heat system has open UNTESTED entries that are unresolvable without live-server access, replace Day 4 with UNTESTED paydown: write specific in-server test procedures for the five highest-risk backlog entries (scanner flagging, heat-tier-alerts, curfew toggle, panic button, loyalty commendation) and commit them to `_dev/UNTESTED.md` as updated test notes.
 
