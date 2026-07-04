@@ -153,7 +153,7 @@ Goals:
 ---
 
 ## Day 5 — Fri Jul 4 · UNTESTED Paydown + Convention Gate
-**Status:** Pending
+**Status:** ✅ Done
 
 Convention check moves to Day 1 start (run `/helix-convention-check` before committing each day). Day 5 is dedicated to reducing the UNTESTED.md backlog, which grows with each sprint and must not continue unchecked.
 
@@ -163,6 +163,15 @@ Goals:
 - Confirm `"pirate_broadcast"` chat type sender is suppressed (citizens receive broadcast, Combine receive broadcast, neither sees the sender character name).
 - Verify all player-facing strings added this sprint are in-world voice (no numbers, no mechanic labels, no UI-tag prefixes).
 - If Day 4 was replaced by paydown work, document that substitution here so the black market stash defers cleanly to next sprint.
+
+## Automated session — Fri Jul 4
+All five sprint days confirmed ✅ Done. Sprint closed. Static verification pass completed:
+- `CS.AddHeat` exposure confirmed at `combine-terminal/sv_plugin.lua:184`.
+- Scanner `string.find` substring match confirmed: `cwu_radio` cannot match `pirate_radio` — false positive fix is mechanically sound.
+- `pirate_broadcast` sender suppression confirmed: `OnChatAdd` never passes speaker to `chat.AddText`.
+- All player-facing strings pass in-world voice check — no numbers, tier labels, or mechanic readouts.
+- UNTESTED.md annotated with static verification notes for three entries (Jun 25, Jun 30 pirate radio, Jul 3 black market stash). 38 total open entries — live-server QA is the critical next step before extending any of these systems.
+- Day 4 (black market stash) was completed normally, not substituted.
 
 ---
 
