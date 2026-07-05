@@ -235,7 +235,7 @@ After enabling `medicalInjuries 1` on the live server for the first time, observ
 ---
 
 ## Cooking & Hunger System (new `cooking` plugin)
-**Status:** Pending
+**Status:** ✅ Done (committed Jun 22 — all 5 phases implemented; UNTESTED entries track live-server verification)
 
 A full citizen survival loop: persistent hunger that drains over time, in-world environmental cues when hungry or starving (vignette + HP penalty — no numbers or bars), ingredient and cooked-food items, two cooking stations (fireplace for grilling, stove for pot-based cooking), and an active derma cooking minigame with six distinct interactions (stir, flip, season, skim, poke/probe, turn). Cook quality determines the output: good play yields the proper cooked dish; poor play yields a charred burnt variant with lower nutrition.
 
@@ -261,6 +261,9 @@ A full citizen survival loop: persistent hunger that drains over time, in-world 
 **Phase 5 — Polish** (complete):
 - `plugins/cooking/languages/sh_english.lua` — all strings filled (cookingBusy, cookingNoRecipes, cookingMissingIngredients, cookingDone, cookingBurnt, cookingHungry, cookingStarving).
 - Convention check passed: 0 blockers, 0 warnings.
+
+## Automated session — Sun Jul 5
+Weekend. No pending tasks. Cooking plugin "Status: Pending" corrected to ✅ Done (code committed Jun 22, all phases complete). Sprint for Week of Jun 30 – Jul 4 fully closed. Next sprint planning needed before Mon Jul 7 — 38 UNTESTED entries remain open and require live-server QA as the priority context for the next sprint goal. Cannot write a new sprint plan without council-review (per CLAUDE.md rule 3).
 
 ---
 
