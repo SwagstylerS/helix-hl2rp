@@ -160,6 +160,19 @@ if (SERVER) then
 		self.nextUseTime = CurTime() + 2
 	end
 
+	function ENT:PickLock(client)
+		self.pickCooldowns = self.pickCooldowns or {}
+		local sid = client:SteamID()
+
+		if (self.pickCooldowns[sid] and self.pickCooldowns[sid] > CurTime()) then
+			return
+		end
+
+		self.pickCooldowns[sid] = CurTime() + 30
+		self:SetLocked(false)
+		client:NotifyLocalized("lockpickSuccess")
+	end
+
 	function ENT:Use(client)
 		self:Toggle(client)
 	end

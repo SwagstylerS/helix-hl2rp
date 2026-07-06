@@ -50,5 +50,8 @@ LANGUAGE = {
 	pirateRadioOn = "Carrier signal acquired.",
 	pirateRadioOff = "No carrier signal.",
 
-	stashAccessed = "You find something useful tucked away."
+	stashAccessed = "You find something useful tucked away.",
+
+	lockpickNone = "Nothing here worth picking.",
+	lockpickSuccess = "The mechanism gives."
 }

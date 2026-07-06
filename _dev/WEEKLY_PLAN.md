@@ -7,7 +7,7 @@
 ---
 
 ## Day 1 — Mon Jul 7 · Lockpick Pick-Lock Mechanic
-**Status:** Pending
+**Status:** ✅ Done
 
 **Pre-Day-1 gate (before any code):** Open `_dev/UNTESTED.md`; list every entry that mentions heat, loyalty, scanner, or Combine response. Note those entry titles explicitly. This is a CLAUDE.md-required check; the lockpick design must be written with those known unknowns visible.
 
@@ -70,6 +70,16 @@ Goals:
 
 ## Automated session — Sun Jul 6
 Sprint plan written for Week of Jul 7–11. Council verdict captured above. 38 UNTESTED entries remain open from prior sprints; live-server QA by the server owner is the only path to reducing that count. Days 3–4 of this sprint are dedicated to producing the ordered test procedures that make that QA session as efficient as possible.
+
+## Automated session — Mon Jul 6
+Pre-Day-1 gate completed. UNTESTED entries touching heat/scanner/surveillance noted: Jun 23 injury→heat (unverified), Jun 25 scanner flag fix (static confirmed), Jun 28 heat tier 4 alert (unverified), Jun 28 heat decay (unverified), Jul 3 black market stash + CS.AddHeat (static confirmed at sv_plugin.lua:184).
+
+Day 1 implemented. Lockpick pick-lock mechanic complete:
+- `schema/items/contraband/sh_lockpick.lua` — `ITEM.functions.Use.OnRun`: eye trace finds `ix_combinelock` within 96 units; 60% success → `PickLock` + heat 15; 20% noise-fail → locked sound + heat 15; 20% quiet-fail → soft click, no heat.
+- `entities/entities/ix_combinelock.lua` — `ENT:PickLock(client)`: per-player 30s cooldown, `SetLocked(false)` (triggers `OnLockChanged` → sound + door unlock), `NotifyLocalized("lockpickSuccess")`.
+- `schema/languages/sh_english.lua` — Added `lockpickNone` and `lockpickSuccess`.
+- Plan's two-step netstream skipped (ponytail) — all logic is server-side, no async user input needed.
+- UNTESTED entry appended.
 
 ---
 
