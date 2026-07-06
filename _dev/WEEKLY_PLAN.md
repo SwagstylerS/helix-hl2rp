@@ -1,4 +1,79 @@
 # Weekly Development Plan
+**Week of Jul 7 – Jul 11, 2026**
+**Goal:** Complete the lockpick pick-lock mechanic (the last unimplemented DIRECTION.md mechanic, Pillar 5 dual-use tension), add a proper `ix_scanner_charger` spawnable entity to close the battery-gate loop (Pillar 1), and dedicate Days 3–4 to generating concrete live-test checklists for the human server owner — the only action that can ultimately reduce the 38-entry UNTESTED backlog.
+
+**Council verdict (Jul 6):** Approved with four mandatory modifications. (1) Heat must trigger on successful pick and noise-generating failures only — zero heat for quiet failed attempts; heat-on-all-attempts inverts Pillar 5 risk/reward so lock-picking is never used. (2) Scanner charger must cross Lua contexts via netstream.Hook, not raw CS.* table exposure — raw exposure corrupts the single-charger invariant in a 166-file codebase. (3) Days 3–4 must be labeled "live-test checklist generation," not "verification" — static sessions cannot retire UNTESTED entries (only a human on a live server can); these days produce test scenarios and ordered QA procedures, not executable guarantees. (4) Pre-Day-1 mandatory gate: open `_dev/UNTESTED.md`, identify every entry touching heat / scanner / surveillance, and note those entries explicitly before writing any lockpick code.
+
+---
+
+## Day 1 — Mon Jul 7 · Lockpick Pick-Lock Mechanic
+**Status:** Pending
+
+**Pre-Day-1 gate (before any code):** Open `_dev/UNTESTED.md`; list every entry that mentions heat, loyalty, scanner, or Combine response. Note those entry titles explicitly. This is a CLAUDE.md-required check; the lockpick design must be written with those known unknowns visible.
+
+Goals:
+- `schema/items/contraband/sh_lockpick.lua` — Add `ITEM.functions.Use`: server `OnRun` traces for `ix_combinelock` within 96 units via `client:GetEyeTrace()`; if none found, `client:NotifyLocalized("lockpickNone")`; else `netstream.Start(client, "LockpickUse", {entIndex = lock:EntIndex()})`. Return false.
+- `schema/sv_schema.lua` (or `schema/sv_plugin.lua`) — `netstream.Hook("LockpickUse", function(client, data) ... end)`: validate `client:HasItem("lockpick")`, validate entity by `ents.GetByIndex(data.entIndex)` is `ix_combinelock` + locked + within 96 units. Roll success (`math.random() < 0.6`). On success: call `lock:PickLock(client)`, add heat via `if CS and CS.AddHeat then CS.AddHeat(sid, 15) end`. On noise-failure (pick breaks): play `buttons/combine_button_locked.wav` on the lock entity, add heat same way. On quiet failure: play a soft click sound only, **no heat increment** — a failed pick produces no detectable engagement for Combine surveillance.
+- `entities/entities/ix_combinelock.lua` — Add `ENT:PickLock(client)`: `self:EmitSound("buttons/combine_button7.wav")`, `self.door:Fire("unlock")`, `self.doorPartner` unlock if valid, `client:NotifyLocalized("lockpickSuccess")`; per-player-per-lock cooldown 30 s via `self.pickCooldowns = self.pickCooldowns or {}`.
+- `schema/languages/sh_english.lua` — Add `lockpickNone = "Nothing here worth picking."`, `lockpickSuccess = "The mechanism gives."`.
+- Append UNTESTED entry for lockpick pick-lock mechanic (specific scenario: admin-spawn `ix_combinelock` on a door; citizen with lockpick presses E at lock; verify success/failure sounds; verify heat only increments on success or noisy failure; verify no heat on quiet failure; verify Combine terminal heat tier updates).
+
+---
+
+## Day 2 — Tue Jul 8 · Scanner Charger Entity
+**Status:** Pending
+
+Goals:
+- `plugins/combine-scanner/sv_plugin.lua` — Add a `netstream.Hook("ScannerChargerUse", function(client, data) ... end)` handler: gate `IsCombine(client)`, validate `data.entIndex` resolves to a live entity within 96 units, recharge battery to `CFG.BatteryMax` via `SetBattery(client, CFG.BatteryMax)`, emit `CS_BatterySync`. This is the only path into `AttachChargerUse`-equivalent logic from an external entity — no raw CS.* exposure. Expose `CS.ChargerEntIndex` (the entity index of the current charger) as a read-only convenience for `SyncCharger` lookups; this carries no invariant-critical write surface.
+- `plugins/combine-scanner/entities/entities/ix_scanner_charger.lua` — New entity. `ENT.Category = "HL2 RP"`, `AdminOnly = true`, `PhysgunDisable = true`. Model: `models/props_combine/combine_charger001.mdl`. Server `Initialize`: `SetUseType(SIMPLE_USE)`, `SetModel(...)`, `PhysicsInit(SOLID_VPHYSICS)`. `ENT:SpawnFunction`: spawn entity at trace hit + 8 z; call `PLUGIN:SaveScannerCharger(entity)` after `Activate()`. `ENT:Use(client)`: gate `!IsCombine(client)` → `EmitSound("buttons/combine_button_locked.wav")`; else `netstream.Start(client, "ScannerChargerUse", {entIndex = self:EntIndex()})`. `ENT:OnRemove`: `PLUGIN:SaveScannerCharger(nil)` if not `ix.shuttingDown`.
+- `plugins/combine-scanner/sv_plugin.lua` — Add `PLUGIN:SaveScannerCharger(ent)` (persists `{pos, ang}` via `ix.data.Set("cs_charger_" .. game.GetMap(), ...)` or nil if ent is nil). Wire load into the existing `InitPostEntity` hook — replace the existing `SpawnFrozenProp` path with `ents.Create("ix_scanner_charger")` at the saved position. Deprecate `/makerecharger`: replace `OnRun` with `client:Notify("Use the mounted scanner charger.")` and return.
+- Client `ENT:Draw`: 3D2D `"SCANNER CHARGE"` label within 200 units; green when idle, amber pulse when a Combine player is within 96 units.
+- Append UNTESTED entry (scenario: admin-spawn `ix_scanner_charger`; Combine officer presses E → confirm battery recharges to max; non-Combine presses E → locked sound; verify entity position saves and reloads on map restart; run `/makerecharger` → confirm redirect fires).
+
+---
+
+## Day 3 — Wed Jul 9 · Live-Test Checklist Triage
+**Status:** Pending
+
+**Note:** This day produces test scenarios for the human server owner. It does not retire any UNTESTED entries — only a human with a live running server can do that. Do not label this as "verification."
+
+Goals:
+- Open `_dev/UNTESTED.md`; identify the 5–8 entries that are dependencies or close neighbors of the lockpick and charger systems: at minimum, the heat decay timer (Jun 28), heat tier 4 alert (Jun 28), scanner item flagging (Jun 25), injury→heat scanner integration (Jun 23), black market stash + CS.AddHeat (Jul 3). These are the entries where a bug would silently corrupt the Day 1–2 features.
+- For each of those 5–8 entries, expand the "What to verify" field from a single sentence to a numbered step procedure: step 1 is setup (server state), steps 2–N are actions, final step is the pass/fail criterion. The procedure must be executable by a non-developer reading the table for the first time.
+- Add a `Priority` column to the UNTESTED.md table: P1 (blocks further development — a bug here silently breaks new features), P2 (player-facing loop completeness — players notice the gap), P3 (polish / edge case). Assign P1/P2/P3 to all 38 + 2 new entries. The Day 1–2 UNTESTED entries are P1.
+- Do not attempt to retire any entry. Do not write "statically confirmed" unless the logic is trivially verifiable from code alone (e.g., CS.AddHeat exposure at line 184 — already confirmed Jun 4).
+
+---
+
+## Day 4 — Thu Jul 10 · UNTESTED Entry Quality Pass
+**Status:** Pending
+
+Goals:
+- For every UNTESTED entry not covered in Day 3's deep-dive, upgrade the "What to verify" field to at least two sentences: one stating the action, one stating the observable outcome (what the tester sees/hears/reads that constitutes a pass).
+- Identify any entry whose referenced file has been significantly changed since the entry was written — note the discrepancy. Example: if `combine-terminal/sv_plugin.lua` was modified after the Jun 23 "detain via terminal" entry was created, note the line numbers that changed and whether the test procedure still reflects them.
+- Produce a single prioritised QA order at the bottom of `_dev/UNTESTED.md`: "Run these first on live server" — the ordered list of P1 entries, arranged so that earlier entries validate the infrastructure that later entries depend on (e.g., heat decay before heat tier 4 alert before lockpick).
+- If any entry describes a feature that was later superseded or removed (check git log), mark it `[SUPERSEDED]` in the Priority column and note the commit that replaced it.
+
+---
+
+## Day 5 — Fri Jul 11 · Convention Gate + Sprint Close
+**Status:** Pending
+
+Goals:
+- Run `/helix-convention-check` on all diffs from Days 1–2 (lockpick item, sv_schema hook, combinelock entity, scanner charger entity, sv_plugin changes).
+- Verify all new player-facing strings are in-world voice: `lockpickNone`, `lockpickSuccess`, and the 3D2D charger label must contain no mechanic labels, no numbers, no cooldown text.
+- Confirm heat increment calls in the lockpick server handler appear only in the success branch and the noise-failure branch — search for `AddHeat` in the Day 1 code; it must not appear in the quiet-failure path.
+- Confirm `CS\.` raw table access does not appear in `ix_scanner_charger.lua` or the `ScannerChargerUse` netstream handler — all charger state transitions cross contexts through netstream only.
+- Commit final cleanups; UNTESTED.md is already updated from Days 1–4.
+
+---
+
+## Automated session — Sun Jul 6
+Sprint plan written for Week of Jul 7–11. Council verdict captured above. 38 UNTESTED entries remain open from prior sprints; live-server QA by the server owner is the only path to reducing that count. Days 3–4 of this sprint are dedicated to producing the ordered test procedures that make that QA session as efficient as possible.
+
+---
+
+# Weekly Development Plan
 **Week of Jun 23 – Jun 27, 2026**
 **Goal:** Close the three CONVENTIONS.md "Existing debt" items (detain/release, curfew, panic button) by reworking them into entity/terminal interactions; add Commerce loyalty for vendor restocking; fix scanner false-positive on authorized CWU radios.
 
