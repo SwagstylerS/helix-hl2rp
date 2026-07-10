@@ -159,36 +159,11 @@ local function SendQuotaSync(client)
     net.Send(client)
 end
 
-local function SpawnFrozenProp(model, pos, ang)
-    local ent = ents.Create("prop_dynamic")
-    ent:SetModel(model)
-    ent:SetPos(pos)
-    ent:SetAngles(ang)
-    ent:Spawn()
-    ent:SetMoveType(MOVETYPE_NONE)
-    return ent
-end
-
 -- ============================================================
 --  CHARGER ENTITY
 -- ============================================================
-local function AttachChargerUse(ent)
-    ent:SetUseType(SIMPLE_USE)
-    CS._ChargerEnt = ent
-end
-
 local function GetChargerMapKey()
     return "cs_charger_" .. game.GetMap()
-end
-
-local function SaveCharger()
-    if IsValid(CS._ChargerEnt) then
-        ix.data.Set(GetChargerMapKey(), {
-            model = CS._ChargerEnt:GetModel(),
-            pos   = CS._ChargerEnt:GetPos(),
-            ang   = CS._ChargerEnt:GetAngles(),
-        })
-    end
 end
 
 local function SyncCharger(target)
@@ -210,7 +185,41 @@ local function SyncChargerToAllCombine()
     if #targets > 0 then SyncCharger(targets) end
 end
 
+CS.SyncChargerToAll = SyncChargerToAllCombine
+
+CS.HandleChargerUse = function(client, entIndex)
+    if !IsValid(client) or !IsCombine(client) then return end
+    local ent = ents.GetByIndex(entIndex)
+    if !IsValid(ent) or ent:GetClass() != "ix_scanner_charger" then return end
+    if (client:GetPos() - ent:GetPos()):Length() > CFG.ChargerDist then
+        SendDeny(client, "TOO FAR FROM CHARGING UNIT")
+        return
+    end
+    if GetBattery(client) >= CFG.BatteryMax then
+        client:Notify("Power cell at maximum capacity.")
+        return
+    end
+    local sid = client:SteamID()
+    if CS.Recharging[sid] then
+        client:Notify("Recharge cycle active.")
+        return
+    end
+    CS.Recharging[sid] = true
+    local startPos = client:GetPos()
+    client:Notify("Recharging... do not move.")
+    timer.Simple(CFG.BatteryChargeTime, function()
+        CS.Recharging[sid] = nil
+        if !IsValid(client) then return end
+        if (client:GetPos() - startPos):Length() > CFG.ChargerMoveLimit then
+            return SendDeny(client, "RECHARGE CANCELLED: MOVEMENT DETECTED")
+        end
+        SetBattery(client, CFG.BatteryMax)
+        client:Notify("Scanner fully recharged.")
+    end)
+end
+
 hook.Add("PlayerUse", "CS_Scanner_ChargerUse", function(ply, ent)
+    if ent:GetClass() == "ix_scanner_charger" then return end
     if ent == CS._ChargerEnt or ent:GetName() == CFG.ChargerName then
         if !IsCombine(ply) then return false end
         if (ply:GetPos() - ent:GetPos()):Length() > CFG.ChargerDist then
@@ -259,13 +268,18 @@ hook.Add("InitPostEntity", "CS_Scanner_PropRespawn", function()
     timer.Simple(3, function()
         local data = ix.data.Get(GetChargerMapKey(), nil)
         if !data then return end
-        local ok, ent = pcall(SpawnFrozenProp, data.model, data.pos, data.ang)
-        if ok and IsValid(ent) then
-            AttachChargerUse(ent)
-            SyncChargerToAllCombine()
-        else
+        local pos = Vector(data.pos.x, data.pos.y, data.pos.z)
+        local ang = Angle(data.ang.p, data.ang.y, data.ang.r)
+        local ent = ents.Create("ix_scanner_charger")
+        if !IsValid(ent) then
             CS._ChargerRespawnFailed = true
+            return
         end
+        ent:SetPos(pos)
+        ent:SetAngles(ang)
+        ent:Spawn()
+        ent:Activate()
+        SyncChargerToAllCombine()
     end)
 end)
 
@@ -273,7 +287,7 @@ hook.Add("PlayerInitialSpawn", "CS_Scanner_RespawnFailNotify", function(client)
     timer.Simple(3, function()
         if !IsValid(client) or !client:IsAdmin() then return end
         if CS._ChargerRespawnFailed then
-            client:Notify("[CS] WARNING: Charger failed to respawn. Use /makerecharger to reset.")
+            client:Notify("[CS] WARNING: Charger failed to respawn. Spawn an ix_scanner_charger from the admin menu.")
         end
     end)
 end)
@@ -306,13 +320,7 @@ ix.command.Add("makerecharger", {
     description = "Set the aimed prop as the scanner charger.",
     adminOnly   = true,
     OnRun = function(self, client)
-        local ent = client:GetEyeTrace().Entity
-        if !IsValid(ent) then return client:Notify("No entity in eyetrace.") end
-        if IsValid(CS._ChargerEnt) then CS._ChargerEnt:Remove() end
-        AttachChargerUse(ent)
-        SaveCharger()
-        client:Notify("Scanner charger set.")
-        SyncChargerToAllCombine()
+        client:Notify("Spawn an ix_scanner_charger from the admin spawn menu.")
     end,
 })
 
